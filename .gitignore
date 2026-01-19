@@ -39,3 +39,20 @@
 
 # debug information files
 *.dwo
+
+# Custom
+
+.conan2/
+.venv/
+.vs/
+.vscode/
+.idea/
+bin/
+out/
+build/
+cmake-build-*/
+
+build.sh
+build.bat
+CMakeUserPresets.json
+cpp.hint
