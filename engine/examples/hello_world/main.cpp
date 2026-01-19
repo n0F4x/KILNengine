@@ -1,6 +1,6 @@
 import kiln;
 
-int main()
+auto main() -> int
 {
     kiln::hello();
 }

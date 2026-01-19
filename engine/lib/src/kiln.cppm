@@ -6,7 +6,7 @@ export module kiln;
 
 namespace kiln {
 
-export void hello()
+export auto hello() -> void
 {
     fmt::println("Hello KILN!");
 }
