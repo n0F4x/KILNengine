@@ -11,4 +11,4 @@ export void hello()
     fmt::println("Hello KILN!");
 }
 
-}
+}   // namespace kiln
