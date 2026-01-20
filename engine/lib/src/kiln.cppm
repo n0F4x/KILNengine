@@ -4,6 +4,8 @@ module;
 
 export module kiln;
 
+export import kiln.util;
+
 namespace kiln {
 
 export auto hello() -> void

@@ -11,6 +11,7 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 
 if (${MSVC})
     target_compile_options(${PROJECT_NAME} PUBLIC
+            /Zc:preprocessor
             /utf-8  # MSVC modules need this to be compatible with regular implementation units
     )
 endif ()
