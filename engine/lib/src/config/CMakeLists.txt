@@ -1,10 +1,9 @@
-add_subdirectory(config)
-add_subdirectory(util)
-
 target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET public_cxx_modules
         TYPE CXX_MODULES
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
-        kiln.cppm
+        config.cppm
+        engine_name.ixx
+        engine_version.ixx
 )
