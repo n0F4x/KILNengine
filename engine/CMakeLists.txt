@@ -31,6 +31,7 @@ add_compile_options(
         /w14906
         /w14928
         /permissive-
+        /utf-8  # MSVC modules need this to be compatible with regular implementation units
 )
 
 
