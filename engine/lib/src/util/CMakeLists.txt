@@ -16,6 +16,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         util.cppm
         Any.ixx
         Deallocator.ixx
+        OptionalRef.ixx
         contracts.ixx
         reflection.ixx
         type_traits.ixx
