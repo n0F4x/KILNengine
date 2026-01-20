@@ -1,6 +1,8 @@
+#include <print>
+
 import kiln;
 
 auto main() -> int
 {
-    kiln::hello();
+    std::println("Hello {}!", kiln::config::engine_name());
 }

@@ -19,5 +19,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         OptionalRef.ixx
         contracts.ixx
         reflection.ixx
+        StringLiteral.ixx
         type_traits.ixx
 )

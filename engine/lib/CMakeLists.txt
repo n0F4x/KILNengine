@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 4.1)
 
 project(engine VERSION 0.0.0)
 
+set(project_prefix KILN_)
+
 
 add_library(${PROJECT_NAME})
 add_library(kiln::engine ALIAS ${PROJECT_NAME})
@@ -15,6 +17,12 @@ if (${MSVC})
             /utf-8  # MSVC modules need this to be compatible with regular implementation units
     )
 endif ()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+        ${project_prefix}VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
+        ${project_prefix}VERSION_MINOR=${PROJECT_VERSION_MINOR}
+        ${project_prefix}VERSION_PATCH=${PROJECT_VERSION_PATCH}
+)
 
 
 include(cmake/dependencies.cmake)
