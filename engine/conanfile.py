@@ -46,9 +46,10 @@ class DataDrivenGameEngineRecipe(ConanFile):
     def validate(self):
         check_min_cppstd(self, "23")
 
+        supported_msvc_version = 195
         if (self.settings.compiler != "msvc"
-                or self.settings.compiler.version != 195):
-            raise ConanInvalidConfiguration("Only MSVC with version 195 is supported")
+                or self.settings.compiler.version != supported_msvc_version):
+            raise ConanInvalidConfiguration(f"Only MSVC with version {supported_msvc_version} is supported")
 
         if self.conf.get("tools.cmake.cmaketoolchain:generator") != "Ninja":
             raise ConanInvalidConfiguration("Only Ninja is supported as a generator")
