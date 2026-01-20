@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.1)
 
-project(kiln-master)
+project(kiln)
 
 set(project_prefix KILN_)
 

@@ -29,7 +29,6 @@ class DataDrivenGameEngineRecipe(ConanFile):
     implements = ["auto_shared_fpic"]
     exports_sources = (
         "lib/*",
-        "CMakeLists.txt",
     )
 
     @property
