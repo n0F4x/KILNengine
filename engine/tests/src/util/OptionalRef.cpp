@@ -3,7 +3,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-import kiln.util.OptionalRef;
+#include "kiln/util/OptionalRef.hpp"
 
 TEST_CASE("util::OptionalRef")
 {

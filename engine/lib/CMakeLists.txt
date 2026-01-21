@@ -33,7 +33,7 @@ add_subdirectory(src)
 
 install(TARGETS ${PROJECT_NAME}
         EXPORT kilnTargets
-        FILE_SET public_headers FILE_SET public_cxx_modules
+        FILE_SET HEADERS
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 install(EXPORT kilnTargets

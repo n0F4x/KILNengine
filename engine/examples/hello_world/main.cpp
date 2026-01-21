@@ -1,6 +1,6 @@
 #include <print>
 
-import kiln;
+#include <kiln.hpp>
 
 auto main() -> int
 {

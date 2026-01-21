@@ -6,7 +6,7 @@ endif ()
 
 # fmt
 find_package(fmt CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 
 # tsl-ordered_map
 find_package(tsl-ordered-map CONFIG REQUIRED)
