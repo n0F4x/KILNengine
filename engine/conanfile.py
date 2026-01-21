@@ -69,7 +69,6 @@ class DataDrivenGameEngineRecipe(ConanFile):
 
     def requirements(self):
         self.requires("fmt/12.1.0", transitive_headers=True)
-        self.requires("tsl-ordered-map/1.1.0", transitive_headers=True)
 
         if self._enable_tests:
             self.test_requires("catch2/3.12.0")

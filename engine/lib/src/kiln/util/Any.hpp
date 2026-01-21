@@ -11,11 +11,18 @@
 #include <utility>
 #include <variant>
 
-#include "kiln/util/concepts.hpp"
+#include "kiln/util/concepts/decayed.hpp"
+#include "kiln/util/concepts/lvalue_reference.hpp"
+#include "kiln/util/concepts/nothrow_movable.hpp"
+#include "kiln/util/concepts/preserves_const.hpp"
+#include "kiln/util/concepts/specialization_of.hpp"
+#include "kiln/util/concepts/storable.hpp"
 #include "kiln/util/contract_macros.hpp"
 #include "kiln/util/Deallocator.hpp"
+#include "kiln/util/Dummy.hpp"
 #include "kiln/util/reflection.hpp"
-#include "kiln/util/type_traits.hpp"
+#include "kiln/util/type_traits/always_true.hpp"
+#include "kiln/util/type_traits/forward_like.hpp"
 
 namespace kiln::util {
 
@@ -32,7 +39,7 @@ template <std::size_t size_T, std::size_t alignment_T>
 using storage_t = std::variant<SmallBuffer<size_T, alignment_T>, void*>;
 
 template <std::size_t size_T, std::size_t alignment_T>
-struct Operations {
+struct VTable {
     using Storage = storage_t<size_T, alignment_T>;
 
     using CopyFunc       = auto (*)(Storage& out, const Storage& storage) -> void;
@@ -52,30 +59,58 @@ struct Operations {
 
 class AnyBase {};
 
-template <typename T>
-using PermissiveConceptPolicy = always_true<T>;
-
 }   // namespace internal
-
-struct AnyProperties {
-    bool move_only{};
-
-    template <typename T>
-    [[nodiscard]]
-    constexpr auto satisfied() const noexcept -> bool
-    {
-        return storable_c<T> && move_only ? true : std::copy_constructible<T>;
-    }
-};
 
 template <typename T>
 concept any_c = std::derived_from<T, internal::AnyBase>;
 
 template <typename T>
-concept copyable_any_c = any_c<T> && (!T::is_move_only());
+concept any_traits_c = requires {
+    typename T::ExtraVTable;
+    decayed_c<typename T::ExtraVTable>;
+    { T::is_move_only() } -> std::convertible_to<bool>;
+    { T::template meets_custom_requirements<Dummy>() } -> std::convertible_to<bool>;
+    {
+        T::template extra_vtable<Dummy>()
+    }
+    -> std::same_as<std::add_lvalue_reference_t<std::add_const_t<typename T::ExtraVTable>>>;
+};
 
-template <typename T>
-concept move_only_any_c = any_c<T> && (T::is_move_only());
+struct DefaultAnyExtraVTable {};
+
+template <typename>
+struct DefaultAnyExtraVTableOperations {
+    constexpr static DefaultAnyExtraVTable vtable;
+};
+
+template <
+    bool is_move_only_T    = false,
+    typename ExtraVTable_T = DefaultAnyExtraVTable,
+    template <typename> typename ExtraVTableOperations_T = DefaultAnyExtraVTableOperations,
+    template <typename> typename Policy_T = always_true>
+struct DefaultAnyTraits {
+    using ExtraVTable = ExtraVTable_T;
+
+    [[nodiscard]]
+    consteval static auto is_move_only() noexcept -> bool
+    {
+        return is_move_only_T;
+    }
+
+    template <typename T>
+    [[nodiscard]]
+    consteval static auto meets_custom_requirements() noexcept -> bool
+    {
+        return Policy_T<T>::value;
+    }
+
+    template <typename T>
+    [[nodiscard]]
+    constexpr static auto extra_vtable() noexcept -> const ExtraVTable&
+    {
+        return ExtraVTableOperations_T<T>::vtable;
+    }
+};
 
 template <typename T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
@@ -93,15 +128,14 @@ template <lvalue_reference_c T, typename Any_T>
 auto reinterpret_any_cast(Any_T& any) -> T;
 
 template <
-    AnyProperties properties_T                   = {},
-    template <typename> typename ConceptPolicy_T = internal::PermissiveConceptPolicy,
-    std::size_t size_T                           = 3 * sizeof(void*),
-    std::size_t alignment_T                      = sizeof(void*)>
+    any_traits_c Traits_T    = DefaultAnyTraits<>,
+    std::size_t  size_T      = 3 * sizeof(void*),
+    std::size_t  alignment_T = sizeof(void*)>
 class BasicAny : public internal::AnyBase {
 public:
-    constexpr static AnyProperties properties{ properties_T };
-    constexpr static std::size_t   size{ size_T };
-    constexpr static std::size_t   alignment{ alignment_T };
+    using Traits = Traits_T;
+    constexpr static std::size_t size{ size_T };
+    constexpr static std::size_t alignment{ alignment_T };
 
     consteval static auto is_move_only() -> bool;
     template <typename T>
@@ -109,7 +143,7 @@ public:
 
 
     constexpr BasicAny(const BasicAny&)
-        requires(!properties_T.move_only);
+        requires(!is_move_only());
     constexpr BasicAny(BasicAny&&) noexcept;
     constexpr ~BasicAny();
 
@@ -127,7 +161,7 @@ public:
 
 
     auto operator=(const BasicAny&) -> BasicAny&
-        requires(!properties_T.move_only);
+        requires(!is_move_only());
     auto operator=(BasicAny&&) noexcept -> BasicAny&;
 
 
@@ -147,11 +181,16 @@ public:
     friend auto reinterpret_any_cast(Any_T& any) -> T;
 
 
+protected:
+    [[nodiscard]]
+    auto extra_vtable() const -> const Traits::ExtraVTable&;
+
 private:
     using Storage = internal::storage_t<size_T, alignment_T>;
 
-    const internal::Operations<size_T, alignment_T>* m_operations;
-    Storage m_storage{ std::in_place_type<void*> };
+    const internal::VTable<size_T, alignment_T>* m_vtable;
+    Storage                                      m_storage{ std::in_place_type<void*> };
+    const Traits::ExtraVTable*                   m_extra_vtable;
 
     auto reset() -> void;
 };
@@ -159,15 +198,20 @@ private:
 using Any = BasicAny<>;
 
 template <std::size_t size_T = 3 * sizeof(void*), std::size_t alignment_T = sizeof(void*)>
-using BasicCopyableAny = BasicAny<{}, always_true, size_T, alignment_T>;
+using BasicCopyableAny = BasicAny<DefaultAnyTraits<>, size_T, alignment_T>;
 
 using CopyableAny = BasicCopyableAny<>;
 
+template <typename T>
+concept copyable_any_c = any_c<T> && (!T::is_move_only());
+
 template <std::size_t size_T = 3 * sizeof(void*), std::size_t alignment_T = sizeof(void*)>
-using BasicMoveOnlyAny =
-    BasicAny<AnyProperties{ .move_only = true }, always_true, size_T, alignment_T>;
+using BasicMoveOnlyAny = BasicAny<DefaultAnyTraits<true>, size_T, alignment_T>;
 
 using MoveOnlyAny = BasicMoveOnlyAny<>;
+
+template <typename T>
+concept move_only_any_c = any_c<T> && (T::is_move_only());
 
 }   // namespace kiln::util
 
@@ -182,31 +226,31 @@ concept small_c = sizeof(T) <= size_T && alignment_T % alignof(T) == 0
 template <typename T, std::size_t size_T, std::size_t alignment_T>
 concept large_c = !small_c<T, size_T, alignment_T>;
 
-template <typename T, AnyProperties properties_T, std::size_t size_T, std::size_t alignment_T>
-struct Traits;
+template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+struct Operations;
 
-template <typename Traits_T, AnyProperties properties_T>
-struct TraitsFunctionSelector {
+template <typename Operations_T, any_traits_c Traits_T>
+struct OperationSelector {
     [[nodiscard]]
     consteval static auto select_copy_function()
     {
-        if constexpr (properties_T.move_only)
+        if constexpr (Traits_T::is_move_only())
         {
             return nullptr;
         }
         else
         {
-            return &Traits_T::copy;
+            return &Operations_T::copy;
         }
     }
 };
 
-template <typename T, AnyProperties properties_T, std::size_t size_T, std::size_t alignment_T>
+template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
     requires small_c<T, size_T, alignment_T>
-struct Traits<T, properties_T, size_T, alignment_T> {
+struct Operations<T, Traits_T, size_T, alignment_T> {
     using Storage     = storage_t<size_T, alignment_T>;
     using SmallBuffer = SmallBuffer<size_T, alignment_T>;
-    using Operations  = Operations<size_T, alignment_T>;
+    using VTable      = VTable<size_T, alignment_T>;
 
     template <typename... Args_T>
     static auto create(Storage& out, Args_T&&... args) -> void
@@ -215,7 +259,7 @@ struct Traits<T, properties_T, size_T, alignment_T> {
     }
 
     static auto copy(Storage& out, const Storage& storage) -> void
-        requires(!properties_T.move_only)
+        requires(!Traits_T::is_move_only())
     {
         return create_impl(out, *static_cast<const T*>(voidify(storage)));
     }
@@ -275,13 +319,13 @@ struct Traits<T, properties_T, size_T, alignment_T> {
         return static_cast<const void*>(buffer_ptr->data.data());
     }
 
-    constexpr static Operations s_operations{
-        .copy = TraitsFunctionSelector<Traits, properties_T>::select_copy_function(),
-        .move = move,
-        .drop = drop,
+    constexpr static VTable vtable{
+        .copy        = OperationSelector<Operations, Traits_T>::select_copy_function(),
+        .move        = move,
+        .drop        = drop,
         .types_match = types_match,
         .type_name   = type_name,
-        .voidify     = static_cast<Operations::VoidifyFunc>(voidify),
+        .voidify     = static_cast<VTable::VoidifyFunc>(voidify),
     };
 
 private:
@@ -296,12 +340,12 @@ private:
     }
 };
 
-template <typename T, AnyProperties properties_T, std::size_t size_T, std::size_t alignment_T>
+template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
     requires large_c<T, size_T, alignment_T>
-struct Traits<T, properties_T, size_T, alignment_T> {
-    using Storage    = storage_t<size_T, alignment_T>;
-    using Operations = Operations<size_T, alignment_T>;
-    using Allocator  = std::allocator<T>;
+struct Operations<T, Traits_T, size_T, alignment_T> {
+    using Storage   = storage_t<size_T, alignment_T>;
+    using VTable    = VTable<size_T, alignment_T>;
+    using Allocator = std::allocator<T>;
 
     template <typename... Args_T>
     static auto create(Storage& out, Args_T&&... args) -> void
@@ -319,7 +363,7 @@ struct Traits<T, properties_T, size_T, alignment_T> {
     }
 
     static auto copy(Storage& out, const Storage& storage) -> void
-        requires(!properties_T.move_only)
+        requires(!Traits_T::is_move_only())
     {
         return create(out, *static_cast<const T*>(voidify(storage)));
     }
@@ -374,13 +418,13 @@ struct Traits<T, properties_T, size_T, alignment_T> {
         return *handle_ptr;
     }
 
-    constexpr static Operations s_operations{
-        .copy = TraitsFunctionSelector<Traits, properties_T>::select_copy_function(),
-        .move = move,
-        .drop = drop,
+    constexpr static VTable vtable{
+        .copy        = OperationSelector<Operations, Traits_T>::select_copy_function(),
+        .move        = move,
+        .drop        = drop,
         .types_match = types_match,
         .type_name   = type_name,
-        .voidify     = static_cast<Operations::VoidifyFunc>(voidify),
+        .voidify     = static_cast<VTable::VoidifyFunc>(voidify),
     };
 };
 
@@ -392,10 +436,10 @@ template <typename T, typename Any_T>
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
     PRECOND(
-        any.BasicAny::m_operations->types_match(util::hash<T>()),
+        any.m_vtable->types_match(util::hash<T>()),
         std::format(
             "`Any` has type {}, but requested type is {}",
-            any.BasicAny::m_operations->type_name(),
+            any.m_vtable->type_name(),
             util::name_of<T>()
         )
     );
@@ -408,17 +452,14 @@ template <typename T, typename Any_T>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
-    PRECOND(
-        any.BasicAny::m_operations != nullptr,
-        "Don't use a 'moved-from' (or destroyed) Any!"
-    );
+    PRECOND(any.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
 
-    return internal::Traits<
+    return internal::Operations<
         T,
-        std::remove_cvref_t<Any_T>::BasicAny::properties,
+        typename std::remove_cvref_t<Any_T>::BasicAny::Traits,
         std::remove_cvref_t<Any_T>::BasicAny::size,
         std::remove_cvref_t<Any_T>::BasicAny::alignment>::
-        any_cast(std::forward_like<Any_T>(any.BasicAny::m_storage));
+        any_cast(std::forward_like<Any_T>(any.m_storage));
 }
 
 template <lvalue_reference_c T, typename Any_T>
@@ -427,108 +468,80 @@ template <lvalue_reference_c T, typename Any_T>
 auto reinterpret_any_cast(Any_T& any) -> T
 {
     return *reinterpret_cast<std::add_pointer_t<std::remove_reference_t<T>>>(
-        any.BasicAny::m_operations->voidify(
-            const_cast<Any::BasicAny::Storage&>(any.BasicAny::m_storage)
+        any.BasicAny::m_vtable->voidify(
+            const_cast<std::remove_cvref_t<decltype(any.BasicAny::m_storage)>&>(
+                any.BasicAny::m_storage
+            )
         )
     );
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> class ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-consteval auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::is_move_only()
-    -> bool
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+consteval auto BasicAny<Traits_T, size_T, alignment_T>::is_move_only() -> bool
 {
-    return properties_T.move_only;
+    return Traits_T::is_move_only();
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> class ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 template <typename T>
-consteval auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::storable()
-    -> bool
+consteval auto BasicAny<Traits_T, size_T, alignment_T>::storable() -> bool
 {
-    return properties_T.template satisfied<T>() && ConceptPolicy_T<T>::value;
+    return storable_c<T> && (is_move_only() || std::copy_constructible<T>)
+        && Traits_T::template meets_custom_requirements<T>();
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::BasicAny(
-    const BasicAny& other
-)
-    requires(!properties_T.move_only)
-    : m_operations{ other.m_operations }
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(const BasicAny& other)
+    requires(!is_move_only())
+    : m_vtable{ other.m_vtable },
+      m_extra_vtable{ other.m_extra_vtable }
 {
-    PRECOND(other.m_operations != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
-    if (m_operations)
+    PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
+    if (m_vtable)
     {
-        m_operations->copy(m_storage, other.m_storage);
+        m_vtable->copy(m_storage, other.m_storage);
     }
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::BasicAny(
-    BasicAny&& other
-) noexcept
-    : m_operations{ std::exchange(other.m_operations, nullptr) }
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(BasicAny&& other) noexcept
+    : m_vtable{ std::exchange(other.m_vtable, nullptr) },
+      m_extra_vtable{ std::exchange(other.m_extra_vtable, nullptr) }
 {
-    PRECOND(m_operations != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
-    if (m_operations)
+    PRECOND(m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
+    if (m_vtable)
     {
-        m_operations->move(m_storage, std::move(other.m_storage));
+        m_vtable->move(m_storage, std::move(other.m_storage));
     }
     other.reset();
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::
-    ~BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>()
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+constexpr BasicAny<Traits_T, size_T, alignment_T>::
+    ~BasicAny<Traits_T, size_T, alignment_T>()
 {
     reset();
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 template <typename T, typename... Args_T>
     requires std::constructible_from<T, Args_T&&...>
-constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::BasicAny(
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
     std::in_place_type_t<T>,
     Args_T&&... args
 )
     requires(storable<T>())
-    : m_operations{ &internal::Traits<T, properties_T, size_T, alignment_T>::s_operations }
+    : m_vtable{ &internal::Operations<T, Traits_T, size_T, alignment_T>::vtable },
+      m_extra_vtable{ &Traits::template extra_vtable<T>() }
 {
-    internal::Traits<T, properties_T, size_T, alignment_T>::create(
+    internal::Operations<T, Traits_T, size_T, alignment_T>::create(
         m_storage, std::forward<Args_T>(args)...
     );
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 template <typename T>
-constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::BasicAny(T&& value)
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(T&& value)
     requires(!std::same_as<std::decay_t<T>, BasicAny>)
          && (!specialization_of_c<std::decay_t<T>, std::in_place_type_t>)
          && std::constructible_from<std::decay_t<T>, T&&> && (storable<std::decay_t<T>>())
@@ -536,15 +549,10 @@ constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::BasicAny
 {
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::operator=(
-    const BasicAny& other
-) -> BasicAny&
-    requires(!properties_T.move_only)   //
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+auto BasicAny<Traits_T, size_T, alignment_T>::operator=(const BasicAny& other)
+    -> BasicAny&
+    requires(!is_move_only())
 {
     if (&other == this)
     {
@@ -554,16 +562,11 @@ auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::operator=(
     return *this = BasicAny{ other };
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::operator=(
-    BasicAny&& other
-) noexcept -> BasicAny&
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexcept
+    -> BasicAny&
 {
-    PRECOND(other.m_operations != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
+    PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
 
     if (&other == this)
     {
@@ -572,10 +575,10 @@ auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::operator=(
 
     reset();
 
-    m_operations = std::exchange(other.m_operations, nullptr);
-    if (m_operations)
+    m_vtable = std::exchange(other.m_vtable, nullptr);
+    if (m_vtable)
     {
-        m_operations->move(m_storage, std::move(other.m_storage));
+        m_vtable->move(m_storage, std::move(other.m_storage));
     }
 
     other.reset();
@@ -583,17 +586,22 @@ auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::operator=(
     return *this;
 }
 
-template <
-    AnyProperties properties_T,
-    template <typename> typename ConceptPolicy_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::reset() -> void
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+auto BasicAny<Traits_T, size_T, alignment_T>::extra_vtable() const -> const
+    typename Traits_T::ExtraVTable&
 {
-    if (m_operations)
+    PRECOND(m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
+    assert(m_extra_vtable != nullptr);
+    return *m_extra_vtable;
+}
+
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+auto BasicAny<Traits_T, size_T, alignment_T>::reset() -> void
+{
+    if (m_vtable)
     {
-        m_operations->drop(std::move(m_storage));
-        m_operations = nullptr;
+        m_vtable->drop(std::move(m_storage));
+        m_vtable = nullptr;
     }
 }
 

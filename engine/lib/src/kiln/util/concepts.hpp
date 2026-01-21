@@ -1,7 +1,12 @@
 #pragma once
 
 #include "kiln/util/concepts/allocator.hpp"
+#include "kiln/util/concepts/decayed.hpp"
+#include "kiln/util/concepts/function.hpp"
+#include "kiln/util/concepts/function_pointer.hpp"
+#include "kiln/util/concepts/function_reference.hpp"
 #include "kiln/util/concepts/lvalue_reference.hpp"
+#include "kiln/util/concepts/member_function_pointer.hpp"
 #include "kiln/util/concepts/naked.hpp"
 #include "kiln/util/concepts/nothrow_assignable_from.hpp"
 #include "kiln/util/concepts/nothrow_constructible_from.hpp"
@@ -12,3 +17,10 @@
 #include "kiln/util/concepts/specialization_of.hpp"
 #include "kiln/util/concepts/storable.hpp"
 #include "kiln/util/concepts/strips_to.hpp"
+#include "kiln/util/concepts/type_list.hpp"
+#include "kiln/util/concepts/type_list_all_of.hpp"
+#include "kiln/util/concepts/unambiguous_explicit_functor.hpp"
+#include "kiln/util/concepts/unambiguous_functor.hpp"
+#include "kiln/util/concepts/unambiguous_implicit_functor.hpp"
+#include "kiln/util/concepts/unambiguous_static_functor.hpp"
+#include "kiln/util/concepts/unambiguously_invocable.hpp"

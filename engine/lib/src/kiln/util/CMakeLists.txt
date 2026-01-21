@@ -9,8 +9,11 @@ target_sources(${PROJECT_NAME} PUBLIC
         contract_macros.hpp
         contracts.hpp
         Deallocator.hpp
+        Dummy.hpp
+        Function.hpp
         OptionalRef.hpp
         reflection.hpp
         StringLiteral.hpp
         type_traits.hpp
+        TypeList.hpp
 )

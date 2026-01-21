@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "kiln/app/Context.hpp"
-#include "kiln/util/type_traits.hpp"
+#include "kiln/util/type_traits/forward_like.hpp"
 
 namespace kiln::app {
 

@@ -8,4 +8,3 @@ check_required_components(@PROJECT_NAME@)
 include(CMakeFindDependencyMacro)
 
 find_dependency(fmt)
-find_dependency(tsl-ordered-map)
