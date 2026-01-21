@@ -73,7 +73,15 @@ auto apply_injection(Injection_T&& injection, Context& context)
 
     return [&injection,
             &context]<typename... Parameters_T>(util::TypeList<Parameters_T...>) {
-        PRECOND((context.contains<std::remove_cvref_t<Parameters_T>>() && ...));
+        (PRECOND(
+             (context.contains<std::remove_cvref_t<Parameters_T>>()),
+             std::format(
+                 "Missing dependency `{}` for injection `{}`",
+                 util::name_of<std::remove_cvref_t<Parameters_T>>(),
+                 util::name_of<Injection_T>()
+             )
+         ),
+         ...);
 
         return std::invoke(
             std::forward<Injection_T>(injection),   //
