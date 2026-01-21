@@ -60,28 +60,37 @@ template <typename T>
 using PermissiveConceptPolicy = always_true<T>;
 
 export struct AnyProperties {
-    bool copyable{ true };
+    bool move_only{};
 
     template <typename T>
     [[nodiscard]]
     constexpr auto satisfied() const noexcept -> bool
     {
-        return copyable ? std::copy_constructible<T> : true;
+        return storable_c<T> && move_only ? true : std::copy_constructible<T>;
     }
 };
 
+export template <typename T>
+concept any_c = std::derived_from<T, AnyBase>;
+
+export template <typename T>
+concept copyable_any_c = any_c<T> && (!T::is_move_only());
+
+export template <typename T>
+concept move_only_any_c = any_c<T> && (T::is_move_only());
+
 export template <typename T, typename Any_T>
-    requires std::derived_from<std::remove_cvref_t<Any_T>, AnyBase>
+    requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 export template <typename T, typename Any_T>
-    requires std::derived_from<std::remove_cvref_t<Any_T>, AnyBase>
+    requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 export template <lvalue_reference_c T, typename Any_T>
-    requires std::derived_from<std::remove_const_t<Any_T>, AnyBase>
+    requires any_c<std::remove_const_t<Any_T>>
           && preserves_const_c<std::remove_reference_t<T>, Any_T>
 auto reinterpret_any_cast(Any_T& any) -> T;
 
@@ -96,12 +105,13 @@ public:
     constexpr static std::size_t   size{ size_T };
     constexpr static std::size_t   alignment{ alignment_T };
 
+    consteval static auto is_move_only() -> bool;
     template <typename T>
     consteval static auto storable() -> bool;
 
 
     constexpr BasicAny(const BasicAny&)
-        requires(properties_T.copyable);
+        requires(!properties_T.move_only);
     constexpr BasicAny(BasicAny&&) noexcept;
     constexpr ~BasicAny();
 
@@ -119,22 +129,22 @@ public:
 
 
     auto operator=(const BasicAny&) -> BasicAny&
-        requires(properties_T.copyable);
+        requires(!properties_T.move_only);
     auto operator=(BasicAny&&) noexcept -> BasicAny&;
 
 
     template <typename T, typename Any_T>
-        requires std::derived_from<std::remove_cvref_t<Any_T>, AnyBase>
+        requires any_c<std::remove_cvref_t<Any_T>>
               && (std::remove_cvref_t<Any_T>::template storable<T>())
     friend auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
     template <typename T, typename Any_T>
-        requires std::derived_from<std::remove_cvref_t<Any_T>, AnyBase>
+        requires any_c<std::remove_cvref_t<Any_T>>
               && (std::remove_cvref_t<Any_T>::template storable<T>())
     friend auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
     template <lvalue_reference_c T, typename Any_T>
-        requires std::derived_from<std::remove_const_t<Any_T>, AnyBase>
+        requires any_c<std::remove_const_t<Any_T>>
               && preserves_const_c<std::remove_reference_t<T>, Any_T>
     friend auto reinterpret_any_cast(Any_T& any) -> T;
 
@@ -161,7 +171,7 @@ export template <
     std::size_t size_T      = 3 * sizeof(void*),
     std::size_t alignment_T = sizeof(void*)>
 using BasicMoveOnlyAny =
-    BasicAny<AnyProperties{ .copyable = false }, always_true, size_T, alignment_T>;
+    BasicAny<AnyProperties{ .move_only = true }, always_true, size_T, alignment_T>;
 
 export using MoveOnlyAny = BasicMoveOnlyAny<>;
 
@@ -184,13 +194,13 @@ struct TraitsFunctionSelector {
     [[nodiscard]]
     consteval static auto select_copy_function()
     {
-        if constexpr (properties_T.copyable)
+        if constexpr (properties_T.move_only)
         {
-            return &Traits_T::copy;
+            return nullptr;
         }
         else
         {
-            return nullptr;
+            return &Traits_T::copy;
         }
     }
 };
@@ -209,7 +219,7 @@ struct Traits<T, properties_T, size_T, alignment_T> {
     }
 
     static auto copy(Storage& out, const Storage& storage) -> void
-        requires(properties_T.copyable)
+        requires(!properties_T.move_only)
     {
         return create_impl(out, *static_cast<const T*>(voidify(storage)));
     }
@@ -313,7 +323,7 @@ struct Traits<T, properties_T, size_T, alignment_T> {
     }
 
     static auto copy(Storage& out, const Storage& storage) -> void
-        requires(properties_T.copyable)
+        requires(!properties_T.move_only)
     {
         return create(out, *static_cast<const T*>(voidify(storage)));
     }
@@ -379,7 +389,7 @@ struct Traits<T, properties_T, size_T, alignment_T> {
 };
 
 template <typename T, typename Any_T>
-    requires std::derived_from<std::remove_cvref_t<Any_T>, AnyBase>
+    requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
@@ -396,7 +406,7 @@ auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 }
 
 template <typename T, typename Any_T>
-    requires std::derived_from<std::remove_cvref_t<Any_T>, AnyBase>
+    requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
@@ -414,7 +424,7 @@ auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 }
 
 template <lvalue_reference_c T, typename Any_T>
-    requires std::derived_from<std::remove_const_t<Any_T>, AnyBase>
+    requires any_c<std::remove_const_t<Any_T>>
           && preserves_const_c<std::remove_reference_t<T>, Any_T>
 auto reinterpret_any_cast(Any_T& any) -> T
 {
@@ -430,12 +440,22 @@ template <
     template <typename> class ConceptPolicy_T,
     std::size_t size_T,
     std::size_t alignment_T>
+consteval auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::is_move_only()
+    -> bool
+{
+    return properties_T.move_only;
+}
+
+template <
+    AnyProperties properties_T,
+    template <typename> class ConceptPolicy_T,
+    std::size_t size_T,
+    std::size_t alignment_T>
 template <typename T>
 consteval auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::storable()
     -> bool
 {
-    return storable_c<T> && properties_T.template satisfied<T>()
-        && ConceptPolicy_T<T>::value;
+    return properties_T.template satisfied<T>() && ConceptPolicy_T<T>::value;
 }
 
 template <
@@ -446,7 +466,7 @@ template <
 constexpr BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::BasicAny(
     const BasicAny& other
 )
-    requires(properties_T.copyable)
+    requires(!properties_T.move_only)
     : m_operations{ other.m_operations }
 {
     PRECOND(other.m_operations != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
@@ -526,7 +546,7 @@ template <
 auto BasicAny<properties_T, ConceptPolicy_T, size_T, alignment_T>::operator=(
     const BasicAny& other
 ) -> BasicAny&
-    requires(properties_T.copyable)   //
+    requires(!properties_T.move_only)   //
 {
     if (&other == this)
     {

@@ -20,100 +20,115 @@ import kiln.util.type_traits;
 namespace kiln::app {
 
 template <typename T>
-concept item_c = util::storable_c<T> && util::naked_c<T>;
+concept context_variable_c = util::storable_c<T> && util::naked_c<T>;
 
 /*
  * References to contained items are valid until the context is alive.
  * Destroying a "moved-from" context does not invalidate any references to items.
  */
-export class Context {
+export template <util::move_only_any_c Any_T = util::BasicMoveOnlyAny<0>>
+    requires(Any_T::size == 0)
+class BasicContext {
 public:
-    Context()                   = default;
-    Context(const Context&)     = delete;
-    Context(Context&&) noexcept = default;
-    ~Context();
+    BasicContext()                        = default;
+    BasicContext(const BasicContext&)     = delete;
+    BasicContext(BasicContext&&) noexcept = default;
+    ~BasicContext();
 
-    auto operator=(const Context&) -> Context&     = delete;
-    auto operator=(Context&&) noexcept -> Context& = default;
+    auto operator=(const BasicContext&) -> BasicContext&     = delete;
+    auto operator=(BasicContext&&) noexcept -> BasicContext& = default;
 
-    template <item_c Item_T, typename... Args_T>
-    auto emplace(Args_T&&... args) -> Item_T&;
+    template <context_variable_c Variable_T, typename... Args_T>
+    auto emplace(Args_T&&... args) -> Variable_T&;
 
-    template <item_c Item_T, typename Self_T>
+    template <context_variable_c Variable_T, typename Self_T>
     [[nodiscard]]
     auto find(this Self_T&) noexcept
-        -> util::OptionalRef<util::const_like_t<Item_T, Self_T>>;
+        -> util::OptionalRef<util::const_like_t<Variable_T, Self_T>>;
 
-    template <item_c Item_T, typename Self_T>
+    template <context_variable_c Variable_T, typename Self_T>
     [[nodiscard]]
-    auto at(this Self_T&&) -> util::forward_like_t<Item_T, Self_T>;
+    auto at(this Self_T&&) -> util::forward_like_t<Variable_T, Self_T>;
 
-    template <item_c Item_T>
+    template <context_variable_c Variable_T>
     [[nodiscard]]
     auto contains() const noexcept -> bool;
 
 private:
-    tsl::ordered_map<uint64_t, util::BasicMoveOnlyAny<0>> m_map;
+    tsl::ordered_map<uint64_t, Any_T> m_variables;
 };
+
+export using Context = BasicContext<>;
 
 }   // namespace kiln::app
 
 namespace kiln::app {
 
-template <item_c Item_T, typename... Args_T>
-auto Context::emplace(Args_T&&... args) -> Item_T&
+template <util::move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+BasicContext<Any_T>::~BasicContext()
 {
-    return util::any_cast<Item_T>(
-        m_map
+    while (!m_variables.empty())
+    {
+        m_variables.pop_back();
+    }
+}
+
+template <util::move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <context_variable_c Variable_T, typename... Args_T>
+auto BasicContext<Any_T>::emplace(Args_T&&... args) -> Variable_T&
+{
+    return util::any_cast<Variable_T>(
+        m_variables
             .try_emplace(
-                util::hash<Item_T>(),
-                std::in_place_type<Item_T>,
+                util::hash<Variable_T>(),
+                std::in_place_type<Variable_T>,
                 std::forward<Args_T>(args)...
             )
             .first.value()   //
     );
 }
 
-template <item_c Item_T, typename Self_T>
-auto Context::find(this Self_T& self) noexcept
-    -> util::OptionalRef<util::const_like_t<Item_T, Self_T>>
+template <util::move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <context_variable_c Variable_T, typename Self_T>
+auto BasicContext<Any_T>::find(this Self_T& self) noexcept
+    -> util::OptionalRef<util::const_like_t<Variable_T, Self_T>>
 {
-    const auto iter{ self.m_map.find(util::hash<Item_T>()) };
-    if (iter == self.m_map.cend())
+    const auto iter{ self.m_variables.find(util::hash<Variable_T>()) };
+    if (iter == self.m_variables.cend())
     {
         return std::nullopt;
     }
 
-    return util::OptionalRef<util::const_like_t<Item_T, Self_T>>{
-        util::any_cast<Item_T>(iter->second)
+    return util::OptionalRef<util::const_like_t<Variable_T, Self_T>>{
+        util::any_cast<Variable_T>(iter->second)
     };
 }
 
-template <item_c Item_T, typename Self_T>
-auto Context::at(this Self_T&& self) -> util::forward_like_t<Item_T, Self_T>
+template <util::move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <context_variable_c Variable_T, typename Self_T>
+auto BasicContext<Any_T>::at(this Self_T&& self)
+    -> util::forward_like_t<Variable_T, Self_T>
 {
     PRECOND(
-        self.template contains<Item_T>(),
-        std::format("Item {} not found", util::name_of<Item_T>())
+        self.template contains<Variable_T>(),
+        std::format("Item {} not found", util::name_of<Variable_T>())
     );
 
-    return util::any_cast<Item_T>(
-        std::forward_like<Self_T>(self.m_map.at(util::hash<Item_T>()))
+    return util::any_cast<Variable_T>(
+        std::forward_like<Self_T>(self.m_variables.at(util::hash<Variable_T>()))
     );
 }
 
-template <item_c Item_T>
-auto Context::contains() const noexcept -> bool
+template <util::move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <context_variable_c Variable_T>
+auto BasicContext<Any_T>::contains() const noexcept -> bool
 {
-    return m_map.contains(util::hash<Item_T>());
-}
-
-Context::~Context()
-{
-    while (!m_map.empty())
-    {
-        m_map.pop_back();
-    }
+    return m_variables.contains(util::hash<Variable_T>());
 }
 
 }   // namespace kiln::app

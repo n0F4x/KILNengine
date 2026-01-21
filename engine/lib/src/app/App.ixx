@@ -13,10 +13,10 @@ export class App {
 public:
     template <typename Self_T>
     [[nodiscard]]
-    auto context(this Self_T&&) noexcept -> util::forward_like_t<Context, Self_T>;
+    auto resources(this Self_T&&) noexcept -> util::forward_like_t<Context, Self_T>;
 
 private:
-    Context m_context;
+    Context m_resources;
 };
 
 }   // namespace kiln::app
@@ -24,9 +24,9 @@ private:
 namespace kiln::app {
 
 template <typename Self_T>
-auto App::context(this Self_T&& self) noexcept -> util::forward_like_t<Context, Self_T>
+auto App::resources(this Self_T&& self) noexcept -> util::forward_like_t<Context, Self_T>
 {
-    return std::forward_like<Self_T>(self.m_context);
+    return std::forward_like<Self_T>(self.m_resources);
 }
 
 }   // namespace kiln::app
