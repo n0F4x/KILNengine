@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <format>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -99,7 +100,13 @@ auto ContextBuilder::inject(Injection_T&& injection) -> std::decay_t<Injection_T
     using DecayedInjection = std::decay_t<Injection_T>;
     using WrappedInjection = WrappedInjection<DecayedInjection, Variable>;
 
-    PRECOND((!contains<Variable>()));
+    PRECOND(
+        (!contains<Variable>()),
+        std::format(
+            "Attempt to inject type `{}`, but it has already been injected",
+            util::name_of<Variable>()
+        )
+    );
 
     WrappedInjection& wrapped_injection = m_injections.emplace<WrappedInjection>(
         WrappedInjection{ std::forward<Injection_T>(injection) }
