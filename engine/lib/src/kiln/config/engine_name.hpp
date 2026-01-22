@@ -1,10 +1,10 @@
-export module kiln.config.engine_name;
+#pragma once
 
-import kiln.util.StringLiteral;
+#include "kiln/util/StringLiteral.hpp"
 
 namespace kiln::config {
 
-export [[nodiscard]]
+[[nodiscard]]
 consteval auto engine_name() noexcept -> util::StringLiteral
 {
     return "KILN_ENGINE";

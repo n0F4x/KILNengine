@@ -1,18 +1,16 @@
-module;
+#pragma once
 
 #include <cstdint>
 
-export module kiln.config.engine_version;
-
 namespace kiln::config {
 
-export struct EngineVersion {
+struct EngineVersion {
     uint32_t major;
     uint32_t minor;
     uint32_t patch;
 };
 
-export [[nodiscard]]
+[[nodiscard]]
 constexpr auto engine_version() noexcept -> const EngineVersion&
 {
     constexpr static EngineVersion result{

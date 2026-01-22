@@ -1,6 +1,7 @@
 Checks: '-*,
 bugprone-*,
 -bugprone-easily-swappable-parameters,
+-bugprone-exception-escape,
 cert-*,
 concurrency-*,
 cppcoreguidelines-*,

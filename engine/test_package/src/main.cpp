@@ -1,6 +1,6 @@
 #include <print>
 
-import kiln;
+#include "kiln/config/engine_name.hpp"
 
 auto main() -> int
 {
