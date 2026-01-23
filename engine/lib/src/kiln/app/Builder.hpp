@@ -3,23 +3,20 @@
 #include <utility>
 
 #include "kiln/app/App.hpp"
-#include "kiln/app/ContextBuilder.hpp"
+#include "kiln/util/GenericStackBuilder.hpp"
 
 namespace kiln::app {
 
-template <typename T>
-concept decays_to_resource_injection_c = decays_to_context_variable_injection_c<T>;
-
 class Builder {
 public:
-    template <typename Self_T, decays_to_resource_injection_c Injection_T>
+    template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
     auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T;
 
     [[nodiscard]]
     auto build() && -> App;
 
 private:
-    ContextBuilder m_resource_context_builder;
+    util::GenericStackBuilder m_resource_context_builder;
 };
 
 [[nodiscard]]
@@ -29,7 +26,7 @@ auto create() -> Builder;
 
 namespace kiln::app {
 
-template <typename Self_T, decays_to_resource_injection_c Injection_T>
+template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
 auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T
 {
     self.Builder::m_resource_context_builder.inject(std::forward<Injection_T>(injection));

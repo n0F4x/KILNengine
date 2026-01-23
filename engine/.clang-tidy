@@ -53,7 +53,7 @@ CheckOptions:
   - { key: readability-identifier-naming.StructCase,                          value: aNy_CasE }
   - { key: readability-identifier-naming.TypeTemplateParameterCase,           value: CamelCase }
   - { key: readability-identifier-naming.TypeTemplateParameterSuffix,         value: _T }
-  - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp,  value: (T|U)s? }
+  - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp,  value: (T|U|F)s? }
   - { key: readability-identifier-naming.TypeAliasCase,                       value: CamelCase }
   - { key: readability-identifier-naming.TypeAliasIgnoredRegexp,              value: .*_t }
   - { key: readability-identifier-naming.TypedefCase,                         value: CamelCase }

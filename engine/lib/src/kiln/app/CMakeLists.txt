@@ -4,8 +4,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         App.hpp
         Builder.hpp
-        Context.hpp
-        ContextBuilder.hpp
 )
 
 target_sources(${PROJECT_NAME} PRIVATE

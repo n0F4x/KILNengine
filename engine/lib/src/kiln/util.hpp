@@ -6,6 +6,8 @@
 #include "kiln/util/Deallocator.hpp"
 #include "kiln/util/Dummy.hpp"
 #include "kiln/util/Function.hpp"
+#include "kiln/util/GenericStack.hpp"
+#include "kiln/util/GenericStackBuilder.hpp"
 #include "kiln/util/OptionalRef.hpp"
 #include "kiln/util/reflection.hpp"
 #include "kiln/util/StringLiteral.hpp"
