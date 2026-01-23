@@ -27,7 +27,7 @@ add_subdirectory(src)
 install(TARGETS ${PROJECT_NAME}
         EXPORT kilnTargets
         FILE_SET HEADERS
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 install(EXPORT kilnTargets
         FILE kilnTargets.cmake
