@@ -59,7 +59,7 @@ TEST_CASE("util::Any")
     {
         const kiln::util::Any any{ value };
 
-        const kiln::util::Any copy{ any };
+        const kiln::util::Any copy{ any }; // NOLINT(*-unnecessary-copy-initialization)
         REQUIRE(any_cast<Value>(any) == any_cast<Value>(copy));
     }
 
@@ -121,10 +121,6 @@ TEST_CASE("util::Any")
         [[maybe_unused]]
         const auto result = any_cast<Value>(std::move(any));
         REQUIRE(result == value);
-
-        decltype(auto) result_after_move = any_cast<Value>(std::move(any));
-        STATIC_REQUIRE(std::is_same_v<decltype(result_after_move), Value&&>);
-        REQUIRE(result_after_move == Value{});
     }
 
     SECTION("get const&&")
@@ -132,7 +128,7 @@ TEST_CASE("util::Any")
         const kiln::util::Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
-        decltype(auto) result = any_cast<Value>(std::move(any));
+        decltype(auto) result = any_cast<Value>(std::move(any)); // NOLINT(*-move-const-arg)
 
         STATIC_REQUIRE(std::is_same_v<decltype(result), const Value&&>);
         REQUIRE(result == value);

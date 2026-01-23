@@ -174,7 +174,7 @@ template <move_only_any_c Any_T>
 template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
 auto BasicGenericStack<Any_T>::at(this Self_T&& self) -> forward_like_t<Item_T, Self_T>
 {
-    OptionalRef found_item{ std::forward<Self_T>(self).template find<Item_T>() };
+    const OptionalRef found_item{ std::forward<Self_T>(self).template find<Item_T>() };
 
     PRECOND(
         found_item.has_value(),

@@ -45,7 +45,7 @@ consteval auto pretty_name_trailing_character() noexcept -> char
     return ']';
 #elifdef __GNUC__
     return ';'
-#elif defined _MSC_VER
+#elifdef _MSC_VER
     return '>';
 #else
     static_assert(false, "Compiler is not supported");
