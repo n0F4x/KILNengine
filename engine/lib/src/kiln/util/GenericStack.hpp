@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -17,6 +18,7 @@
 #include "kiln/util/type_traits/const_like.hpp"
 #include "kiln/util/type_traits/forward_like.hpp"
 #include "kiln/util/type_traits/result_of.hpp"
+#include "kiln/util/type_traits/type_list_to.hpp"
 
 namespace kiln::util {
 
@@ -105,6 +107,11 @@ public:
 
 private:
     std::vector<std::pair<uint64_t, Any_T>> m_types_and_items;
+
+    template <typename Injection_T>
+    [[nodiscard]]
+    auto resolve_dependencies()
+        -> type_list_to_t<arguments_of_t<Injection_T>, std::tuple>;
 };
 
 using GenericStack = BasicGenericStack<>;
@@ -240,23 +247,9 @@ auto BasicGenericStack<Any_T>::inject(Injection_T&& injection)
     );
 
     return insert(
-        [this,
-         &injection]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> Item   //
-        {
-            (PRECOND(
-                 contains<std::remove_cvref_t<Dependencies_T>>(),
-                 std::format(
-                     "Item dependency of type `{}` not found",
-                     util::name_of<std::remove_cvref_t<Dependencies_T>>()
-                 )
-             ),
-             ...);
-
-            return std::invoke(
-                std::forward<Injection_T>(injection),
-                at<std::remove_cvref_t<Dependencies_T>>()...
-            );
-        }(util::arguments_of_t<Injection_T>{})
+        std::apply(
+            std::forward<Injection_T>(injection), resolve_dependencies<Injection_T>()
+        )
     );
 }
 
@@ -275,6 +268,27 @@ auto BasicGenericStack<Any_T>::for_each(this Self_T&& self, F&& func) -> F
     }
 
     return std::forward<F>(func);
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <typename Injection_T>
+auto BasicGenericStack<Any_T>::resolve_dependencies()
+    -> type_list_to_t<arguments_of_t<Injection_T>, std::tuple>
+{
+    return [this]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> auto   //
+    {
+        (PRECOND(
+             contains<std::remove_cvref_t<Dependencies_T>>(),
+             std::format(
+                 "Item dependency of type `{}` not found",
+                 util::name_of<std::remove_cvref_t<Dependencies_T>>()
+             )
+         ),
+         ...);
+
+        return std::forward_as_tuple(at<std::remove_cvref_t<Dependencies_T>>()...);
+    }(util::arguments_of_t<Injection_T>{});
 }
 
 }   // namespace kiln::util
