@@ -8,8 +8,6 @@
 
 #include "kiln/app/App.hpp"
 #include "kiln/app/ResourcePlugin.hpp"
-#include "kiln/util/concepts/naked.hpp"
-#include "kiln/util/concepts/storable.hpp"
 #include "kiln/util/contract_macros.hpp"
 #include "kiln/util/GenericStack.hpp"
 #include "kiln/util/reflection.hpp"
@@ -19,10 +17,10 @@
 
 namespace kiln::app {
 
+using ErasedPlugin = util::MoveOnlyFunction<void(App&) &&, 0>;
+
 template <typename T>
-concept plugin_c = util::naked_c<T> && util::storable_c<T>
-                && std::is_void_v<util::result_of_t<T&&>>
-                && std::same_as<util::arguments_of_t<T&&>, util::TypeList<App&>>;
+concept plugin_c = util::basic_generic_stack_item_c<T, ErasedPlugin>;
 
 template <typename T>
 concept plugin_injection_c = plugin_c<util::result_of_t<T&&>>;
@@ -46,8 +44,6 @@ public:
     auto build() && -> App;
 
 private:
-    using ErasedPlugin = util::MoveOnlyFunction<void(App&) &&, 0>;
-
     util::BasicGenericStack<ErasedPlugin>  m_plugins{ ResourcePlugin{} };
     std::reference_wrapper<ResourcePlugin> m_resource_plugin_ref{
         m_plugins.at<ResourcePlugin>()
@@ -92,7 +88,7 @@ auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Se
 template <typename Self_T, plugin_injection_c PluginInjection_T>
 auto Builder::plug_in(this Self_T&& self, PluginInjection_T&& plugin_injection) -> Self_T
 {
-    self.Builder::m_plugins.template emplace<util::result_of_t<PluginInjection_T>>(
+    self.Builder::m_plugins.insert(
         [&self, &plugin_injection]<typename... Dependencies_T>(
             util::TypeList<Dependencies_T...>
         ) -> util::result_of_t<PluginInjection_T>   //

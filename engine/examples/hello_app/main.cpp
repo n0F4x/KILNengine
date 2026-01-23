@@ -6,7 +6,7 @@
 
 auto custom_plugin(kiln::app::App& app) -> void
 {
-    std::println("Injected resource is {}", app.resources().at<int>());
+    std::println("Injected resource is {}", app.resources().at<std::string>());
 }
 
 auto main() -> int

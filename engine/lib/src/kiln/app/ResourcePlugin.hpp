@@ -1,22 +1,35 @@
 #pragma once
 
 #include <concepts>
+#include <type_traits>
 
 #include "kiln/app/App.hpp"
 #include "kiln/util/GenericStackBuilder.hpp"
 
 namespace kiln::app {
 
+template <typename T>
+concept resource_c = util::generic_stack_item_c<T>;
+
+template <typename T>
+concept decays_to_resource_c = resource_c<std::decay_t<T>>;
+
+template <typename T>
+concept resource_injection_c = util::generic_stack_item_injection_c<T>;
+
+template <typename T>
+concept decays_to_resource_injection_c = resource_injection_c<std::decay_t<T>>;
+
 class ResourcePlugin {
 public:
-    template <util::decays_to_generic_stack_item_c Resource_T>
+    template <decays_to_resource_c Resource_T>
     auto insert_resource(Resource_T&& resource) -> void;
 
-    template <util::generic_stack_item_c Resource_T, typename... Args_T>
+    template <resource_c Resource_T, typename... Args_T>
         requires std::constructible_from<Resource_T, Args_T&&...>
     auto emplace_resource(Args_T&&... args) -> void;
 
-    template <util::decays_to_generic_stack_item_injection_c Injection_T>
+    template <decays_to_resource_injection_c Injection_T>
     auto inject_resource(Injection_T&& injection) -> void;
 
     auto operator()(App& app) && -> void;
@@ -36,20 +49,20 @@ private:
 
 namespace kiln::app {
 
-template <util::decays_to_generic_stack_item_c Resource_T>
+template <decays_to_resource_c Resource_T>
 auto ResourcePlugin::insert_resource(Resource_T&& resource) -> void
 {
     emplace_resource<Resource_T>(std::forward<Resource_T>(resource));
 }
 
-template <util::generic_stack_item_c Resource_T, typename... Args_T>
+template <resource_c Resource_T, typename... Args_T>
     requires std::constructible_from<Resource_T, Args_T&&...>
 auto ResourcePlugin::emplace_resource(Args_T&&... args) -> void
 {
     inject_resource(SimpleResourceInjection<Resource_T>{ std::forward<Args_T>(args)... });
 }
 
-template <util::decays_to_generic_stack_item_injection_c Injection_T>
+template <decays_to_resource_injection_c Injection_T>
 auto ResourcePlugin::inject_resource(Injection_T&& injection) -> void
 {
     m_resource_stack_builder.inject(std::forward<Injection_T>(injection));

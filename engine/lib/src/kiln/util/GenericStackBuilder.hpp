@@ -22,37 +22,44 @@ namespace kiln::util {
 
 namespace internal {
 
-template <typename T>
-struct IsGenericStackItemDependency
-    : std::bool_constant<generic_stack_item_c<std::remove_cvref_t<T>>> {};
+template <typename Any_T>
+struct IsBasicGenericStackItemDependency {
+    template <typename T>
+    using type =
+        std::bool_constant<basic_generic_stack_item_c<std::remove_cvref_t<T>, Any_T>>;
+};
 
 }   // namespace internal
 
-template <typename T>
-concept generic_stack_item_injection_c =
+template <typename T, typename Any_T>
+concept basic_generic_stack_item_injection_c =
     naked_c<T> && storable_c<T> && generic_stack_item_c<result_of_t<T&&>>
-    && type_list_all_of_c<arguments_of_t<T&&>, internal::IsGenericStackItemDependency>;
+    && type_list_all_of_c<
+        arguments_of_t<T&&>,
+        internal::IsBasicGenericStackItemDependency<Any_T>::template type>;
 
-template <typename T>
-concept decays_to_generic_stack_item_injection_c =
-    generic_stack_item_injection_c<std::decay_t<T>>;
+template <typename T, typename Any_T>
+concept decays_to_basic_generic_stack_item_injection_c =
+    basic_generic_stack_item_injection_c<std::decay_t<T>, Any_T>;
 
 template <move_only_any_c Any_T = BasicMoveOnlyAny<0>>
     requires(Any_T::size == 0)
 class BasicGenericStackBuilder {
 public:
-    template <decays_to_generic_stack_item_injection_c... Injections_T>
+    using Any = Any_T;
+
+    template <decays_to_basic_generic_stack_item_injection_c<Any_T>... Injections_T>
     explicit BasicGenericStackBuilder(Injections_T&&... injections);
 
-    template <decays_to_generic_stack_item_injection_c Injection_T>
+    template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
     auto inject(Injection_T&& injection) -> std::decay_t<Injection_T>&;
 
-    template <generic_stack_item_injection_c Injection_T, typename Self_T>
+    template <basic_generic_stack_item_injection_c<Any_T> Injection_T, typename Self_T>
     [[nodiscard]]
     auto injection(this Self_T&&) -> forward_like_t<Injection_T, Self_T>;
 
     [[nodiscard]]
-    auto build() && -> GenericStack;
+    auto build() && -> BasicGenericStack<Any_T>;
 
 private:
     using ErasedInjection = MoveOnlyFunction<void(GenericStack&) &&, 0>;
@@ -73,6 +80,14 @@ private:
 };
 
 using GenericStackBuilder = BasicGenericStackBuilder<>;
+
+template <typename T>
+concept generic_stack_item_injection_c =
+    basic_generic_stack_item_injection_c<T, GenericStackBuilder::Any>;
+
+template <typename T>
+concept decays_to_generic_stack_item_injection_c =
+    generic_stack_item_injection_c<std::decay_t<T>>;
 
 }   // namespace kiln::util
 
@@ -114,7 +129,7 @@ auto apply_injection(Injection_T&& injection, GenericStack& generic_stack)
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <decays_to_generic_stack_item_injection_c... Injections_T>
+template <decays_to_basic_generic_stack_item_injection_c<Any_T>... Injections_T>
 BasicGenericStackBuilder<Any_T>::BasicGenericStackBuilder(Injections_T&&... injections)
 {
     (inject(std::forward<Injections_T>(injections)), ...);
@@ -122,7 +137,7 @@ BasicGenericStackBuilder<Any_T>::BasicGenericStackBuilder(Injections_T&&... inje
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <decays_to_generic_stack_item_injection_c Injection_T>
+template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
 auto BasicGenericStackBuilder<Any_T>::inject(Injection_T&& injection)
     -> std::decay_t<Injection_T>&
 {
@@ -149,7 +164,7 @@ auto BasicGenericStackBuilder<Any_T>::inject(Injection_T&& injection)
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <generic_stack_item_injection_c Injection_T, typename Self_T>
+template <basic_generic_stack_item_injection_c<Any_T> Injection_T, typename Self_T>
 auto BasicGenericStackBuilder<Any_T>::injection(this Self_T&& self)
     -> forward_like_t<Injection_T, Self_T>
 {
@@ -172,9 +187,9 @@ auto BasicGenericStackBuilder<Any_T>::WrappedInjection<Injection_T, Item_T>::ope
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-auto BasicGenericStackBuilder<Any_T>::build() && -> GenericStack
+auto BasicGenericStackBuilder<Any_T>::build() && -> BasicGenericStack<Any_T>
 {
-    GenericStack result;
+    BasicGenericStack<Any_T> result;
 
     std::move(m_injections).for_each([&result](ErasedInjection&& injection) -> void {
         std::move(injection)(result);
