@@ -9,11 +9,14 @@
 #include <vector>
 
 #include "kiln/util/Any.hpp"
+#include "kiln/util/concepts/type_list_all_of.hpp"
 #include "kiln/util/contract_macros.hpp"
 #include "kiln/util/OptionalRef.hpp"
 #include "kiln/util/reflection.hpp"
+#include "kiln/util/type_traits/arguments_of.hpp"
 #include "kiln/util/type_traits/const_like.hpp"
 #include "kiln/util/type_traits/forward_like.hpp"
+#include "kiln/util/type_traits/result_of.hpp"
 
 namespace kiln::util {
 
@@ -23,6 +26,28 @@ concept basic_generic_stack_item_c = Any_T::template storable<T>();
 template <typename T, typename Any_T>
 concept decays_to_basic_generic_stack_item_c =
     basic_generic_stack_item_c<std::decay_t<T>, Any_T>;
+
+namespace internal {
+
+template <typename Any_T>
+struct IsBasicGenericStackItemDependency {
+    template <typename T>
+    using type =
+        std::bool_constant<basic_generic_stack_item_c<std::remove_cvref_t<T>, Any_T>>;
+};
+
+}   // namespace internal
+
+template <typename T, typename Any_T>
+concept basic_generic_stack_item_injection_c =
+    basic_generic_stack_item_c<result_of_t<T&&>, Any_T>
+    && type_list_all_of_c<
+        arguments_of_t<T&&>,
+        internal::IsBasicGenericStackItemDependency<Any_T>::template type>;
+
+template <typename T, typename Any_T>
+concept decays_to_basic_generic_stack_item_injection_c =
+    basic_generic_stack_item_injection_c<std::decay_t<T>, Any_T>;
 
 /*
  * References to contained items are valid until the instance is alive.
@@ -67,6 +92,8 @@ public:
     auto insert(Item_T&& item) -> Item_T&;
     template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
     auto emplace(Args_T&&... args) -> Item_T&;
+    template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
+    auto inject(Injection_T&& injection) -> result_of_t<Injection_T>&;
 
 
     template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
@@ -87,6 +114,14 @@ concept generic_stack_item_c = basic_generic_stack_item_c<T, GenericStack::Any>;
 
 template <typename T>
 concept decays_to_generic_stack_item_c = generic_stack_item_c<std::decay_t<T>>;
+
+template <typename T>
+concept generic_stack_item_injection_c =
+    basic_generic_stack_item_injection_c<T, GenericStack::Any>;
+
+template <typename T>
+concept decays_to_generic_stack_item_injection_c =
+    generic_stack_item_injection_c<std::decay_t<T>>;
 
 }   // namespace kiln::util
 
@@ -185,6 +220,43 @@ auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Item_T&
                 )
             )
             .second   //
+    );
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
+auto BasicGenericStack<Any_T>::inject(Injection_T&& injection)
+    -> result_of_t<Injection_T>&
+{
+    using Item = result_of_t<Injection_T>;
+
+    PRECOND(
+        (!contains<Item>()),
+        std::format(
+            "Attempt to inject item of type `{}`, but it has already been injected",
+            name_of<Item>()
+        )
+    );
+
+    return insert(
+        [this,
+         &injection]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> Item   //
+        {
+            (PRECOND(
+                 contains<std::remove_cvref_t<Dependencies_T>>(),
+                 std::format(
+                     "Item dependency of type `{}` not found",
+                     util::name_of<std::remove_cvref_t<Dependencies_T>>()
+                 )
+             ),
+             ...);
+
+            return std::invoke(
+                std::forward<Injection_T>(injection),
+                at<std::remove_cvref_t<Dependencies_T>>()...
+            );
+        }(util::arguments_of_t<Injection_T>{})
     );
 }
 

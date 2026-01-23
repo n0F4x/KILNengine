@@ -9,6 +9,7 @@
 #include "kiln/app/App.hpp"
 #include "kiln/app/ResourcePlugin.hpp"
 #include "kiln/util/contract_macros.hpp"
+#include "kiln/util/Function.hpp"
 #include "kiln/util/GenericStack.hpp"
 #include "kiln/util/reflection.hpp"
 #include "kiln/util/type_traits/arguments_of.hpp"
@@ -37,8 +38,10 @@ public:
     template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
     auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T;
 
+
     template <typename Self_T, plugin_injection_c PluginInjection_T>
     auto plug_in(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T;
+
 
     [[nodiscard]]
     auto build() && -> App;
@@ -88,6 +91,16 @@ auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Se
 template <typename Self_T, plugin_injection_c PluginInjection_T>
 auto Builder::plug_in(this Self_T&& self, PluginInjection_T&& plugin_injection) -> Self_T
 {
+    using Plugin = util::result_of_t<PluginInjection_T>;
+
+    PRECOND(
+        (!self.Builder::m_plugins.template contains<Plugin>()),
+        std::format(
+            "Attempt to inject plugin of type `{}`, but it has already been injected",
+            util::name_of<Plugin>()
+        )
+    );
+
     self.Builder::m_plugins.insert(
         [&self, &plugin_injection]<typename... Dependencies_T>(
             util::TypeList<Dependencies_T...>

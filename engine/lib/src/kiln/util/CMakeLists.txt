@@ -12,7 +12,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         Dummy.hpp
         Function.hpp
         GenericStack.hpp
-        GenericStackBuilder.hpp
         OptionalRef.hpp
         reflection.hpp
         StringLiteral.hpp

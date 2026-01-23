@@ -4,7 +4,7 @@
 #include <type_traits>
 
 #include "kiln/app/App.hpp"
-#include "kiln/util/GenericStackBuilder.hpp"
+#include "kiln/util/GenericStack.hpp"
 
 namespace kiln::app {
 
@@ -42,7 +42,7 @@ private:
         auto operator()() && -> Resource_T;
     };
 
-    util::GenericStackBuilder m_resource_stack_builder;
+    util::GenericStack m_resource_stack;
 };
 
 }   // namespace kiln::app
@@ -65,7 +65,7 @@ auto ResourcePlugin::emplace_resource(Args_T&&... args) -> void
 template <decays_to_resource_injection_c Injection_T>
 auto ResourcePlugin::inject_resource(Injection_T&& injection) -> void
 {
-    m_resource_stack_builder.inject(std::forward<Injection_T>(injection));
+    m_resource_stack.inject(std::forward<Injection_T>(injection));
 }
 
 inline auto ResourcePlugin::operator()(App& app) && -> void
@@ -75,7 +75,7 @@ inline auto ResourcePlugin::operator()(App& app) && -> void
         "Resource plugin should be called before adding any resource"
     );
 
-    app.resources() = std::move(m_resource_stack_builder).build();
+    app.resources() = std::move(m_resource_stack);
 }
 
 template <typename Resource_T>
