@@ -5,6 +5,7 @@
 #include <concepts>
 #include <cstddef>
 #include <format>
+#include <functional>
 #include <memory>
 #include <string_view>
 #include <type_traits>
@@ -42,19 +43,19 @@ template <std::size_t size_T, std::size_t alignment_T>
 struct VTable {
     using Storage = storage_t<size_T, alignment_T>;
 
-    using CopyFunc       = auto (*)(Storage& out, const Storage& storage) -> void;
-    using MoveFunc       = auto (&)(Storage& out, Storage&& storage) -> void;
-    using DropFunc       = auto (&)(Storage&&) -> void;
-    using TypesMatchFunc = auto (&)(uint64_t type_hash) -> bool;
-    using TypeNameFunc   = auto (&)() -> std::string_view;
-    using VoidifyFunc    = auto (&)(Storage& storage) -> void*;
+    using CopyFunc       = auto(Storage& out, const Storage& storage) -> void;
+    using MoveFunc       = auto(Storage& out, Storage&& storage) -> void;
+    using DropFunc       = auto(Storage&&) -> void;
+    using TypesMatchFunc = auto(uint64_t type_hash) -> bool;
+    using TypeNameFunc   = auto() -> std::string_view;
+    using VoidifyFunc    = auto(Storage& storage) -> void*;
 
-    CopyFunc       copy;
-    MoveFunc       move;
-    DropFunc       drop;
-    TypesMatchFunc types_match;
-    TypeNameFunc   type_name;
-    VoidifyFunc    voidify;
+    std::add_pointer_t<CopyFunc>           copy;
+    std::reference_wrapper<MoveFunc>       move;
+    std::reference_wrapper<DropFunc>       drop;
+    std::reference_wrapper<TypesMatchFunc> types_match;
+    std::reference_wrapper<TypeNameFunc>   type_name;
+    std::reference_wrapper<VoidifyFunc>    voidify;
 };
 
 class AnyBase {};
@@ -325,7 +326,9 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         .drop        = drop,
         .types_match = types_match,
         .type_name   = type_name,
-        .voidify     = static_cast<VTable::VoidifyFunc>(voidify),
+        .voidify = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(
+            voidify
+        ),
     };
 
 private:
@@ -424,7 +427,9 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         .drop        = drop,
         .types_match = types_match,
         .type_name   = type_name,
-        .voidify     = static_cast<VTable::VoidifyFunc>(voidify),
+        .voidify = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(
+            voidify
+        ),
     };
 };
 
@@ -587,8 +592,8 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexce
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-auto BasicAny<Traits_T, size_T, alignment_T>::extra_vtable() const -> const
-    typename Traits_T::ExtraVTable&
+auto BasicAny<Traits_T, size_T, alignment_T>::extra_vtable() const
+    -> const Traits_T::ExtraVTable&
 {
     PRECOND(m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
     assert(m_extra_vtable != nullptr);
