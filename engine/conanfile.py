@@ -1,5 +1,3 @@
-import os.path
-
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
 from conan.tools.build import check_min_cppstd
@@ -104,9 +102,4 @@ class DataDrivenGameEngineRecipe(ConanFile):
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", "kiln")
-        self.cpp_info.libs = ["kiln"]
         self.cpp_info.set_property("cmake_target_name", "kiln::engine")
-
-        # TODO: remove these once Conan learns cxx modules
-        self.cpp_info.set_property("cmake_find_mode", "none")
-        self.cpp_info.builddirs = ["."]

@@ -14,7 +14,6 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 if (${MSVC})
     target_compile_options(${PROJECT_NAME} PUBLIC
             /Zc:preprocessor
-            /utf-8  # MSVC modules need this to be compatible with regular implementation units
     )
 endif ()
 
@@ -34,7 +33,7 @@ add_subdirectory(src)
 install(TARGETS ${PROJECT_NAME}
         EXPORT kilnTargets
         FILE_SET HEADERS
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 install(EXPORT kilnTargets
         FILE kilnTargets.cmake

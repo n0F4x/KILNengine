@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 4.1)
 
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 project(kiln)
 
 set(project_prefix KILN_)
@@ -31,7 +33,6 @@ add_compile_options(
         /w14906
         /w14928
         /permissive-
-        /utf-8  # MSVC modules need this to be compatible with regular implementation units
 )
 
 
