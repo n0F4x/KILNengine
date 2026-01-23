@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+
 #include "kiln/app/App.hpp"
 #include "kiln/util/GenericStackBuilder.hpp"
 
@@ -7,12 +9,26 @@ namespace kiln::app {
 
 class ResourcePlugin {
 public:
-    template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
-    auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T;
+    template <util::decays_to_generic_stack_item_c Resource_T>
+    auto insert_resource(Resource_T&& resource) -> void;
+
+    template <util::generic_stack_item_c Resource_T, typename... Args_T>
+        requires std::constructible_from<Resource_T, Args_T&&...>
+    auto emplace_resource(Args_T&&... args) -> void;
+
+    template <util::decays_to_generic_stack_item_injection_c Injection_T>
+    auto inject_resource(Injection_T&& injection) -> void;
 
     auto operator()(App& app) && -> void;
 
 private:
+    template <typename Resource_T>
+    struct SimpleResourceInjection {
+        Resource_T resource;
+
+        auto operator()() && -> Resource_T;
+    };
+
     util::GenericStackBuilder m_resource_stack_builder;
 };
 
@@ -20,12 +36,23 @@ private:
 
 namespace kiln::app {
 
-template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
-auto ResourcePlugin::inject_resource(this Self_T&& self, Injection_T&& injection)
-    -> Self_T
+template <util::decays_to_generic_stack_item_c Resource_T>
+auto ResourcePlugin::insert_resource(Resource_T&& resource) -> void
 {
-    self.ResourcePlugin::m_resource_stack_builder.inject(std::forward<Injection_T>(injection));
-    return std::forward<Self_T>(self);
+    emplace_resource<Resource_T>(std::forward<Resource_T>(resource));
+}
+
+template <util::generic_stack_item_c Resource_T, typename... Args_T>
+    requires std::constructible_from<Resource_T, Args_T&&...>
+auto ResourcePlugin::emplace_resource(Args_T&&... args) -> void
+{
+    inject_resource(SimpleResourceInjection<Resource_T>{ std::forward<Args_T>(args)... });
+}
+
+template <util::decays_to_generic_stack_item_injection_c Injection_T>
+auto ResourcePlugin::inject_resource(Injection_T&& injection) -> void
+{
+    m_resource_stack_builder.inject(std::forward<Injection_T>(injection));
 }
 
 inline auto ResourcePlugin::operator()(App& app) && -> void
@@ -36,6 +63,12 @@ inline auto ResourcePlugin::operator()(App& app) && -> void
     );
 
     app.resources() = std::move(m_resource_stack_builder).build();
+}
+
+template <typename Resource_T>
+auto ResourcePlugin::SimpleResourceInjection<Resource_T>::operator()() && -> Resource_T
+{
+    return resource;
 }
 
 }   // namespace kiln::app

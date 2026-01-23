@@ -14,7 +14,7 @@ auto main() -> int
     using namespace kiln;
 
     std::ignore = app::create()
-                      .inject_resource([] -> int { return 42; })
+                      .insert_resource(42)
                       .plug_in([](app::ResourcePlugin& resource_plugin) -> auto {
                           resource_plugin.inject_resource(
                               [](const int& other_resource) -> std::string {
