@@ -108,12 +108,12 @@ struct FunctionBaseTraits {
 
     template <typename F>
     struct Policy {
-        using Mimiced = Signature<Signature_T>::template mimic_t<std::decay_t<F>>;
+        using Mimicked = Signature<Signature_T>::template mimic_t<std::decay_t<F>>;
 
         constexpr static bool value =
             is_noexcept_v<Signature_T>
-                ? std::is_nothrow_invocable_r_v<Result, Mimiced, FArgs_T...>
-                : std::is_invocable_r_v<Result, Mimiced, FArgs_T...>;
+                ? std::is_nothrow_invocable_r_v<Result, Mimicked, FArgs_T...>
+                : std::is_invocable_r_v<Result, Mimicked, FArgs_T...>;
     };
 
     using AnyTraits = DefaultAnyTraits<is_move_only_T, ExtraVTable, Operations, Policy>;
