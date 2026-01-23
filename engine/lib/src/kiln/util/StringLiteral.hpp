@@ -17,28 +17,30 @@ public:
     }
 
     consteval explicit(false) StringLiteral(const char* value) noexcept : m_value{ value }
-    {}
+    {
+    }
 
     auto operator==(const StringLiteral& other) const noexcept -> bool
     {
         return std::strcmp(m_value, other.m_value) == 0;
     }
 
-    auto operator<=>(const StringLiteral& other) const noexcept
-        -> std::strong_ordering
+    auto operator<=>(const StringLiteral& other) const noexcept -> std::strong_ordering
     {
-        if (const int result{ std::strcmp(m_value, other.m_value) }; result == 0) {
+        const int result{ std::strcmp(m_value, other.m_value) };
+        if (result == 0)
+        {
             return std::strong_ordering::equal;
         }
-        else if (result < 0) {
+        if (result < 0)
+        {
             return std::strong_ordering::less;
         }
-        else {
-            return std::strong_ordering::greater;
-        }
+        return std::strong_ordering::greater;
     }
 
     [[nodiscard]]
+    // NOLINTNEXTLINE(*-explicit-constructor, *-explicit-conversions)
     explicit(false) constexpr operator const char*() const noexcept
     {
         return m_value;

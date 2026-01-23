@@ -53,12 +53,12 @@ namespace kiln::util::internal {
 template <typename T>
 using ensure_reference_t = std::conditional_t<std::is_reference_v<T>, T, T&>;
 
-template <typename FunctionBase, bool is_move_only_T, typename Signature_T, typename... FArgs_T>
+template <typename FunctionBase_T, bool is_move_only_T, typename Signature_T, typename... FArgs_T>
 struct FunctionBaseTraits {
     using Result = result_of_t<Signature_T>;
 
-    using InvokeQualifiedSelf =
-        ensure_reference_t<typename Signature<Signature_T>::template mimic_t<FunctionBase>>;
+    using InvokeQualifiedSelf = ensure_reference_t<
+        typename Signature<Signature_T>::template mimic_t<FunctionBase_T>>;
 
     consteval static auto is_noexcept() noexcept -> bool
     {
@@ -66,10 +66,10 @@ struct FunctionBaseTraits {
     }
 
     struct ExtraVTable {
-        using CallFunc = auto (&)(InvokeQualifiedSelf, FArgs_T...) noexcept(is_noexcept())
+        using CallFunc = auto(InvokeQualifiedSelf, FArgs_T...) noexcept(is_noexcept())
             -> Result;
 
-        CallFunc call;
+        std::reference_wrapper<CallFunc> call;
     };
 
     template <typename T>

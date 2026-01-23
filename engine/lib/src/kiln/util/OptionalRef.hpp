@@ -50,7 +50,7 @@ public:
         const std::optional<std::reference_wrapper<T>>& optional_ref_wrapper
     ) noexcept;
 
-    constexpr explicit(false) operator std::optional<std::remove_const_t<T>>() noexcept(
+    constexpr explicit operator std::optional<std::remove_const_t<T>>() noexcept(
         noexcept(T{ std::declval<T&>() })
     );
 

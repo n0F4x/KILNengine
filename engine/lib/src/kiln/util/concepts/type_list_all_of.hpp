@@ -1,6 +1,5 @@
 #pragma once
 
-#include <tuple>
 #include <type_traits>
 
 #include "kiln/util/concepts/type_list.hpp"
