@@ -4,6 +4,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         App.hpp
         Builder.hpp
+        ResourcePlugin.hpp
 )
 
 target_sources(${PROJECT_NAME} PRIVATE

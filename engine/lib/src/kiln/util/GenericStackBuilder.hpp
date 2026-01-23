@@ -7,12 +7,15 @@
 #include <utility>
 #include <vector>
 
+#include "kiln/util/concepts/naked.hpp"
+#include "kiln/util/concepts/storable.hpp"
 #include "kiln/util/concepts/type_list_all_of.hpp"
 #include "kiln/util/contract_macros.hpp"
 #include "kiln/util/Function.hpp"
 #include "kiln/util/GenericStack.hpp"
 #include "kiln/util/reflection.hpp"
 #include "kiln/util/type_traits/arguments_of.hpp"
+#include "kiln/util/type_traits/forward_like.hpp"
 #include "kiln/util/type_traits/result_of.hpp"
 
 namespace kiln::util {
@@ -27,8 +30,8 @@ struct IsGenericStackItemDependency
 
 template <typename T>
 concept generic_stack_item_injection_c =
-    generic_stack_item_c<result_of_t<T>>
-    && type_list_all_of_c<arguments_of_t<T>, internal::IsGenericStackItemDependency>;
+    naked_c<T> && storable_c<T> && generic_stack_item_c<result_of_t<T&&>>
+    && type_list_all_of_c<arguments_of_t<T&&>, internal::IsGenericStackItemDependency>;
 
 template <typename T>
 concept decays_to_generic_stack_item_injection_c =
@@ -38,8 +41,15 @@ template <move_only_any_c Any_T = BasicMoveOnlyAny<0>>
     requires(Any_T::size == 0)
 class BasicGenericStackBuilder {
 public:
+    template <decays_to_generic_stack_item_injection_c... Injections_T>
+    explicit BasicGenericStackBuilder(Injections_T&&... injections);
+
     template <decays_to_generic_stack_item_injection_c Injection_T>
     auto inject(Injection_T&& injection) -> std::decay_t<Injection_T>&;
+
+    template <generic_stack_item_injection_c Injection_T, typename Self_T>
+    [[nodiscard]]
+    auto injection(this Self_T&&) -> forward_like_t<Injection_T, Self_T>;
 
     [[nodiscard]]
     auto build() && -> GenericStack;
@@ -47,9 +57,9 @@ public:
 private:
     using ErasedInjection = MoveOnlyFunction<void(GenericStack&) &&, 0>;
 
-    template <typename DecayedInjection_T, typename Item_T>
+    template <typename Injection_T, typename Item_T>
     struct WrappedInjection {
-        DecayedInjection_T injection;
+        Injection_T injection;
 
         auto operator()(GenericStack& generic_stack) && -> void;
     };
@@ -104,6 +114,14 @@ auto apply_injection(Injection_T&& injection, GenericStack& generic_stack)
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
+template <decays_to_generic_stack_item_injection_c... Injections_T>
+BasicGenericStackBuilder<Any_T>::BasicGenericStackBuilder(Injections_T&&... injections)
+{
+    (inject(std::forward<Injections_T>(injections)), ...);
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size == 0)
 template <decays_to_generic_stack_item_injection_c Injection_T>
 auto BasicGenericStackBuilder<Any_T>::inject(Injection_T&& injection)
     -> std::decay_t<Injection_T>&
@@ -131,9 +149,21 @@ auto BasicGenericStackBuilder<Any_T>::inject(Injection_T&& injection)
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <typename DecayedInjection_T, typename Item_T>
-auto BasicGenericStackBuilder<Any_T>::WrappedInjection<DecayedInjection_T, Item_T>::
-    operator()(GenericStack& generic_stack) && -> void
+template <generic_stack_item_injection_c Injection_T, typename Self_T>
+auto BasicGenericStackBuilder<Any_T>::injection(this Self_T&& self)
+    -> forward_like_t<Injection_T, Self_T>
+{
+    return std::forward_like<Self_T>(self.m_injections)
+        .template at<WrappedInjection<Injection_T, result_of_t<Injection_T>>>()
+        .injection;
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size == 0)
+template <typename Injection_T, typename Item_T>
+auto BasicGenericStackBuilder<Any_T>::WrappedInjection<Injection_T, Item_T>::operator()(
+    GenericStack& generic_stack
+) && -> void
 {
     generic_stack.emplace<Item_T>(
         internal::apply_injection(std::move(injection), generic_stack)

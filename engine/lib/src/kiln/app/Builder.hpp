@@ -1,22 +1,50 @@
 #pragma once
 
+#include <concepts>
+#include <format>
+#include <functional>
+#include <type_traits>
 #include <utility>
 
 #include "kiln/app/App.hpp"
-#include "kiln/util/GenericStackBuilder.hpp"
+#include "kiln/app/ResourcePlugin.hpp"
+#include "kiln/util/concepts/naked.hpp"
+#include "kiln/util/concepts/storable.hpp"
+#include "kiln/util/contract_macros.hpp"
+#include "kiln/util/GenericStack.hpp"
+#include "kiln/util/reflection.hpp"
+#include "kiln/util/type_traits/arguments_of.hpp"
+#include "kiln/util/type_traits/result_of.hpp"
+#include "kiln/util/TypeList.hpp"
 
 namespace kiln::app {
+
+template <typename T>
+concept plugin_c = util::naked_c<T> && util::storable_c<T>
+                && std::is_void_v<util::result_of_t<T&&>>
+                && std::same_as<util::arguments_of_t<T&&>, util::TypeList<App&>>;
+
+template <typename T>
+concept plugin_injection_c = plugin_c<util::result_of_t<T&&>>;
 
 class Builder {
 public:
     template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
     auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T;
 
+    template <typename Self_T, plugin_injection_c PluginInjection_T>
+    auto plug_in(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T;
+
     [[nodiscard]]
     auto build() && -> App;
 
 private:
-    util::GenericStackBuilder m_resource_stack_builder;
+    using ErasedPlugin = util::MoveOnlyFunction<void(App&) &&, 0>;
+
+    util::BasicGenericStack<ErasedPlugin>  m_plugins{ ResourcePlugin{} };
+    std::reference_wrapper<ResourcePlugin> m_resource_plugin_ref{
+        m_plugins.at<ResourcePlugin>()
+    };
 };
 
 [[nodiscard]]
@@ -29,7 +57,37 @@ namespace kiln::app {
 template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
 auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T
 {
-    self.Builder::m_resource_stack_builder.inject(std::forward<Injection_T>(injection));
+    self.Builder::m_resource_plugin_ref.get().inject_resource(
+        std::forward<Injection_T>(injection)
+    );
+    return std::forward<Self_T>(self);
+}
+
+template <typename Self_T, plugin_injection_c PluginInjection_T>
+auto Builder::plug_in(this Self_T&& self, PluginInjection_T&& plugin_injection) -> Self_T
+{
+    self.Builder::m_plugins.template emplace<util::result_of_t<PluginInjection_T>>(
+        [&self, &plugin_injection]<typename... Dependencies_T>(
+            util::TypeList<Dependencies_T...>
+        ) -> util::result_of_t<PluginInjection_T>   //
+        {
+            (PRECOND(
+                 self.Builder::m_plugins
+                     .template contains<std::remove_cvref_t<Dependencies_T>>(),
+                 std::format(
+                     "Plugin dependency of type `{}` not found",
+                     util::name_of<std::remove_cvref_t<Dependencies_T>>()
+                 )
+             ),
+             ...);
+
+            return std::invoke(
+                std::forward<PluginInjection_T>(plugin_injection),
+                self.Builder::m_plugins.template at<std::remove_cvref_t<Dependencies_T>>()...
+            );
+        }(util::arguments_of_t<PluginInjection_T>{})
+    );
+
     return std::forward<Self_T>(self);
 }
 
@@ -37,7 +95,9 @@ inline auto Builder::build() && -> App
 {
     App result{};
 
-    result.resources() = std::move(m_resource_stack_builder).build();
+    std::move(m_plugins).for_each([&result](ErasedPlugin&& erased_plugin) -> void {
+        std::move(erased_plugin)(result);
+    });
 
     return result;
 }
