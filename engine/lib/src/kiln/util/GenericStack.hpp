@@ -37,18 +37,18 @@ public:
     auto operator=(const BasicGenericStack&) -> BasicGenericStack&     = delete;
     auto operator=(BasicGenericStack&&) noexcept -> BasicGenericStack& = default;
 
-    template <generic_stack_item_c Variable_T, typename... Args_T>
-    auto emplace(Args_T&&... args) -> Variable_T&;
+    template <generic_stack_item_c Item_T, typename... Args_T>
+    auto emplace(Args_T&&... args) -> Item_T&;
 
-    template <generic_stack_item_c Variable_T, typename Self_T>
+    template <generic_stack_item_c Item_T, typename Self_T>
     [[nodiscard]]
-    auto find(this Self_T&) noexcept -> OptionalRef<const_like_t<Variable_T, Self_T>>;
+    auto find(this Self_T&) noexcept -> OptionalRef<const_like_t<Item_T, Self_T>>;
 
-    template <generic_stack_item_c Variable_T, typename Self_T>
+    template <generic_stack_item_c Item_T, typename Self_T>
     [[nodiscard]]
-    auto at(this Self_T&&) -> forward_like_t<Variable_T, Self_T>;
+    auto at(this Self_T&&) -> forward_like_t<Item_T, Self_T>;
 
-    template <generic_stack_item_c Variable_T>
+    template <generic_stack_item_c Item_T>
     [[nodiscard]]
     auto contains() const noexcept -> bool;
 
@@ -60,7 +60,7 @@ public:
     auto for_each(this Self_T&&, F&& func) -> F;
 
 private:
-    std::vector<std::pair<uint64_t, Any_T>> m_types_and_variables;
+    std::vector<std::pair<uint64_t, Any_T>> m_types_and_items;
 };
 
 using GenericStack = BasicGenericStack<>;
@@ -73,26 +73,26 @@ template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
 BasicGenericStack<Any_T>::~BasicGenericStack()
 {
-    while (!m_types_and_variables.empty())
+    while (!m_types_and_items.empty())
     {
-        m_types_and_variables.pop_back();
+        m_types_and_items.pop_back();
     }
 }
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <generic_stack_item_c Variable_T, typename... Args_T>
-auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Variable_T&
+template <generic_stack_item_c Item_T, typename... Args_T>
+auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Item_T&
 {
-    PRECOND(!contains<Variable_T>());
+    PRECOND(!contains<Item_T>());
 
-    return any_cast<Variable_T>(
-        m_types_and_variables
+    return any_cast<Item_T>(
+        m_types_and_items
             .emplace_back(
                 std::piecewise_construct,
-                std::tuple{ hash_u64<Variable_T>() },
+                std::tuple{ hash_u64<Item_T>() },
                 std::forward_as_tuple(
-                    std::in_place_type<Variable_T>,
+                    std::in_place_type<Item_T>,
                     std::forward<Args_T>(args)...
                 )
             )
@@ -102,45 +102,40 @@ auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Variable_T&
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <generic_stack_item_c Variable_T, typename Self_T>
+template <generic_stack_item_c Item_T, typename Self_T>
 auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
-    -> OptionalRef<const_like_t<Variable_T, Self_T>>
+    -> OptionalRef<const_like_t<Item_T, Self_T>>
 {
     const auto iter = std::ranges::find(
-        self.m_types_and_variables, hash<Variable_T>(), &std::pair<uint64_t, Any_T>::first
+        self.m_types_and_items, hash<Item_T>(), &std::pair<uint64_t, Any_T>::first
     );
-    if (iter == self.m_types_and_variables.cend())
+    if (iter == self.m_types_and_items.cend())
     {
         return std::nullopt;
     }
 
-    return OptionalRef<const_like_t<Variable_T, Self_T>>{
-        any_cast<Variable_T>(iter->second)
-    };
+    return OptionalRef<const_like_t<Item_T, Self_T>>{ any_cast<Item_T>(iter->second) };
 }
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <generic_stack_item_c Variable_T, typename Self_T>
-auto BasicGenericStack<Any_T>::at(this Self_T&& self)
-    -> forward_like_t<Variable_T, Self_T>
+template <generic_stack_item_c Item_T, typename Self_T>
+auto BasicGenericStack<Any_T>::at(this Self_T&& self) -> forward_like_t<Item_T, Self_T>
 {
-    auto found_variable{ std::forward<Self_T>(self).template find<Variable_T>() };
+    OptionalRef found_item{ std::forward<Self_T>(self).template find<Item_T>() };
 
-    PRECOND(
-        found_variable.has_value(), std::format("Item {} not found", name_of<Variable_T>())
-    );
+    PRECOND(found_item.has_value(), std::format("Item {} not found", name_of<Item_T>()));
 
-    return std::forward_like<Self_T>(*found_variable);
+    return std::forward_like<Self_T>(*found_item);
 }
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <generic_stack_item_c Variable_T>
+template <generic_stack_item_c Item_T>
 auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
 {
     return std::ranges::contains(
-        m_types_and_variables, hash_u64<Variable_T>(), &std::pair<uint64_t, Any_T>::first
+        m_types_and_items, hash_u64<Item_T>(), &std::pair<uint64_t, Any_T>::first
     );
 }
 
@@ -153,9 +148,9 @@ template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
     )
 auto BasicGenericStack<Any_T>::for_each(this Self_T&& self, F&& func) -> F
 {
-    for (auto&& [type, variable] : std::forward_like<Self_T>(self.m_types_and_variables))
+    for (auto&& [type, item] : std::forward_like<Self_T>(self.m_types_and_items))
     {
-        std::invoke(func, std::forward_like<Self_T>(variable));
+        std::invoke(func, std::forward_like<Self_T>(item));
     }
 
     return std::forward<F>(func);

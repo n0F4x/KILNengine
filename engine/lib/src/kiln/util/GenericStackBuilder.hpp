@@ -20,7 +20,7 @@ namespace kiln::util {
 namespace internal {
 
 template <typename T>
-struct IsContextVariableDependency
+struct IsGenericStackItemDependency
     : std::bool_constant<generic_stack_item_c<std::remove_cvref_t<T>>> {};
 
 }   // namespace internal
@@ -28,7 +28,7 @@ struct IsContextVariableDependency
 template <typename T>
 concept generic_stack_item_injection_c =
     generic_stack_item_c<result_of_t<T>>
-    && type_list_all_of_c<arguments_of_t<T>, internal::IsContextVariableDependency>;
+    && type_list_all_of_c<arguments_of_t<T>, internal::IsGenericStackItemDependency>;
 
 template <typename T>
 concept decays_to_generic_stack_item_injection_c =
@@ -45,19 +45,19 @@ public:
     auto build() && -> GenericStack;
 
 private:
-    using Injection = MoveOnlyFunction<void(GenericStack&) &&, 0>;
+    using ErasedInjection = MoveOnlyFunction<void(GenericStack&) &&, 0>;
 
-    template <typename DecayedInjection_T, typename Variable_T>
+    template <typename DecayedInjection_T, typename Item_T>
     struct WrappedInjection {
         DecayedInjection_T injection;
 
-        auto operator()(GenericStack& context) && -> void;
+        auto operator()(GenericStack& generic_stack) && -> void;
     };
 
-    BasicGenericStack<Injection> m_injections;
-    std::vector<uint64_t>        m_variable_types;
+    BasicGenericStack<ErasedInjection> m_injections;
+    std::vector<uint64_t>              m_item_types;
 
-    template <generic_stack_item_c Variable_T>
+    template <generic_stack_item_c Item_T>
     [[nodiscard]]
     auto contains() const noexcept -> bool;
 };
@@ -71,16 +71,18 @@ namespace kiln::util {
 namespace internal {
 
 template <typename Injection_T>
-auto apply_injection(Injection_T&& injection, GenericStack& context)
+auto apply_injection(Injection_T&& injection, GenericStack& generic_stack)
     -> result_of_t<Injection_T>
 {
     using Parameters = arguments_of_t<Injection_T>;
     static_assert(type_list_all_of_c<Parameters, std::is_lvalue_reference>);
 
-    return [&injection,
-            &context]<typename... Parameters_T>(TypeList<Parameters_T...>) -> auto {
+    return [&injection, &generic_stack]<typename... Parameters_T>(
+               TypeList<Parameters_T...>
+           ) -> result_of_t<Injection_T>   //
+    {
         (PRECOND(
-             (context.contains<std::remove_cvref_t<Parameters_T>>()),
+             (generic_stack.contains<std::remove_cvref_t<Parameters_T>>()),
              std::format(
                  "Missing dependency `{}` for injection `{}`",
                  name_of<std::remove_cvref_t<Parameters_T>>(),
@@ -91,8 +93,8 @@ auto apply_injection(Injection_T&& injection, GenericStack& context)
 
         return std::invoke(
             std::forward<Injection_T>(injection),   //
-            [&context]<typename Parameter_T> -> decltype(auto) {
-                return context.at<std::remove_cvref_t<Parameter_T>>();
+            [&generic_stack]<typename Parameter_T> -> decltype(auto) {
+                return generic_stack.at<std::remove_cvref_t<Parameter_T>>();
             }.template operator()<Parameters_T>()...
         );
     }(Parameters{});
@@ -106,15 +108,15 @@ template <decays_to_generic_stack_item_injection_c Injection_T>
 auto BasicGenericStackBuilder<Any_T>::inject(Injection_T&& injection)
     -> std::decay_t<Injection_T>&
 {
-    using Variable         = std::remove_cvref_t<result_of_t<Injection_T>>;
+    using Item             = std::remove_cvref_t<result_of_t<Injection_T>>;
     using DecayedInjection = std::decay_t<Injection_T>;
-    using WrappedInjection = WrappedInjection<DecayedInjection, Variable>;
+    using WrappedInjection = WrappedInjection<DecayedInjection, Item>;
 
     PRECOND(
-        (!contains<Variable>()),
+        (!contains<Item>()),
         std::format(
             "Attempt to inject type `{}`, but it has already been injected",
-            name_of<Variable>()
+            name_of<Item>()
         )
     );
 
@@ -122,18 +124,20 @@ auto BasicGenericStackBuilder<Any_T>::inject(Injection_T&& injection)
         WrappedInjection{ std::forward<Injection_T>(injection) }
     );
 
-    m_variable_types.push_back(hash_u64<Variable>());
+    m_item_types.push_back(hash_u64<Item>());
 
     return wrapped_injection.injection;
 }
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <typename DecayedInjection_T, typename Variable_T>
-auto BasicGenericStackBuilder<Any_T>::WrappedInjection<DecayedInjection_T, Variable_T>::
-    operator()(GenericStack& context) && -> void
+template <typename DecayedInjection_T, typename Item_T>
+auto BasicGenericStackBuilder<Any_T>::WrappedInjection<DecayedInjection_T, Item_T>::
+    operator()(GenericStack& generic_stack) && -> void
 {
-    context.emplace<Variable_T>(internal::apply_injection(std::move(injection), context));
+    generic_stack.emplace<Item_T>(
+        internal::apply_injection(std::move(injection), generic_stack)
+    );
 }
 
 template <move_only_any_c Any_T>
@@ -142,7 +146,7 @@ auto BasicGenericStackBuilder<Any_T>::build() && -> GenericStack
 {
     GenericStack result;
 
-    std::move(m_injections).for_each([&result](Injection&& injection) -> void {
+    std::move(m_injections).for_each([&result](ErasedInjection&& injection) -> void {
         std::move(injection)(result);
     });
 
@@ -151,10 +155,10 @@ auto BasicGenericStackBuilder<Any_T>::build() && -> GenericStack
 
 template <move_only_any_c Any_T>
     requires(Any_T::size == 0)
-template <generic_stack_item_c Variable_T>
+template <generic_stack_item_c Item_T>
 auto BasicGenericStackBuilder<Any_T>::contains() const noexcept -> bool
 {
-    return std::ranges::contains(m_variable_types, hash_u64<Variable_T>());
+    return std::ranges::contains(m_item_types, hash_u64<Item_T>());
 }
 
 }   // namespace kiln::util

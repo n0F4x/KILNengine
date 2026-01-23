@@ -16,7 +16,7 @@ public:
     auto build() && -> App;
 
 private:
-    util::GenericStackBuilder m_resource_context_builder;
+    util::GenericStackBuilder m_resource_stack_builder;
 };
 
 [[nodiscard]]
@@ -29,7 +29,7 @@ namespace kiln::app {
 template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
 auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T
 {
-    self.Builder::m_resource_context_builder.inject(std::forward<Injection_T>(injection));
+    self.Builder::m_resource_stack_builder.inject(std::forward<Injection_T>(injection));
     return std::forward<Self_T>(self);
 }
 
@@ -37,7 +37,7 @@ inline auto Builder::build() && -> App
 {
     App result{};
 
-    result.resources() = std::move(m_resource_context_builder).build();
+    result.resources() = std::move(m_resource_stack_builder).build();
 
     return result;
 }
