@@ -3,6 +3,7 @@
 #include <concepts>
 #include <format>
 #include <functional>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -14,6 +15,7 @@
 #include "kiln/util/reflection.hpp"
 #include "kiln/util/type_traits/arguments_of.hpp"
 #include "kiln/util/type_traits/result_of.hpp"
+#include "kiln/util/type_traits/type_list_to.hpp"
 #include "kiln/util/TypeList.hpp"
 
 namespace kiln::app {
@@ -26,7 +28,7 @@ concept plugin_c = util::basic_generic_stack_item_c<T, ErasedPlugin>;
 template <typename T>
 concept plugin_injection_c = plugin_c<util::result_of_t<T&&>>;
 
-class Builder {
+class Builder final {
 public:
     template <typename Self_T, util::decays_to_generic_stack_item_c Resource_T>
     auto insert_resource(this Self_T&&, Resource_T&& resource) -> Self_T;
@@ -51,6 +53,11 @@ private:
     std::reference_wrapper<ResourcePlugin> m_resource_plugin_ref{
         m_plugins.at<ResourcePlugin>()
     };
+
+    template <typename PluginInjection_T>
+    [[nodiscard]]
+    auto resolve_dependencies()
+        -> util::type_list_to_t<util::arguments_of_t<PluginInjection_T>, std::tuple>;
 };
 
 [[nodiscard]]
@@ -94,33 +101,18 @@ auto Builder::plug_in(this Self_T&& self, PluginInjection_T&& plugin_injection) 
     using Plugin = util::result_of_t<PluginInjection_T>;
 
     PRECOND(
-        (!self.Builder::m_plugins.template contains<Plugin>()),
+        (!self.m_plugins.template contains<Plugin>()),
         std::format(
             "Attempt to inject plugin of type `{}`, but it has already been injected",
             util::name_of<Plugin>()
         )
     );
 
-    self.Builder::m_plugins.insert(
-        [&self, &plugin_injection]<typename... Dependencies_T>(
-            util::TypeList<Dependencies_T...>
-        ) -> util::result_of_t<PluginInjection_T>   //
-        {
-            (PRECOND(
-                 self.Builder::m_plugins
-                     .template contains<std::remove_cvref_t<Dependencies_T>>(),
-                 std::format(
-                     "Plugin dependency of type `{}` not found",
-                     util::name_of<std::remove_cvref_t<Dependencies_T>>()
-                 )
-             ),
-             ...);
-
-            return std::invoke(
-                std::forward<PluginInjection_T>(plugin_injection),
-                self.Builder::m_plugins.template at<std::remove_cvref_t<Dependencies_T>>()...
-            );
-        }(util::arguments_of_t<PluginInjection_T>{})
+    self.m_plugins.insert(
+        std::apply(
+            std::forward<PluginInjection_T>(plugin_injection),
+            self.template resolve_dependencies<PluginInjection_T>()
+        )
     );
 
     return std::forward<Self_T>(self);
@@ -135,6 +127,28 @@ inline auto Builder::build() && -> App
     });
 
     return result;
+}
+
+template <typename PluginInjection_T>
+auto Builder::resolve_dependencies()
+    -> util::type_list_to_t<util::arguments_of_t<PluginInjection_T>, std::tuple>
+{
+    return
+        [this]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> auto   //
+    {
+        (PRECOND(
+             m_plugins.contains<std::remove_cvref_t<Dependencies_T>>(),
+             std::format(
+                 "Plugin dependency of type `{}` not found",
+                 util::name_of<std::remove_cvref_t<Dependencies_T>>()
+             )
+         ),
+         ...);
+
+        return std::forward_as_tuple(
+            m_plugins.at<std::remove_cvref_t<Dependencies_T>>()...
+        );
+    }(util::arguments_of_t<PluginInjection_T>{});
 }
 
 inline auto create() -> Builder
