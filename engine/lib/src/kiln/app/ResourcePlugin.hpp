@@ -5,6 +5,7 @@
 
 #include "kiln/app/App.hpp"
 #include "kiln/util/GenericStack.hpp"
+#include "kiln/util/type_traits/forward_like.hpp"
 #include "kiln/util/type_traits/result_of.hpp"
 
 namespace kiln::app {
@@ -40,6 +41,19 @@ private:
     util::GenericStack m_resource_stack;
 };
 
+class ResourcePluginInjection {
+public:
+    template<typename Self_T>
+    [[nodiscard]]
+    auto plugin(this Self_T&&) noexcept -> util::forward_like_t<ResourcePlugin, Self_T>;
+
+    [[nodiscard]]
+    auto operator()() && -> ResourcePlugin;
+
+private:
+    ResourcePlugin m_resource_plugin;
+};
+
 }   // namespace kiln::app
 
 namespace kiln::app {
@@ -72,6 +86,18 @@ inline auto ResourcePlugin::operator()(App& app) && -> void
     );
 
     app.resources() = std::move(m_resource_stack);
+}
+
+template <typename Self_T>
+auto ResourcePluginInjection::plugin(this Self_T&& self) noexcept
+    -> util::forward_like_t<ResourcePlugin, Self_T>
+{
+    return std::forward_like<Self_T>(self.m_resource_plugin);
+}
+
+inline auto ResourcePluginInjection::operator()() && -> ResourcePlugin
+{
+    return std::move(m_resource_plugin);
 }
 
 }   // namespace kiln::app

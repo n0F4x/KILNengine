@@ -5,6 +5,7 @@
 #include "kiln/util/contracts.hpp"
 #include "kiln/util/Deallocator.hpp"
 #include "kiln/util/Dummy.hpp"
+#include "kiln/util/for_each.hpp"
 #include "kiln/util/Function.hpp"
 #include "kiln/util/GenericStack.hpp"
 #include "kiln/util/OptionalRef.hpp"

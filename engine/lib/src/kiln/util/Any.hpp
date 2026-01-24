@@ -586,6 +586,8 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexce
         m_vtable->move(m_storage, std::move(other.m_storage));
     }
 
+    m_extra_vtable = std::exchange(other.m_extra_vtable, nullptr);
+
     other.reset();
 
     return *this;

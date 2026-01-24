@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         contracts.hpp
         Deallocator.hpp
         Dummy.hpp
+        for_each.hpp
         Function.hpp
         GenericStack.hpp
         OptionalRef.hpp
