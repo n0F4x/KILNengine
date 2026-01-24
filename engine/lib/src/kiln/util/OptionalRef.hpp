@@ -94,7 +94,7 @@ template <std::same_as<std::remove_const_t<T>> U>
     requires(std::is_const_v<T>)
 constexpr OptionalRef<T>::OptionalRef(const OptionalRef<U> other) noexcept
     : m_handle{
-          other                    //
+          other
               .transform([](T& value) -> T* { return std::addressof(value); })
               .value_or(nullptr)   //
       }
@@ -113,7 +113,7 @@ constexpr OptionalRef<T>::OptionalRef(
     const std::optional<std::reference_wrapper<T>>& optional_ref_wrapper
 ) noexcept
     : m_handle{
-          optional_ref_wrapper     //
+          optional_ref_wrapper
               .transform([](T& ref) -> T* { return std::addressof(ref); })
               .value_or(nullptr)   //
       }

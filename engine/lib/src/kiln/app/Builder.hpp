@@ -122,9 +122,12 @@ inline auto Builder::build() && -> App
 {
     App result{};
 
-    std::move(m_plugins).for_each([&result](ErasedPlugin&& erased_plugin) -> void {
-        std::move(erased_plugin)(result);
-    });
+    std::move(m_plugins).for_each(
+        [&result](ErasedPlugin&& erased_plugin) -> void
+        {
+            std::move(erased_plugin)(result);   //
+        }
+    );
 
     return result;
 }
@@ -133,8 +136,7 @@ template <typename PluginInjection_T>
 auto Builder::resolve_dependencies()
     -> util::type_list_to_t<util::arguments_of_t<PluginInjection_T>, std::tuple>
 {
-    return
-        [this]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> auto   //
+    return [this]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> auto
     {
         (PRECOND(
              m_plugins.contains<std::remove_cvref_t<Dependencies_T>>(),

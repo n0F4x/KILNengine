@@ -276,7 +276,7 @@ template <typename Injection_T>
 auto BasicGenericStack<Any_T>::resolve_dependencies()
     -> type_list_to_t<arguments_of_t<Injection_T>, std::tuple>
 {
-    return [this]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> auto   //
+    return [this]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> auto
     {
         (PRECOND(
              contains<std::remove_cvref_t<Dependencies_T>>(),

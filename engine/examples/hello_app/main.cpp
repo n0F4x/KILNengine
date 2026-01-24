@@ -15,13 +15,15 @@ auto main() -> int
 
     std::ignore = app::create()
                       .insert_resource(42)
-                      .plug_in([](app::ResourcePlugin& resource_plugin) -> auto {
-                          resource_plugin.inject_resource(
-                              [](const int& other_resource) -> std::string {
-                                  return std::to_string(other_resource);
-                              }
-                          );
-                          return custom_plugin;
-                      })
+                      .plug_in(
+                          [](app::ResourcePlugin& resource_plugin) -> auto
+                          {
+                              resource_plugin.inject_resource(
+                                  [](const int& other_resource) -> std::string
+                                  { return std::to_string(other_resource); }
+                              );
+                              return custom_plugin;
+                          }
+                      )
                       .build();
 }
