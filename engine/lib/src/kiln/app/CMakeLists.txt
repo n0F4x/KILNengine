@@ -4,5 +4,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         App.hpp
         Builder.hpp
+        PluginTree.hpp
         ResourcePlugin.hpp
 )

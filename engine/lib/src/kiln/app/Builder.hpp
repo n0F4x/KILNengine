@@ -1,47 +1,29 @@
 #pragma once
 
 #include <concepts>
-#include <format>
 #include <functional>
-#include <tuple>
-#include <type_traits>
 #include <utility>
 
 #include "kiln/app/App.hpp"
+#include "kiln/app/PluginTree.hpp"
 #include "kiln/app/ResourcePlugin.hpp"
-#include "kiln/util/contract_macros.hpp"
-#include "kiln/util/Function.hpp"
-#include "kiln/util/GenericStack.hpp"
-#include "kiln/util/reflection.hpp"
-#include "kiln/util/type_traits/arguments_of.hpp"
-#include "kiln/util/type_traits/result_of.hpp"
-#include "kiln/util/type_traits/type_list_to.hpp"
-#include "kiln/util/TypeList.hpp"
 
 namespace kiln::app {
 
-using ErasedPlugin = util::MoveOnlyFunction<void(App&) &&, 0>;
-
-template <typename T>
-concept plugin_c = util::basic_generic_stack_item_c<T, ErasedPlugin>;
-
-template <typename T>
-concept plugin_injection_c = plugin_c<util::result_of_t<T&&>>;
-
-class Builder final {
+class Builder {
 public:
-    template <typename Self_T, util::decays_to_generic_stack_item_c Resource_T>
+    template <typename Self_T, decays_to_resource_c Resource_T>
     auto insert_resource(this Self_T&&, Resource_T&& resource) -> Self_T;
 
-    template <util::generic_stack_item_c Resource_T, typename Self_T, typename... Args_T>
+    template <resource_c Resource_T, typename Self_T, typename... Args_T>
         requires std::constructible_from<Resource_T, Args_T&&...>
     auto emplace_resource(this Self_T&&, Args_T&&... args) -> Self_T;
 
-    template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
+    template <typename Self_T, decays_to_resource_injection_c Injection_T>
     auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T;
 
 
-    template <typename Self_T, plugin_injection_c PluginInjection_T>
+    template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
     auto plug_in(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T;
 
 
@@ -49,15 +31,10 @@ public:
     auto build() && -> App;
 
 private:
-    util::BasicGenericStack<ErasedPlugin>  m_plugins{ ResourcePlugin{} };
+    PluginTree                             m_plugin_tree{ ResourcePluginInjection{} };
     std::reference_wrapper<ResourcePlugin> m_resource_plugin_ref{
-        m_plugins.at<ResourcePlugin>()
+        m_plugin_tree.injection<ResourcePluginInjection>().plugin()
     };
-
-    template <typename PluginInjection_T>
-    [[nodiscard]]
-    auto resolve_dependencies()
-        -> util::type_list_to_t<util::arguments_of_t<PluginInjection_T>, std::tuple>;
 };
 
 [[nodiscard]]
@@ -67,7 +44,7 @@ auto create() -> Builder;
 
 namespace kiln::app {
 
-template <typename Self_T, util::decays_to_generic_stack_item_c Resource_T>
+template <typename Self_T, decays_to_resource_c Resource_T>
 auto Builder::insert_resource(this Self_T&& self, Resource_T&& resource) -> Self_T
 {
     self.Builder::m_resource_plugin_ref.get().insert_resource(
@@ -76,7 +53,7 @@ auto Builder::insert_resource(this Self_T&& self, Resource_T&& resource) -> Self
     return std::forward<Self_T>(self);
 }
 
-template <util::generic_stack_item_c Resource_T, typename Self_T, typename... Args_T>
+template <resource_c Resource_T, typename Self_T, typename... Args_T>
     requires std::constructible_from<Resource_T, Args_T&&...>
 auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T
 {
@@ -86,7 +63,7 @@ auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T
     return std::forward<Self_T>(self);
 }
 
-template <typename Self_T, util::decays_to_generic_stack_item_injection_c Injection_T>
+template <typename Self_T, decays_to_resource_injection_c Injection_T>
 auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T
 {
     self.Builder::m_resource_plugin_ref.get().inject_resource(
@@ -95,25 +72,10 @@ auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Se
     return std::forward<Self_T>(self);
 }
 
-template <typename Self_T, plugin_injection_c PluginInjection_T>
+template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
 auto Builder::plug_in(this Self_T&& self, PluginInjection_T&& plugin_injection) -> Self_T
 {
-    using Plugin = util::result_of_t<PluginInjection_T>;
-
-    PRECOND(
-        (!self.m_plugins.template contains<Plugin>()),
-        std::format(
-            "Attempt to inject plugin of type `{}`, but it has already been injected",
-            util::name_of<Plugin>()
-        )
-    );
-
-    self.m_plugins.insert(
-        std::apply(
-            std::forward<PluginInjection_T>(plugin_injection),
-            self.template resolve_dependencies<PluginInjection_T>()
-        )
-    );
+    self.m_plugin_tree.plug_in(std::forward_like<PluginInjection_T>(plugin_injection));
 
     return std::forward<Self_T>(self);
 }
@@ -122,35 +84,9 @@ inline auto Builder::build() && -> App
 {
     App result{};
 
-    std::move(m_plugins).for_each(
-        [&result](ErasedPlugin&& erased_plugin) -> void
-        {
-            std::move(erased_plugin)(result);   //
-        }
-    );
+    std::move(m_plugin_tree).invoke_plugins(result);
 
     return result;
-}
-
-template <typename PluginInjection_T>
-auto Builder::resolve_dependencies()
-    -> util::type_list_to_t<util::arguments_of_t<PluginInjection_T>, std::tuple>
-{
-    return [this]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> auto
-    {
-        (PRECOND(
-             m_plugins.contains<std::remove_cvref_t<Dependencies_T>>(),
-             std::format(
-                 "Plugin dependency of type `{}` not found",
-                 util::name_of<std::remove_cvref_t<Dependencies_T>>()
-             )
-         ),
-         ...);
-
-        return std::forward_as_tuple(
-            m_plugins.at<std::remove_cvref_t<Dependencies_T>>()...
-        );
-    }(util::arguments_of_t<PluginInjection_T>{});
 }
 
 inline auto create() -> Builder
