@@ -70,19 +70,28 @@ struct RendererPlugin {
     }
 };
 
-auto renderer_plugin_injection(
-    const GraphicsSystemIntegrationPlugin&,
-    const kiln::util::OptionalRef<WindowPlugin> window_plugin
-) -> RendererPlugin
-{
-    if (window_plugin.has_value() && window_plugin->supports_graphics)
-    {
-        window_plugin->graphics_support_requested = true;
-        return RendererPlugin{ .headless = false };
-    }
+struct RendererPluginInjection {
+    bool require_presentation_support = true;
 
-    return RendererPlugin{ .headless = true };
-}
+    auto operator()(
+        const GraphicsSystemIntegrationPlugin&,
+        const kiln::util::OptionalRef<WindowPlugin> window_plugin
+    ) && -> RendererPlugin
+    {
+        if (require_presentation_support)
+        {
+            PRECOND(window_plugin.has_value());
+        }
+
+        if (window_plugin.has_value() && window_plugin->supports_graphics)
+        {
+            window_plugin->graphics_support_requested = true;
+            return RendererPlugin{ .headless = false };
+        }
+
+        return RendererPlugin{ .headless = true };
+    }
+};
 
 auto main() -> int
 {
@@ -100,7 +109,9 @@ auto main() -> int
                            }
                        )
                        .insert_plugin(GraphicsSystemIntegrationPlugin{})
-                       .inject_plugin(renderer_plugin_injection)
+                       .inject_plugin(
+                           RendererPluginInjection{ .require_presentation_support = true }
+                       )
                        .inject_plugin(window_plugin_injection)
                        .build();
 
