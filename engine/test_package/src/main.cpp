@@ -1,6 +1,6 @@
 #include <print>
 
-#include <kiln/config/engine_name.hpp>
+#include <kiln.hpp>
 
 auto main() -> int
 {

@@ -1,4 +1,5 @@
 add_subdirectory(concepts)
+add_subdirectory(type_traits)
 
 target_sources(${PROJECT_NAME} PRIVATE
         contract_details.cpp
