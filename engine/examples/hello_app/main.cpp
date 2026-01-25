@@ -52,7 +52,8 @@ auto window_plugin_injection(
 }
 
 struct RenderSystem {
-    WindowSystem* window_system{};
+    GraphicsSystemIntegration& graphics_system;
+    WindowSystem*              window_system{};
 };
 
 struct RendererPlugin {
@@ -62,14 +63,17 @@ struct RendererPlugin {
     {
         app.resources().insert(
             RenderSystem{
+                .graphics_system = app.resources().at<GraphicsSystemIntegration>(),
                 .window_system = headless ? nullptr : &app.resources().at<WindowSystem>(),
             }
         );
     }
 };
 
-auto renderer_plugin_injection(const kiln::util::OptionalRef<WindowPlugin> window_plugin)
-    -> RendererPlugin
+auto renderer_plugin_injection(
+    const GraphicsSystemIntegrationPlugin&,
+    const kiln::util::OptionalRef<WindowPlugin> window_plugin
+) -> RendererPlugin
 {
     if (window_plugin.has_value() && window_plugin->supports_graphics)
     {
