@@ -22,8 +22,15 @@ public:
     auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T;
 
 
+    template <typename Self_T, decays_to_plugin_c Plugin_T>
+    auto insert_plugin(this Self_T&&, Plugin_T&& plugin) -> Self_T;
+
+    template <plugin_c Plugin_T, typename Self_T, typename... Args_T>
+        requires std::constructible_from<Plugin_T, Args_T&&...>
+    auto emplace_plugin(this Self_T&&, Args_T&&... args) -> Self_T;
+
     template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
-    auto plug_in(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T;
+    auto inject_plugin(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T;
 
 
     [[nodiscard]]
@@ -65,8 +72,29 @@ auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Se
     return std::forward<Self_T>(self);
 }
 
+template <typename Self_T, decays_to_plugin_c Plugin_T>
+auto Builder::insert_plugin(this Self_T&& self, Plugin_T&& plugin) -> Self_T
+{
+    return std::forward<Self_T>(self).inject_plugin(
+        [x_plugin = std::forward<Plugin_T>(plugin)] mutable -> std::decay_t<Plugin_T>
+        {
+            return std::move(x_plugin);   //
+        }
+    );
+}
+
+template <plugin_c Plugin_T, typename Self_T, typename... Args_T>
+    requires std::constructible_from<Plugin_T, Args_T&&...>
+auto Builder::emplace_plugin(this Self_T&& self, Args_T&&... args) -> Self_T
+{
+    return std::forward<Self_T>(self).insert_plugin(
+        Plugin_T(std::forward<Args_T>(args)...)
+    );
+}
+
 template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
-auto Builder::plug_in(this Self_T&& self, PluginInjection_T&& plugin_injection) -> Self_T
+auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injection)
+    -> Self_T
 {
     self.m_plugin_tree.plug_in(std::forward_like<PluginInjection_T>(plugin_injection));
 

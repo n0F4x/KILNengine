@@ -13,11 +13,6 @@ struct GraphicsSystemIntegrationPlugin {
     }
 };
 
-auto graphics_system_plugin_injection() -> GraphicsSystemIntegrationPlugin
-{
-    return {};
-}
-
 struct WindowSystem {
     GraphicsSystemIntegration* graphics_system{};
 };
@@ -100,9 +95,9 @@ auto main() -> int
                                         : "Renderer is not headless";
                            }
                        )
-                       .plug_in(graphics_system_plugin_injection)
-                       .plug_in(renderer_plugin_injection)
-                       .plug_in(window_plugin_injection)
+                       .insert_plugin(GraphicsSystemIntegrationPlugin{})
+                       .inject_plugin(renderer_plugin_injection)
+                       .inject_plugin(window_plugin_injection)
                        .build();
 
     // Renderer is never headless when both window and graphics plugins are present
