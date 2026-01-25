@@ -66,9 +66,8 @@ consteval auto name_of() noexcept -> std::string_view
 #elifdef _MSC_VER
         "kiln::util::internal::raw_pretty_function_name<"
 #else
-        [] [[noreturn]] static -> std::string_view {
-            static_assert(false, "Compiler is not supported");
-        }()
+        [] [[noreturn]] static -> std::string_view
+        { static_assert(false, "Compiler is not supported"); }()
 #endif
     };
 
