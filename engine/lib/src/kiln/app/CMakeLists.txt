@@ -6,7 +6,3 @@ target_sources(${PROJECT_NAME} PUBLIC
         Builder.hpp
         ResourcePlugin.hpp
 )
-
-target_sources(${PROJECT_NAME} PRIVATE
-        App.cpp
-)
