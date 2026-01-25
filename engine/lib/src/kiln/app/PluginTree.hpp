@@ -69,7 +69,7 @@ public:
     [[nodiscard]]
     auto plugin_name() const noexcept -> std::string_view;
     [[nodiscard]]
-    auto plugin_dependency_hashes() const noexcept -> std::span<const uint64_t>;
+    auto resolved_plugin_dependency_hashes() const noexcept -> std::span<const uint64_t>;
     [[nodiscard]]
     auto unresolved_plugin_dependency_hashes() const noexcept
         -> std::span<const uint64_t>;
@@ -85,7 +85,7 @@ private:
     Function              m_function;
     uint64_t              m_plugin_type_hash;
     std::string_view      m_plugin_name;
-    std::vector<uint64_t> m_plugin_dependency_hashes;
+    std::vector<uint64_t> m_resolved_plugin_dependency_hashes;
     std::vector<uint64_t> m_unresolved_plugin_dependency_hashes;
 };
 
@@ -144,7 +144,7 @@ private:
     [[nodiscard]]
     auto collect_unresolved_dependency_plugin_hashes() const -> std::vector<uint64_t>;
 
-    auto collect_all_dependency_plugin_hashes(
+    auto collect_all_resolved_dependency_plugin_hashes(
         uint64_t               plugin_hash,
         std::vector<uint64_t>& out
     ) const -> void;
@@ -201,27 +201,40 @@ struct PluginInjectionLambda {
     }
 };
 
+constexpr static auto hash_plugin_dependency =
+    []<typename PluginDependency_T> [[nodiscard]]
+    -> uint64_t
+{
+    if constexpr (represents_optional_dependency_c<PluginDependency_T>)
+    {
+        return util::
+            hash_u64<std::remove_const_t<typename PluginDependency_T::ValueType>>();
+    }
+    else
+    {
+        return util::hash_u64<std::remove_cvref_t<PluginDependency_T>>();
+    }
+};
+
 template <typename PluginInjection_T>
 [[nodiscard]]
-auto collect_plugin_dependency_hashes() -> std::vector<uint64_t>
+auto collect_resolved_plugin_dependency_hashes(
+    const std::span<const uint64_t> unresolved_dependency_hashes
+) -> std::vector<uint64_t>
 {
     std::vector<uint64_t> result;
 
     util::for_each(
         util::arguments_of_t<PluginInjection_T>{},
-        [&result]<typename Dependency_T> -> void
+        [&result, unresolved_dependency_hashes](const uint64_t plugin_hash) -> void
         {
-            if constexpr (represents_optional_dependency_c<Dependency_T>)
+            if (!std::ranges::contains(unresolved_dependency_hashes, plugin_hash)
+                && !std::ranges::contains(result, plugin_hash))
             {
-                result.push_back(
-                    util::hash_u64<std::remove_const_t<typename Dependency_T::ValueType>>()
-                );
+                result.push_back(plugin_hash);
             }
-            else
-            {
-                result.push_back(util::hash_u64<std::remove_cvref_t<Dependency_T>>());
-            }
-        }
+        },
+        hash_plugin_dependency
     );
 
     return result;
@@ -239,7 +252,11 @@ ErasedPluginInjection::ErasedPluginInjection(
       },
       m_plugin_type_hash{ util::hash_u64<util::result_of_t<PluginInjection_T>>() },
       m_plugin_name{ util::name_of<util::result_of_t<PluginInjection_T>>() },
-      m_plugin_dependency_hashes{ collect_plugin_dependency_hashes<PluginInjection_T>() },
+      m_resolved_plugin_dependency_hashes{
+          collect_resolved_plugin_dependency_hashes<PluginInjection_T>(
+              unresolved_plugin_dependency_hashes
+          )
+      },
       m_unresolved_plugin_dependency_hashes{
           std::move(unresolved_plugin_dependency_hashes)
       }
@@ -256,10 +273,10 @@ inline auto ErasedPluginInjection::plugin_name() const noexcept -> std::string_v
     return m_plugin_name;
 }
 
-inline auto ErasedPluginInjection::plugin_dependency_hashes() const noexcept
+inline auto ErasedPluginInjection::resolved_plugin_dependency_hashes() const noexcept
     -> std::span<const uint64_t>
 {
-    return m_plugin_dependency_hashes;
+    return m_resolved_plugin_dependency_hashes;
 }
 
 inline auto ErasedPluginInjection::unresolved_plugin_dependency_hashes() const noexcept
@@ -278,7 +295,10 @@ auto ErasedPluginInjection::underlying_function(this Self_T&& self)
 inline auto ErasedPluginInjection::resolve_dependency(const uint64_t new_plugin_hash)
     -> void
 {
-    std::erase(m_unresolved_plugin_dependency_hashes, new_plugin_hash);
+    if (std::erase(m_unresolved_plugin_dependency_hashes, new_plugin_hash) > 0)
+    {
+        m_resolved_plugin_dependency_hashes.push_back(new_plugin_hash);
+    }
 }
 
 inline auto ErasedPluginInjection::operator()(PluginStack& plugin_stack) && -> void
@@ -541,7 +561,7 @@ auto PluginTree::push_back(PluginInjection_T&& plugin_injection)
         .plugin_injection;
 }
 
-inline auto PluginTree::collect_all_dependency_plugin_hashes(
+inline auto PluginTree::collect_all_resolved_dependency_plugin_hashes(
     const uint64_t         plugin_hash,
     std::vector<uint64_t>& out
 ) const -> void
@@ -557,12 +577,12 @@ inline auto PluginTree::collect_all_dependency_plugin_hashes(
     }
 
     for (const uint64_t plugin_dependency_hash :
-         plugin_injection_iter->plugin_dependency_hashes())
+         plugin_injection_iter->resolved_plugin_dependency_hashes())
     {
         if (!std::ranges::contains(out, plugin_dependency_hash))
         {
             out.push_back(plugin_dependency_hash);
-            collect_all_dependency_plugin_hashes(plugin_dependency_hash, out);
+            collect_all_resolved_dependency_plugin_hashes(plugin_dependency_hash, out);
         }
     }
 }
@@ -577,14 +597,16 @@ inline auto PluginTree::reestablish_internal_ordering_of_plugins(
      */
 
     std::vector all_dependency_plugin_hashes{ new_plugin_hash };
-    collect_all_dependency_plugin_hashes(new_plugin_hash, all_dependency_plugin_hashes);
+    collect_all_resolved_dependency_plugin_hashes(
+        new_plugin_hash, all_dependency_plugin_hashes
+    );
 
     auto first_dependent_injection_iter = std::ranges::find_if(
         m_plugin_injections,
         [new_plugin_hash](const internal::ErasedPluginInjection& injection) -> bool
         {
             return std::ranges::contains(
-                injection.plugin_dependency_hashes(), new_plugin_hash
+                injection.unresolved_plugin_dependency_hashes(), new_plugin_hash
             );
         }
     );
@@ -596,7 +618,7 @@ inline auto PluginTree::reestablish_internal_ordering_of_plugins(
     for (const uint64_t dependency_plugin_hash : all_dependency_plugin_hashes)
     {
         /*
-         * Shift injection in front of the found injection
+         * Shift injection in front of the first dependent injection
          */
 
         const auto injection_iter = std::ranges::find(
@@ -605,6 +627,14 @@ inline auto PluginTree::reestablish_internal_ordering_of_plugins(
             dependency_plugin_hash,
             &internal::ErasedPluginInjection::plugin_type_hash
         );
+
+        if (injection_iter == m_plugin_injections.cend())
+        {
+            /*
+             * Injection is already at the right place
+             */
+            continue;
+        }
 
         first_dependent_injection_iter =
             std::ranges::rotate(
