@@ -2,7 +2,8 @@
 
 #include "kiln/util/Any.hpp"
 #include "kiln/util/concepts.hpp"
-#include "kiln/util/contracts.hpp"
+#include "kiln/util/contract_details.hpp"
+#include "kiln/util/contract_macros.hpp"
 #include "kiln/util/Deallocator.hpp"
 #include "kiln/util/Dummy.hpp"
 #include "kiln/util/for_each.hpp"

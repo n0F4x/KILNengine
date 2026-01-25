@@ -43,7 +43,7 @@ private:
 
 class ResourcePluginInjection {
 public:
-    template<typename Self_T>
+    template <typename Self_T>
     [[nodiscard]]
     auto plugin(this Self_T&&) noexcept -> util::forward_like_t<ResourcePlugin, Self_T>;
 
