@@ -71,14 +71,14 @@ struct RendererPlugin {
 };
 
 struct RendererPluginInjection {
-    bool require_presentation_support = true;
+    bool presentation_support_requested = true;
 
     auto operator()(
         const GraphicsSystemIntegrationPlugin&,
         const kiln::util::OptionalRef<WindowPlugin> window_plugin
-    ) && -> RendererPlugin
+    ) const -> RendererPlugin
     {
-        if (require_presentation_support)
+        if (presentation_support_requested)
         {
             PRECOND(window_plugin.has_value());
         }
@@ -109,9 +109,7 @@ auto main() -> int
                            }
                        )
                        .insert_plugin(GraphicsSystemIntegrationPlugin{})
-                       .inject_plugin(
-                           RendererPluginInjection{ .require_presentation_support = true }
-                       )
+                       .inject_plugin(RendererPluginInjection{})
                        .inject_plugin(window_plugin_injection)
                        .build();
 

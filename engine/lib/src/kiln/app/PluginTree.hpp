@@ -166,7 +166,7 @@ namespace internal {
 template <typename... Dependencies_T>
 [[nodiscard]]
 auto collect_dependencies(util::TypeList<Dependencies_T...>, PluginStack& plugin_stack)
-    -> auto
+    -> std::tuple<Dependencies_T...>
 {
     return std::forward_as_tuple(
         [&plugin_stack] -> Dependencies_T
