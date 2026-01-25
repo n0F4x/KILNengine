@@ -265,7 +265,7 @@ template <typename Self_T>
 auto ErasedPluginInjection::underlying_function(this Self_T&& self)
     -> util::forward_like_t<Function, Self_T>
 {
-    return std::forward_like<Self_T>(self.m_function);
+    return std::forward_like<Self_T>(self.ErasedPluginInjection::m_function);
 }
 
 }   // namespace internal
@@ -283,7 +283,7 @@ auto PluginTree::injection(this Self_T&& self)
     using Plugin = util::result_of_t<PluginInjection_T>;
 
     const auto iter = std::ranges::find_if(
-        self.m_plugin_injections,
+        self.PluginTree::m_plugin_injections,
         [](util::const_like_t<internal::ErasedPluginInjection, Self_T>& plugin_injection)
             -> bool
         {
@@ -291,7 +291,7 @@ auto PluginTree::injection(this Self_T&& self)
         }
     );
 
-    PRECOND(iter != self.m_plugin_injections.cend());
+    PRECOND(iter != self.PluginTree::m_plugin_injections.cend());
 
     return std::forward_like<Self_T>(
         util::any_cast<internal::PluginInjectionLambda<std::decay_t<PluginInjection_T>>>(

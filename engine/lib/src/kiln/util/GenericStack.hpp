@@ -159,9 +159,11 @@ auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
     -> OptionalRef<const_like_t<Item_T, Self_T>>
 {
     const auto iter = std::ranges::find(
-        self.m_types_and_items, hash<Item_T>(), &std::pair<uint64_t, Any_T>::first
+        self.BasicGenericStack::m_types_and_items,
+        hash<Item_T>(),
+        &std::pair<uint64_t, Any_T>::first
     );
-    if (iter == self.m_types_and_items.cend())
+    if (iter == self.BasicGenericStack::m_types_and_items.cend())
     {
         return std::nullopt;
     }
@@ -262,7 +264,8 @@ template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
     )
 auto BasicGenericStack<Any_T>::for_each(this Self_T&& self, F&& func) -> F
 {
-    for (auto&& [type, item] : std::forward_like<Self_T>(self.m_types_and_items))
+    for (auto&& [type, item] :
+         std::forward_like<Self_T>(self.BasicGenericStack::m_types_and_items))
     {
         std::invoke(func, std::forward_like<Self_T>(item));
     }

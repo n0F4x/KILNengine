@@ -51,7 +51,9 @@ namespace kiln::app {
 template <typename Self_T, decays_to_resource_c Resource_T>
 auto Builder::insert_resource(this Self_T&& self, Resource_T&& resource) -> Self_T
 {
-    self.m_resource_injection_stack.insert_resource(std::forward<Resource_T>(resource));
+    self.Builder::m_resource_injection_stack.insert_resource(
+        std::forward<Resource_T>(resource)
+    );
     return std::forward<Self_T>(self);
 }
 
@@ -59,7 +61,7 @@ template <resource_c Resource_T, typename Self_T, typename... Args_T>
     requires std::constructible_from<Resource_T, Args_T&&...>
 auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T
 {
-    self.m_resource_injection_stack.template emplace_resource<Resource_T>(
+    self.Builder::m_resource_injection_stack.template emplace_resource<Resource_T>(
         std::forward<Args_T>(args)...
     );
     return std::forward<Self_T>(self);
@@ -68,7 +70,9 @@ auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T
 template <typename Self_T, decays_to_resource_injection_c Injection_T>
 auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T
 {
-    self.m_resource_injection_stack.inject_resource(std::forward<Injection_T>(injection));
+    self.Builder::m_resource_injection_stack.inject_resource(
+        std::forward<Injection_T>(injection)
+    );
     return std::forward<Self_T>(self);
 }
 
@@ -96,7 +100,9 @@ template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
 auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injection)
     -> Self_T
 {
-    self.m_plugin_tree.plug_in(std::forward_like<PluginInjection_T>(plugin_injection));
+    self.Builder::m_plugin_tree.plug_in(
+        std::forward_like<PluginInjection_T>(plugin_injection)
+    );
 
     return std::forward<Self_T>(self);
 }
