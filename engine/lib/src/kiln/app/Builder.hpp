@@ -1,12 +1,11 @@
 #pragma once
 
 #include <concepts>
-#include <functional>
 #include <utility>
 
 #include "kiln/app/App.hpp"
 #include "kiln/app/PluginTree.hpp"
-#include "kiln/app/ResourcePlugin.hpp"
+#include "kiln/app/ResourceInjectionStack.hpp"
 
 namespace kiln::app {
 
@@ -31,10 +30,8 @@ public:
     auto build() && -> App;
 
 private:
-    PluginTree                             m_plugin_tree{ ResourcePluginInjection{} };
-    std::reference_wrapper<ResourcePlugin> m_resource_plugin_ref{
-        m_plugin_tree.injection<ResourcePluginInjection>().plugin()
-    };
+    PluginTree             m_plugin_tree;
+    ResourceInjectionStack m_resource_injection_stack;
 };
 
 [[nodiscard]]
@@ -47,9 +44,7 @@ namespace kiln::app {
 template <typename Self_T, decays_to_resource_c Resource_T>
 auto Builder::insert_resource(this Self_T&& self, Resource_T&& resource) -> Self_T
 {
-    self.Builder::m_resource_plugin_ref.get().insert_resource(
-        std::forward<Resource_T>(resource)
-    );
+    self.m_resource_injection_stack.insert_resource(std::forward<Resource_T>(resource));
     return std::forward<Self_T>(self);
 }
 
@@ -57,7 +52,7 @@ template <resource_c Resource_T, typename Self_T, typename... Args_T>
     requires std::constructible_from<Resource_T, Args_T&&...>
 auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T
 {
-    self.Builder::m_resource_plugin_ref.get().template emplace_resource<Resource_T>(
+    self.m_resource_injection_stack.template emplace_resource<Resource_T>(
         std::forward<Args_T>(args)...
     );
     return std::forward<Self_T>(self);
@@ -66,9 +61,7 @@ auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T
 template <typename Self_T, decays_to_resource_injection_c Injection_T>
 auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T
 {
-    self.Builder::m_resource_plugin_ref.get().inject_resource(
-        std::forward<Injection_T>(injection)
-    );
+    self.m_resource_injection_stack.inject_resource(std::forward<Injection_T>(injection));
     return std::forward<Self_T>(self);
 }
 
@@ -85,6 +78,7 @@ inline auto Builder::build() && -> App
     App result{};
 
     std::move(m_plugin_tree).invoke_plugins(result);
+    std::move(m_resource_injection_stack).merge_into(result.resources());
 
     return result;
 }

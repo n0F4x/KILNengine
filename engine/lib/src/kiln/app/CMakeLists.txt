@@ -5,5 +5,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         App.hpp
         Builder.hpp
         PluginTree.hpp
-        ResourcePlugin.hpp
+        ResourceStack.hpp
+        ResourceInjectionStack.hpp
 )

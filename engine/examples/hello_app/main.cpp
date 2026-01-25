@@ -1,4 +1,5 @@
 #include <print>
+#include <string_view>
 
 #include <kiln/app.hpp>
 #include <kiln/util/OptionalRef.hpp>
@@ -88,18 +89,22 @@ auto main() -> int
 {
     using namespace kiln;
 
+    using Message = std::string_view;
+
     app::App app = app::create()
+                       .inject_resource(
+                           [](const RenderSystem& render_system) -> Message
+                           {
+                               return render_system.window_system == nullptr
+                                        ? "Renderer is headless"
+                                        : "Renderer is not headless";
+                           }
+                       )
                        .plug_in(graphics_system_plugin_injection)
                        .plug_in(renderer_plugin_injection)
                        .plug_in(window_plugin_injection)
                        .build();
 
-    if (app.resources().at<RenderSystem>().window_system == nullptr)
-    {
-        std::println("Renderer is headless");
-    }
-    else
-    {
-        std::println("Renderer is not headless");
-    }
+    // Renderer is never headless when both window and graphics plugins are present
+    std::println("{}", app.resources().at<Message>());
 }
