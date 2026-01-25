@@ -3,31 +3,71 @@
 #include <kiln/app.hpp>
 #include <kiln/util/OptionalRef.hpp>
 
-struct Window {};
+struct GraphicsSystemIntegration {};
 
-struct WindowPlugin {
-    auto operator()(kiln::app::App& app) const -> void
+struct GraphicsSystemIntegrationPlugin {
+    static auto operator()(kiln::app::App& app) -> void
     {
-        app.resources().insert(Window{});
+        app.resources().insert(GraphicsSystemIntegration{});
     }
 };
 
-auto window_plugin_injection() -> WindowPlugin
+auto graphics_system_plugin_injection() -> GraphicsSystemIntegrationPlugin
 {
-    return WindowPlugin{};
+    return {};
 }
 
-struct Renderer {
-    Window* window;
+struct WindowSystem {
+    GraphicsSystemIntegration* graphics_system{};
+};
+
+struct WindowPlugin {
+    bool supports_graphics          = false;
+    bool graphics_support_requested = false;
+
+    auto operator()(kiln::app::App& app) const -> void
+    {
+        if (supports_graphics && graphics_support_requested)
+        {
+            app.resources().inject(
+                [](GraphicsSystemIntegration& graphics_system) -> WindowSystem
+                {
+                    return WindowSystem{
+                        .graphics_system = &graphics_system,
+                    };
+                }
+            );
+        }
+        else
+        {
+            app.resources().insert(WindowSystem{});
+        }
+    }
+};
+
+auto window_plugin_injection(
+    const kiln::util::OptionalRef<GraphicsSystemIntegrationPlugin>
+        graphics_system_integration_plugin
+) -> WindowPlugin
+{
+    return WindowPlugin{
+        .supports_graphics = graphics_system_integration_plugin.has_value(),
+    };
+}
+
+struct RenderSystem {
+    WindowSystem* window_system{};
 };
 
 struct RendererPlugin {
-    bool headless;
+    bool headless = true;
 
     auto operator()(kiln::app::App& app) const -> void
     {
         app.resources().insert(
-            Renderer{ .window = headless ? nullptr : &app.resources().at<Window>() }
+            RenderSystem{
+                .window_system = headless ? nullptr : &app.resources().at<WindowSystem>(),
+            }
         );
     }
 };
@@ -35,7 +75,13 @@ struct RendererPlugin {
 auto renderer_plugin_injection(const kiln::util::OptionalRef<WindowPlugin> window_plugin)
     -> RendererPlugin
 {
-    return RendererPlugin{ .headless = !window_plugin.has_value() };
+    if (window_plugin.has_value() && window_plugin->supports_graphics)
+    {
+        window_plugin->graphics_support_requested = true;
+        return RendererPlugin{ .headless = false };
+    }
+
+    return RendererPlugin{ .headless = true };
 }
 
 auto main() -> int
@@ -43,11 +89,12 @@ auto main() -> int
     using namespace kiln;
 
     app::App app = app::create()
+                       .plug_in(graphics_system_plugin_injection)
                        .plug_in(renderer_plugin_injection)
                        .plug_in(window_plugin_injection)
                        .build();
 
-    if (app.resources().at<Renderer>().window == nullptr)
+    if (app.resources().at<RenderSystem>().window_system == nullptr)
     {
         std::println("Renderer is headless");
     }
