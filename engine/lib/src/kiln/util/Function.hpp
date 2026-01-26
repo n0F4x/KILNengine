@@ -148,7 +148,19 @@ class FunctionBase<is_move_only_T, size_T, alignment_T, Signature_T, ArgList_T<F
     }
 
 public:
-    using Base::Base;
+    using FunctionBase::BasicAny::BasicAny;
+
+    /*
+     * Copy and move constructors should be explicitly defined rather than inherited
+     *  so the compiler doesn't try to match against `Base::Base<T = FunctionBase>(T&&)`
+     */
+    constexpr FunctionBase(const FunctionBase&)     = default;
+    constexpr FunctionBase(FunctionBase&)           = delete;
+    constexpr FunctionBase(FunctionBase&&) noexcept = default;
+    constexpr FunctionBase(const FunctionBase&&)    = delete;
+
+    auto operator=(const FunctionBase&) -> FunctionBase&     = default;
+    auto operator=(FunctionBase&&) noexcept -> FunctionBase& = default;
 
     template <typename Self_T>
         requires(Traits::template mimics_qualifiers<Self_T &&>())

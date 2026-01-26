@@ -281,6 +281,8 @@ auto BasicGenericStack<Any_T>::resolve_dependencies()
 {
     return [this]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> auto
     {
+        std::ignore = this;
+
         (PRECOND(
              contains<std::remove_cvref_t<Dependencies_T>>(),
              std::format(

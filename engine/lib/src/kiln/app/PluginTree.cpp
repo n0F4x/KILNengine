@@ -185,11 +185,9 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(const uint64_t new_plu
         }
 
         first_dependent_injection_iter =
-            std::ranges::rotate(
+            std::rotate(
                 first_dependent_injection_iter, injection_iter, std::next(injection_iter)
-            )
-                .next()
-                .begin();
+            );
     }
 }
 

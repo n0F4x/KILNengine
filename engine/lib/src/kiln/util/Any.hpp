@@ -440,8 +440,15 @@ template <typename T, typename Any_T>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
-    // MSVC needs this to lookup base type
+#ifdef __clang__
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunused-local-typedef"
+#endif
+    // GCC and MSVC needs this to lookup base type
     using NakedAny = std::remove_cvref_t<Any_T>;
+#ifdef __clang__
+  #pragma clang diagnostic pop
+#endif
 
     PRECOND(
         any.NakedAny::BasicAny::m_vtable->types_match(util::hash<T>()),

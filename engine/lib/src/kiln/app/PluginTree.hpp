@@ -353,6 +353,8 @@ auto PluginTree::check_required_dependencies() const -> void
         util::arguments_of_t<PluginInjection_T>{},
         [this]<typename Dependency_T> -> void
         {
+            std::ignore = this;
+
             if constexpr (!internal::represents_optional_dependency_c<Dependency_T>)
             {
                 using PluginDependency = std::remove_cvref_t<Dependency_T>;
