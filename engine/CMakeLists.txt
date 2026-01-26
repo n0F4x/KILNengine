@@ -12,6 +12,7 @@ option(${project_prefix}ENABLE_EXAMPLES "Enables building examples" OFF)
 
 # We only support MSVC for now
 add_compile_options(
+        /WX
         /W4
         /w14242
         /w14254
