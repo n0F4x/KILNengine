@@ -12,9 +12,6 @@ struct IsSpecializationOf : std::false_type {};
 template <template <typename...> typename TypeList_T, typename... Ts>
 struct IsSpecializationOf<TypeList_T<Ts...>, TypeList_T> : std::true_type {};
 
-template <template <typename> typename TypeList_T, typename T>
-struct IsSpecializationOf<TypeList_T<T>, TypeList_T> : std::true_type {};
-
 }   // namespace internal
 
 template <typename T, template <typename...> typename TypeList_T>
