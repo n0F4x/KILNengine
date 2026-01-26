@@ -148,19 +148,23 @@ class FunctionBase<is_move_only_T, size_T, alignment_T, Signature_T, ArgList_T<F
     }
 
 public:
-    using FunctionBase::BasicAny::BasicAny;
+    template <typename T, typename... Args_T>
+        requires std::constructible_from<T, Args_T&&...>
+    constexpr explicit FunctionBase(std::in_place_type_t<T>, Args_T&&... args)
+        requires(FunctionBase::template storable<T>())
+        : FunctionBase::BasicAny{ std::forward<Args_T>(args)... }
+    {
+    }
 
-    /*
-     * Copy and move constructors should be explicitly defined rather than inherited
-     *  so the compiler doesn't try to match against `Base::Base<T = FunctionBase>(T&&)`
-     */
-    constexpr FunctionBase(const FunctionBase&)     = default;
-    constexpr FunctionBase(FunctionBase&)           = delete;
-    constexpr FunctionBase(FunctionBase&&) noexcept = default;
-    constexpr FunctionBase(const FunctionBase&&)    = delete;
-
-    auto operator=(const FunctionBase&) -> FunctionBase&     = default;
-    auto operator=(FunctionBase&&) noexcept -> FunctionBase& = default;
+    template <typename T>
+    constexpr explicit FunctionBase(T&& value)
+        requires(!std::same_as<std::decay_t<T>, FunctionBase>)
+             && (!specialization_of_c<std::decay_t<T>, std::in_place_type_t>)
+             && std::constructible_from<std::decay_t<T>, T&&>
+             && (FunctionBase::template storable<std::decay_t<T>>())
+        : FunctionBase::BasicAny{ std::forward<T>(value) }
+    {
+    }
 
     template <typename Self_T>
         requires(Traits::template mimics_qualifiers<Self_T &&>())
