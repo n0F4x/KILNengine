@@ -67,9 +67,6 @@ public:
     BasicGenericStack(BasicGenericStack&&) noexcept = default;
     ~BasicGenericStack();
 
-    template <decays_to_basic_generic_stack_item_c<Any_T>... Items_T>
-    explicit BasicGenericStack(Items_T&&... items);
-
     auto operator=(const BasicGenericStack&) -> BasicGenericStack&     = delete;
     auto operator=(BasicGenericStack&&) noexcept -> BasicGenericStack& = default;
 
@@ -142,14 +139,6 @@ BasicGenericStack<Any_T>::~BasicGenericStack()
     {
         m_types_and_items.pop_back();
     }
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size == 0)
-template <decays_to_basic_generic_stack_item_c<Any_T>... Items_T>
-BasicGenericStack<Any_T>::BasicGenericStack(Items_T&&... items)
-{
-    (emplace<Items_T>(std::forward<Items_T>(items)), ...);
 }
 
 template <move_only_any_c Any_T>
