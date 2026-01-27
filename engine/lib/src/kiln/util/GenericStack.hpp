@@ -14,6 +14,7 @@
 #include "kiln/util/contract_macros.hpp"
 #include "kiln/util/OptionalRef.hpp"
 #include "kiln/util/reflection.hpp"
+#include "kiln/util/transform.hpp"
 #include "kiln/util/type_traits/arguments_of.hpp"
 #include "kiln/util/type_traits/const_like.hpp"
 #include "kiln/util/type_traits/forward_like.hpp"
@@ -227,13 +228,11 @@ template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
 auto BasicGenericStack<Any_T>::inject(Injection_T&& injection)
     -> result_of_t<Injection_T>&
 {
-    using Item = result_of_t<Injection_T>;
-
     PRECOND(
-        (!contains<Item>()),
+        (!contains<result_of_t<Injection_T>>()),
         std::format(
             "Attempt to inject item of type `{}`, but it has already been injected",
-            name_of<Item>()
+            name_of<result_of_t<Injection_T>>()
         )
     );
 
@@ -268,21 +267,24 @@ template <typename Injection_T>
 auto BasicGenericStack<Any_T>::resolve_dependencies()
     -> type_list_to_t<arguments_of_t<Injection_T>, std::tuple>
 {
-    return [this]<typename... Dependencies_T>(TypeList<Dependencies_T...>) -> auto
-    {
-        std::ignore = this;
+    return transform(
+        arguments_of_t<Injection_T>{},
+        [this]<typename Dependency_T> -> Dependency_T
+        {
+            std::ignore = this;   // supress buggy variable unused warning by Clang
 
-        (PRECOND(
-             contains<std::remove_cvref_t<Dependencies_T>>(),
-             std::format(
-                 "Item dependency of type `{}` not found",
-                 util::name_of<std::remove_cvref_t<Dependencies_T>>()
-             )
-         ),
-         ...);
+            using Dependency = std::remove_cvref_t<Dependency_T>;
 
-        return std::forward_as_tuple(at<std::remove_cvref_t<Dependencies_T>>()...);
-    }(util::arguments_of_t<Injection_T>{});
+            PRECOND(
+                contains<Dependency>(),
+                std::format(
+                    "Item dependency of type `{}` not found", name_of<Dependency>()
+                )
+            );
+
+            return at<Dependency>();
+        }
+    );
 }
 
 }   // namespace kiln::util

@@ -4,6 +4,8 @@ project(engine VERSION 0.0.0)
 
 set(project_prefix KILN_)
 
+option(${project_prefix}DEBUG "Activate debug functionalities" OFF)
+
 
 add_library(${PROJECT_NAME})
 add_library(kiln::engine ALIAS ${PROJECT_NAME})
@@ -24,6 +26,12 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         ${project_prefix}VERSION_MINOR=${PROJECT_VERSION_MINOR}
         ${project_prefix}VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
+
+if (${project_prefix}DEBUG)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+            ${project_prefix}DEBUG
+    )
+endif ()
 
 
 include(cmake/dependencies.cmake)

@@ -318,8 +318,6 @@ auto PluginTree::check_for_duplicated_plugin() const -> void
 template <typename PluginInjection_T>
 auto PluginTree::check_required_dependencies() const -> void
 {
-    using Plugin = util::result_of_t<PluginInjection_T>;
-
     util::for_each(
         util::arguments_of_t<PluginInjection_T>{},
         [this]<typename Dependency_T> -> void
@@ -328,13 +326,12 @@ auto PluginTree::check_required_dependencies() const -> void
 
             if constexpr (!internal::represents_optional_dependency_c<Dependency_T>)
             {
-                using PluginDependency = std::remove_cvref_t<Dependency_T>;
                 PRECOND(
-                    (contains<PluginDependency>()),
+                    (contains<std::remove_cvref_t<Dependency_T>>()),
                     std::format(
                         "Dependent plugin of type `{}` must be injected before `{}`",
-                        util::name_of<PluginDependency>(),
-                        util::name_of<Plugin>()
+                        util::name_of<std::remove_cvref_t<Dependency_T>>(),
+                        util::name_of<util::result_of_t<PluginInjection_T>>()
                     )
                 );
             }

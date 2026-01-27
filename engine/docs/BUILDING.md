@@ -17,37 +17,49 @@ Example Conan profile:
 
 ```
 [settings]
+os=Windows
 arch=x86_64
 build_type=Debug
 compiler=msvc
 compiler.cppstd=23
-compiler.runtime=dynamic
 compiler.version=195
-os=Windows
+compiler.runtime=dynamic
 
 [conf]
 tools.cmake.cmaketoolchain:generator=Ninja
 user.kiln-engine:dev=True
+user.kiln-engine:debug=True
 user.kiln-engine:enable_tests=True
 user.kiln-engine:enable_examples=True
 
 [buildenv]
-PATH+=(path)C:/Users/Name/AppData/Local/Programs/CLion/bin/cmake/win/x64/bin
-PATH+=(path)C:/Users/Name/AppData/Local/Programs/CLion/bin/ninja/win/x64
+PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin
+PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja
 ```
 
 ### Install the dependencies
 
-Run `conan install . -b=missing --profile:host=customprofile --profile:build=customprofile`.
+Run `conan install . -b=missing --profile:host=<custom_profile> --profile:build=<custom_profile>`.
 
 This will produce a _CMakeUserPresets.json_ file inside the working directory that can be used to build the project (with your IDE).
 
 ## Caveats
 
+### Conan dev variables
+
+Please use `user.kiln-engine:dev=True` in your profile, otherwise you won't be able to properly build and contribute to development. \
+`debug`, `enable_tests` and `enable_examples` are used for setting the `${project_prefix}X` CMake variable (where X is either `DEBUG`, `ENABLE_TESTS` or `ENABLE_EXAMPLES`).
+
 ### Project local Conan profile
 
 You can place your Conan profile file inside the project directory (e.g. _./.conan2/profiles/customprofile_).
 Use the relative path to your profile when executing Conan commands.
+
+### CLion set toolchain
+
+CLion is a bit weird when it comes to build profiles using cmake-presets.
+If you can't change the toolchain for the profile, make a copy of it.
+This way, you are allowed to configure it.
 
 ### Test the library as a package
 
@@ -55,6 +67,6 @@ It is important that the library can also be consumed as a third-party package.
 
 Run `conan export .` to export the package to the local cache.
 
-Run `conan test kiln-engine/version --profile:host=customtestprofile --profile:build=customtestprofile` to test the package in the local cache.
+Run `conan test kiln-engine/<version> --profile:host=<custom_test_profile> --profile:build=<custom_test_profile>` to test the package in the local cache.
 
 Make sure not to declare `user.kiln-engine:dev` as `True` in your Conan profile used for testing.

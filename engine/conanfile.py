@@ -19,11 +19,13 @@ class DataDrivenGameEngineRecipe(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         # TODO: "visibility": ["default", "hidden", "internal", "protected"],  # controls -fvisibility
+        "debug": [True, False],
     }
     default_options = {
         "shared": False,
         "fPIC": True,
         # TODO: "visibility": "hidden",
+        "debug": True,
     }
     implements = ["auto_shared_fpic"]
     exports_sources = (
@@ -35,6 +37,11 @@ class DataDrivenGameEngineRecipe(ConanFile):
     @property
     def _dev(self):
         return bool(self.conf.get(f"user.{self.name}:dev", default=False))
+
+    @property
+    def _debug(self):
+        return self.options.debug or (
+                    self._dev and bool(self.conf.get(f"user.{self.name}:debug", default=True)))
 
     @property
     def _enable_tests(self):
@@ -71,6 +78,11 @@ class DataDrivenGameEngineRecipe(ConanFile):
         if self.conf.get("tools.cmake.cmaketoolchain:generator") != "Ninja":
             raise ConanInvalidConfiguration("Only Ninja is supported as a generator")
 
+        if bool(self.conf.get(f"user.{self.name}:debug", default=False)) and not self._dev:
+            raise ConanInvalidConfiguration(
+                f"'user.{self.name}:debug' requires 'user.{self.name}:dev'"
+            )
+
         if bool(self.conf.get(f"user.{self.name}:enable_tests", default=False)) and not self._dev:
             raise ConanInvalidConfiguration(
                 f"'user.{self.name}:enable_tests' requires 'user.{self.name}:dev'"
@@ -102,6 +114,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         tc = CMakeToolchain(self)
 
         if self._dev:
+            tc.cache_variables[self.project_prefix + "DEBUG"] = self._debug
             tc.cache_variables[self.project_prefix + "ENABLE_TESTS"] = self._enable_tests
             tc.cache_variables[self.project_prefix + "ENABLE_EXAMPLES"] = self._enable_examples
 
@@ -129,3 +142,6 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.cpp_info.defines.append(f"{self.project_prefix}VERSION_MAJOR={version.major}")
         self.cpp_info.defines.append(f"{self.project_prefix}VERSION_MINOR={version.minor}")
         self.cpp_info.defines.append(f"{self.project_prefix}VERSION_PATCH={version.patch}")
+
+        if self.options.debug:
+            self.cpp_info.defines.append(f"{self.project_prefix}DEBUG")

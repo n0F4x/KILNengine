@@ -6,6 +6,7 @@ project(kiln)
 
 set(project_prefix KILN_)
 
+option(${project_prefix}DEBUG "Activate debug functionalities" OFF)
 option(${project_prefix}ENABLE_TESTS "Enables building tests" OFF)
 option(${project_prefix}ENABLE_EXAMPLES "Enables building examples" OFF)
 
@@ -54,6 +55,11 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
                 -Wnrvo
         )
     endif ()
+endif ()
+
+
+if (${project_prefix}DEBUG)
+    add_compile_definitions(${project_prefix}DEBUG)
 endif ()
 
 

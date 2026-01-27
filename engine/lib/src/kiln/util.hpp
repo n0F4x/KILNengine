@@ -12,5 +12,6 @@
 #include "kiln/util/OptionalRef.hpp"
 #include "kiln/util/reflection.hpp"
 #include "kiln/util/StringLiteral.hpp"
+#include "kiln/util/transform.hpp"
 #include "kiln/util/type_traits.hpp"
 #include "kiln/util/TypeList.hpp"
