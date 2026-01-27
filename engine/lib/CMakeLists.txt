@@ -12,9 +12,11 @@ add_library(kiln::engine ALIAS ${PROJECT_NAME})
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 if (${MSVC})
-    target_compile_options(${PROJECT_NAME} PUBLIC
-            /Zc:preprocessor
-    )
+    if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${PROJECT_NAME} PUBLIC
+                /Zc:preprocessor
+        )
+    endif ()
 endif ()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
