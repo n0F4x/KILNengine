@@ -19,7 +19,6 @@
 #include "kiln/util/OptionalRef.hpp"
 #include "kiln/util/reflection.hpp"
 #include "kiln/util/type_traits/arguments_of.hpp"
-#include "kiln/util/type_traits/const_like.hpp"
 #include "kiln/util/type_traits/forward_like.hpp"
 #include "kiln/util/type_traits/result_of.hpp"
 #include "kiln/util/TypeList.hpp"
@@ -106,9 +105,6 @@ public:
     template <decays_to_plugin_injection_c... PluginInjections_T>
     explicit PluginTree(PluginInjections_T&&... default_plugin_injections);
 
-    template <plugin_injection_c PluginInjection_T, typename Self_T>
-    [[nodiscard]]
-    auto injection(this Self_T&&) -> util::forward_like_t<PluginInjection_T, Self_T>;
     template <plugin_c Plugin_T>
     [[nodiscard]]
     auto contains() const noexcept -> bool;
@@ -274,31 +270,6 @@ template <decays_to_plugin_injection_c... PluginInjections_T>
 PluginTree::PluginTree(PluginInjections_T&&... default_plugin_injections)
 {
     (plug_in(std::forward<PluginInjections_T>(default_plugin_injections)), ...);
-}
-
-template <plugin_injection_c PluginInjection_T, typename Self_T>
-auto PluginTree::injection(this Self_T&& self)
-    -> util::forward_like_t<PluginInjection_T, Self_T>
-{
-    using Plugin = util::result_of_t<PluginInjection_T>;
-
-    const auto iter = std::ranges::find_if(
-        self.PluginTree::m_plugin_injections,
-        [](util::const_like_t<internal::ErasedPluginInjection, Self_T>& plugin_injection)
-            -> bool
-        {
-            return plugin_injection.plugin_type_hash() == util::hash_u64<Plugin>();   //
-        }
-    );
-
-    PRECOND(iter != self.PluginTree::m_plugin_injections.cend());
-
-    return std::forward_like<Self_T>(
-        util::any_cast<internal::PluginInjectionLambda<std::decay_t<PluginInjection_T>>>(
-            std::forward_like<Self_T>(iter->underlying_function())
-        )
-            .plugin_injection
-    );
 }
 
 template <plugin_c Plugin_T>
