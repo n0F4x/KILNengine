@@ -1,5 +1,6 @@
 #include "PluginTree.hpp"
 
+#include <cassert>
 #include <ranges>
 #include <string>
 
@@ -62,23 +63,51 @@ auto PluginTree::invoke_plugins(App& app) && -> void
         );
 }
 
+auto PluginTree::PluginNameChainNode::format() const -> std::string
+{
+    std::string result;
+    format(result, 0);
+    return result;
+}
+
+auto PluginTree::PluginNameChainNode::format(
+    std::string&      out_string,
+    const std::size_t capacity
+) const -> void
+{
+    if (previous != nullptr)
+    {
+        previous->format(
+            out_string, capacity + std::strlen(" -> ") + plugin_name.length()
+        );
+        out_string.append(" -> ");
+    }
+    else
+    {
+        assert(
+            out_string.empty()
+            && "this invocation should be the one to start building the string"
+        );
+        out_string.reserve(capacity + plugin_name.size());
+    }
+
+    out_string.append(std::format("{}", plugin_name));
+}
+
 auto PluginTree::check_for_new_cyclic_dependency(
-    const uint64_t                 new_plugin_hash,
-    const std::string_view         new_plugin_name,
-    const uint64_t                 dependency_plugin_hash,
-    const std::string_view         last_visited_plugin_name,
-    std::vector<std::string_view>& visited_plugin_names
+    const uint64_t             new_plugin_hash,
+    const std::string_view     new_plugin_name,
+    const uint64_t             dependency_plugin_hash,
+    const PluginNameChainNode& visited_plugin_names
 ) const -> void
 {
     PRECOND(
         new_plugin_hash != dependency_plugin_hash,
         std::format(
             "Cyclic dependency detected - plugin of type `{}` depends on itself "   //
-            "({} -> {} -> {})",
+            "({} -> {})",
             new_plugin_name,
-            std::views::join_with(visited_plugin_names, " -> ")
-                | std::ranges::to<std::string>(),
-            last_visited_plugin_name,
+            visited_plugin_names.format(),
             new_plugin_name
         )
     );
@@ -93,21 +122,18 @@ auto PluginTree::check_for_new_cyclic_dependency(
         return;
     }
 
-    visited_plugin_names.push_back(last_visited_plugin_name);
-
     for (const uint64_t next_dependency_plugin_hash :
          dependency_iter->unresolved_plugin_dependency_hashes())
     {
+        const PluginNameChainNode plugin_chain_node{
+            .previous    = &visited_plugin_names,
+            .plugin_name = dependency_iter->plugin_name(),
+        };
+
         check_for_new_cyclic_dependency(
-            new_plugin_hash,
-            new_plugin_name,
-            next_dependency_plugin_hash,
-            dependency_iter->plugin_name(),
-            visited_plugin_names
+            new_plugin_hash, new_plugin_name, next_dependency_plugin_hash, plugin_chain_node
         );
     }
-
-    visited_plugin_names.pop_back();
 }
 
 auto PluginTree::collect_all_resolved_dependency_plugin_hashes(
@@ -184,10 +210,9 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(const uint64_t new_plu
             continue;
         }
 
-        first_dependent_injection_iter =
-            std::rotate(
-                first_dependent_injection_iter, injection_iter, std::next(injection_iter)
-            );
+        first_dependent_injection_iter = std::rotate(
+            first_dependent_injection_iter, injection_iter, std::next(injection_iter)
+        );
     }
 }
 

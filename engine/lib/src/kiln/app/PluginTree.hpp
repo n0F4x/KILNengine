@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <format>
 #include <span>
 #include <string_view>
@@ -116,6 +117,17 @@ public:
     auto invoke_plugins(App& app) && -> void;
 
 private:
+    struct PluginNameChainNode {
+        const PluginNameChainNode* previous{};
+        std::string_view           plugin_name;
+
+        [[nodiscard]]
+        auto format() const -> std::string;
+
+    private:
+        auto format(std::string& out_string, std::size_t capacity) const -> void;
+    };
+
     std::vector<internal::ErasedPluginInjection> m_plugin_injections;
     std::vector<uint64_t> m_unresolved_optional_dependency_plugin_types;
 
@@ -126,11 +138,10 @@ private:
     template <typename PluginInjection_T>
     auto check_for_cyclic_dependencies() const -> void;
     auto check_for_new_cyclic_dependency(
-        uint64_t                       new_plugin_hash,
-        std::string_view               new_plugin_name,
-        uint64_t                       dependency_plugin_hash,
-        std::string_view               last_visited_plugin_name,
-        std::vector<std::string_view>& visited_plugin_names
+        uint64_t                   new_plugin_hash,
+        std::string_view           new_plugin_name,
+        uint64_t                   dependency_plugin_hash,
+        const PluginNameChainNode& visited_plugin_names
     ) const -> void;
 
 
@@ -360,13 +371,14 @@ auto PluginTree::check_for_cyclic_dependencies() const -> void
                 using DependencyPlugin =
                     std::remove_const_t<typename Dependency_T::ValueType>;
 
-                std::vector<std::string_view> visited_plugin_names{};
+                const PluginNameChainNode plugin_name_chain_node{
+                    .plugin_name = util::name_of<Plugin>(),
+                };
                 check_for_new_cyclic_dependency(
                     util::hash_u64<Plugin>(),
                     util::name_of<Plugin>(),
                     util::hash_u64<DependencyPlugin>(),
-                    util::name_of<Plugin>(),
-                    visited_plugin_names
+                    plugin_name_chain_node
                 );
             }
         }
