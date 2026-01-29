@@ -63,7 +63,7 @@ BraceWrapping:
   AfterExternBlock: true
   BeforeCatch: false
   BeforeElse: true
-  BeforeLambdaBody: false
+  BeforeLambdaBody: true
   BeforeWhile: false
   IndentBraces: false
   SplitEmptyFunction: true
@@ -198,7 +198,7 @@ QualifierOrder: [ 'inline', 'constexpr', 'static', 'volatile', 'const', 'type', 
 RawStringFormats:
   - Language: Cpp
 ReferenceAlignment: Pointer
-ReflowComments: true
+ReflowComments: Always
 RemoveBracesLLVM: false
 #RemoveEmptyLinesInUnwrappedLines: true
 RemoveParentheses: Leave
@@ -207,7 +207,7 @@ RequiresClausePosition: OwnLine
 RequiresExpressionIndentation: OuterScope
 SeparateDefinitionBlocks: Always
 ShortNamespaceLines: 0
-SkipMacroDefinitionBody: true
+SkipMacroDefinitionBody: false
 SortIncludes: CaseInsensitive
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false

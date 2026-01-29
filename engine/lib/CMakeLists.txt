@@ -4,18 +4,34 @@ project(engine VERSION 0.0.0)
 
 set(project_prefix KILN_)
 
+option(${project_prefix}DEBUG "Activate debug functionalities" OFF)
 
-add_library(${PROJECT_NAME} INTERFACE)
+
+add_library(${PROJECT_NAME})
 add_library(kiln::engine ALIAS ${PROJECT_NAME})
 
 
-target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_23)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
-target_compile_definitions(${PROJECT_NAME} INTERFACE
+if (${MSVC})
+    if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${PROJECT_NAME} PUBLIC
+                /Zc:preprocessor
+        )
+    endif ()
+endif ()
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
         ${project_prefix}VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
         ${project_prefix}VERSION_MINOR=${PROJECT_VERSION_MINOR}
         ${project_prefix}VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
+
+if (${project_prefix}DEBUG)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+            ${project_prefix}DEBUG
+    )
+endif ()
 
 
 include(cmake/dependencies.cmake)

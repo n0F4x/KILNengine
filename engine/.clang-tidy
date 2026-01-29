@@ -2,11 +2,12 @@ Checks: '-*,
 bugprone-*,
 -bugprone-easily-swappable-parameters,
 -bugprone-exception-escape,
-cert-*,
+-bugprone-throwing-static-initialization,
 concurrency-*,
 cppcoreguidelines-*,
 -cppcoreguidelines-avoid-magic-numbers,
 -cppcoreguidelines-missing-std-forward,
+-cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
 -cppcoreguidelines-pro-type-union-access,
 -cppcoreguidelines-pro-type-reinterpret-cast,
 -cppcoreguidelines-rvalue-reference-param-not-moved,
@@ -28,8 +29,10 @@ misc-*,
 -misc-use-anonymous-namespace,
 -misc-use-internal-linkage,
 modernize-*,
+-modernize-use-auto,
 performance-*,
 portability-*,
+-portability-avoid-pragma-once,
 readability-*,
 -readability-identifier-length,
 -readability-magic-numbers,
@@ -38,6 +41,8 @@ readability-*,
 -readability-uppercase-literal-suffix'
 
 CheckOptions:
+  - { key: cppcoreguidelines-avoid-do-while.IgnoreMacros,                     value: true }
+  - { key: readability-function-cognitive-complexity.IgnoreMacros,            value: true }
   - { key: readability-identifier-naming.ClassCase,                           value: CamelCase }
   - { key: readability-identifier-naming.ClassMemberCase,                     value: lower_case }
   - { key: readability-identifier-naming.ClassMethodCase,                     value: lower_case }
@@ -53,9 +58,9 @@ CheckOptions:
   - { key: readability-identifier-naming.StructCase,                          value: aNy_CasE }
   - { key: readability-identifier-naming.TypeTemplateParameterCase,           value: CamelCase }
   - { key: readability-identifier-naming.TypeTemplateParameterSuffix,         value: _T }
-  - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp,  value: (T|U)s? }
+  - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp,  value: (T|U|F)s? }
   - { key: readability-identifier-naming.TypeAliasCase,                       value: CamelCase }
-  - { key: readability-identifier-naming.TypeAliasIgnoredRegexp,              value: .*_t }
+  - { key: readability-identifier-naming.TypeAliasIgnoredRegexp,              value: (.*_t|type) }
   - { key: readability-identifier-naming.TypedefCase,                         value: CamelCase }
   - { key: readability-identifier-naming.UnionCase,                           value: CamelCase }
   - { key: readability-identifier-naming.ValueTemplateParameterCase,          value: lower_case }

@@ -6,4 +6,4 @@ endif ()
 
 # fmt
 find_package(fmt CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt)
+target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
