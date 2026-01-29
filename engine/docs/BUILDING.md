@@ -13,19 +13,19 @@ Make sure you have the following programs installed on your machine
 
 ### Create a Conan [profile](https://docs.conan.io/2/reference/config_files/profiles.html#profiles)
 
-Example Conan profile:
+#### Example Conan profile for Windows:
 
-```
+```ini
 [settings]
 os=Windows
 arch=x86_64
 build_type=Debug
-compiler=msvc
+compiler=clang
 compiler.cppstd=23
-compiler.version=195
-compiler.runtime=dynamic
+compiler.version=20
 
 [conf]
+tools.build:compiler_executables={'c':'clang-cl.exe','cpp':'clang-cl.exe'}
 tools.cmake.cmaketoolchain:generator=Ninja
 user.kiln-engine:dev=True
 user.kiln-engine:debug=True
@@ -35,6 +35,32 @@ user.kiln-engine:enable_examples=True
 [buildenv]
 PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin
 PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja
+PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin
+```
+
+#### Example Conan profile for MSYS2 (Linux is very similar):
+
+```ini
+[settings]
+os=Windows
+os.subsystem=msys2
+arch=x86_64
+build_type=Debug
+compiler=clang
+compiler.cppstd=23
+compiler.version=20
+compiler.libcxx=libstdc++11
+
+[conf]
+tools.build:compiler_executables={'c':'C:/msys64/ucrt64/bin/clang.exe','cpp':'C:/msys64/ucrt64/bin/clang++.exe'}
+tools.cmake.cmaketoolchain:generator=Ninja
+user.kiln-engine:dev=True
+user.kiln-engine:debug=True
+user.kiln-engine:enable_tests=True
+user.kiln-engine:enable_examples=True
+
+[buildenv]
+PATH+=(path)C:/msys64/ucrt64/bin
 ```
 
 ### Install the dependencies
@@ -67,6 +93,6 @@ It is important that the library can also be consumed as a third-party package.
 
 Run `conan export .` to export the package to the local cache.
 
-Run `conan test kiln-engine/<version> --profile:host=<custom_test_profile> --profile:build=<custom_test_profile>` to test the package in the local cache.
+Run `conan test kiln-engine/<version> -b=missing --profile:host=<custom_test_profile> --profile:build=<custom_test_profile>` to test the package in the local cache.
 
 Make sure not to declare `user.kiln-engine:dev` as `True` in your Conan profile used for testing.

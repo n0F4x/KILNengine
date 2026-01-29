@@ -41,7 +41,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
     @property
     def _debug(self):
         return self.options.debug or (
-                    self._dev and bool(self.conf.get(f"user.{self.name}:debug", default=True)))
+                self._dev and bool(self.conf.get(f"user.{self.name}:debug", default=True)))
 
     @property
     def _enable_tests(self):
@@ -73,6 +73,11 @@ class DataDrivenGameEngineRecipe(ConanFile):
                 and self.settings.compiler.version < Version(minimum_supported_clang_version)):
             raise ConanInvalidConfiguration(
                 f"Clang versions below {minimum_supported_clang_version} are not supported"
+            )
+
+        if self.settings.compiler == "clang" and not self.settings.compiler.libcxx in [None, "libstdc++11"]:
+            raise ConanInvalidConfiguration(
+                f"Only supported standard libraries are Microsoft's STL and libstdc++11"
             )
 
         if self.conf.get("tools.cmake.cmaketoolchain:generator") != "Ninja":

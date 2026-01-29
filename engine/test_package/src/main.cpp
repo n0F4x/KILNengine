@@ -1,8 +1,8 @@
-#include <print>
+#include <iostream>
 
 #include <kiln.hpp>
 
 auto main() -> int
 {
-    std::println("Hello {}!", kiln::config::engine_name());
+    std::cout << "Hello " << kiln::config::engine_name() << "!";
 }

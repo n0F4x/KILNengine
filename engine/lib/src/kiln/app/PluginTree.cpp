@@ -1,6 +1,7 @@
 #include "PluginTree.hpp"
 
 #include <cassert>
+#include <cstring>
 #include <ranges>
 #include <string>
 
