@@ -18,23 +18,63 @@ auto ErasedPluginInjection::plugin_name() const noexcept -> std::string_view
     return m_plugin_name;
 }
 
+auto ErasedPluginInjection::plugin_dependency_hashes() const noexcept
+    -> std::span<const uint64_t>
+{
+    return m_unresolved_and_resolved_plugin_dependency_hashes;
+}
+
 auto ErasedPluginInjection::resolved_plugin_dependency_hashes() const noexcept
     -> std::span<const uint64_t>
 {
-    return m_resolved_plugin_dependency_hashes;
+    return std::span{
+        std::next(
+            m_unresolved_and_resolved_plugin_dependency_hashes.cbegin(),
+            static_cast<decltype(m_unresolved_and_resolved_plugin_dependency_hashes)::
+                            difference_type>(m_unresolved_dependency_hash_count)
+        ),
+        m_unresolved_and_resolved_plugin_dependency_hashes.cend()
+    };
 }
 
 auto ErasedPluginInjection::unresolved_plugin_dependency_hashes() const noexcept
     -> std::span<const uint64_t>
 {
-    return m_unresolved_plugin_dependency_hashes;
+    return std::span{
+        m_unresolved_and_resolved_plugin_dependency_hashes.cbegin(),
+        std::next(
+            m_unresolved_and_resolved_plugin_dependency_hashes.cbegin(),
+            static_cast<decltype(m_unresolved_and_resolved_plugin_dependency_hashes)::
+                            difference_type>(m_unresolved_dependency_hash_count)
+        )
+    };
 }
 
 auto ErasedPluginInjection::resolve_dependency(const uint64_t new_plugin_hash) -> void
 {
-    if (std::erase(m_unresolved_plugin_dependency_hashes, new_plugin_hash) > 0)
+    if (m_unresolved_dependency_hash_count == 0)
     {
-        m_resolved_plugin_dependency_hashes.push_back(new_plugin_hash);
+        return;
+    }
+
+    const auto iter = std::ranges::find(
+        m_unresolved_and_resolved_plugin_dependency_hashes, new_plugin_hash
+    );
+    if (iter == m_unresolved_and_resolved_plugin_dependency_hashes.cend())
+    {
+        return;
+    }
+
+    std::swap(
+        *iter,
+        m_unresolved_and_resolved_plugin_dependency_hashes
+            [m_unresolved_dependency_hash_count - 1]
+    );
+    if (std::distance(m_unresolved_and_resolved_plugin_dependency_hashes.begin(), iter)
+        < static_cast<decltype(m_unresolved_and_resolved_plugin_dependency_hashes)::
+                          difference_type>(m_unresolved_dependency_hash_count))
+    {
+        m_unresolved_dependency_hash_count--;
     }
 }
 
@@ -123,7 +163,7 @@ auto PluginTree::check_for_new_cyclic_dependency(
     }
 
     for (const uint64_t next_dependency_plugin_hash :
-         dependency_iter->unresolved_plugin_dependency_hashes())
+         dependency_iter->plugin_dependency_hashes())
     {
         const PluginNameChainNode plugin_chain_node{
             .previous    = &visited_plugin_names,
@@ -202,6 +242,11 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(const uint64_t new_plu
             &internal::ErasedPluginInjection::plugin_type_hash
         );
 
+        assert(
+            injection_iter != first_dependent_injection_iter
+            && "Cyclic dependency detected, but it should have been detected earlier"
+        );
+
         if (injection_iter == m_plugin_injections.cend())
         {
             /*
@@ -223,7 +268,7 @@ auto PluginTree::resolve(const uint64_t new_plugin_hash) -> void
         plugin_injection.resolve_dependency(new_plugin_hash);
     }
 
-    std::erase(m_unresolved_optional_dependency_plugin_types, new_plugin_hash);
+    std::erase(m_unresolved_optional_dependency_plugin_hashes, new_plugin_hash);
 }
 
 }   // namespace kiln::app

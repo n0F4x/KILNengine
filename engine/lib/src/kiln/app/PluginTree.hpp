@@ -35,16 +35,31 @@ concept plugin_c = util::basic_generic_stack_item_c<T, ErasedPlugin>;
 
 using PluginStack = util::BasicGenericStack<ErasedPlugin>;
 
+template <typename>
+struct StripPluginDependency;
+
+template <util::specialization_of_c<util::OptionalRef> T>
+struct StripPluginDependency<T> {
+    using type = std::remove_const_t<typename T::ValueType>;
+};
+
+template <typename T>
+    requires(!util::specialization_of_c<T, util::OptionalRef>)
+struct StripPluginDependency<T> {
+    using type = std::remove_cvref_t<T>;
+};
+
+template <typename T>
+using strip_plugin_dependency_t = StripPluginDependency<T>::type;
+
 template <typename T>
 concept represents_optional_dependency_c = requires {
-    requires util::specialization_of_c<T, util::OptionalRef>
-                 && plugin_c<std::remove_const_t<typename T::ValueType>>;
+    requires util::specialization_of_c<T, util::OptionalRef>;
 };
 
 template <typename T>
 struct RepresentsPluginDependency {
-    constexpr static bool value = plugin_c<std::remove_cvref_t<T>>
-                               || represents_optional_dependency_c<T>;
+    constexpr static bool value = plugin_c<strip_plugin_dependency_t<T>>;
 };
 
 template <typename T>
@@ -58,14 +73,17 @@ public:
 
     template <typename PluginInjection_T>
     explicit ErasedPluginInjection(
-        PluginInjection_T&&     plugin_injection,
-        std::vector<uint64_t>&& unresolved_plugin_dependency_hashes
+        PluginInjection_T&& plugin_injection,
+        std::pair<std::vector<uint64_t>, std::size_t>
+            unresolved_and_resolved_plugin_dependency_hashes
     );
 
     [[nodiscard]]
     auto plugin_type_hash() const noexcept -> uint64_t;
     [[nodiscard]]
     auto plugin_name() const noexcept -> std::string_view;
+    [[nodiscard]]
+    auto plugin_dependency_hashes() const noexcept -> std::span<const uint64_t>;
     [[nodiscard]]
     auto resolved_plugin_dependency_hashes() const noexcept -> std::span<const uint64_t>;
     [[nodiscard]]
@@ -83,8 +101,8 @@ private:
     Function              m_function;
     uint64_t              m_plugin_type_hash;
     std::string_view      m_plugin_name;
-    std::vector<uint64_t> m_resolved_plugin_dependency_hashes;
-    std::vector<uint64_t> m_unresolved_plugin_dependency_hashes;
+    std::vector<uint64_t> m_unresolved_and_resolved_plugin_dependency_hashes;
+    std::size_t           m_unresolved_dependency_hash_count;
 };
 
 }   // namespace internal
@@ -129,7 +147,7 @@ private:
     };
 
     std::vector<internal::ErasedPluginInjection> m_plugin_injections;
-    std::vector<uint64_t> m_unresolved_optional_dependency_plugin_types;
+    std::vector<uint64_t> m_unresolved_optional_dependency_plugin_hashes;
 
     template <typename Plugin_T>
     auto check_for_duplicated_plugin() const -> void;
@@ -147,7 +165,16 @@ private:
 
     template <typename PluginInjection_T>
     [[nodiscard]]
-    auto collect_unresolved_dependency_plugin_hashes() const -> std::vector<uint64_t>;
+    auto collect_unresolved_and_resolved_dependency_plugin_hashes() const
+        -> std::pair<std::vector<uint64_t>, std::size_t>;
+    template <typename PluginInjection_T>
+    auto collect_unresolved_dependency_plugin_hashes(std::vector<uint64_t>& out) const
+        -> void;
+    template <class PluginInjection_T>
+    static auto collect_resolved_plugin_dependency_hashes(
+        std::vector<uint64_t>& unresolved_dependency_hashes
+    ) -> void;
+
 
     auto collect_all_resolved_dependency_plugin_hashes(
         uint64_t               plugin_hash,
@@ -178,12 +205,11 @@ auto collect_dependencies(util::TypeList<Dependencies_T...>, PluginStack& plugin
         {
             if constexpr (represents_optional_dependency_c<Dependencies_T>)
             {
-                return plugin_stack
-                    .find<std::remove_const_t<typename Dependencies_T::ValueType>>();
+                return plugin_stack.find<strip_plugin_dependency_t<Dependencies_T>>();
             }
             else
             {
-                return plugin_stack.at<std::remove_cvref_t<Dependencies_T>>();
+                return plugin_stack.at<strip_plugin_dependency_t<Dependencies_T>>();
             }
         }()...
     );
@@ -206,49 +232,11 @@ struct PluginInjectionLambda {
     }
 };
 
-constexpr static auto hash_plugin_dependency =
-    []<typename PluginDependency_T> [[nodiscard]]
-    -> uint64_t
-{
-    if constexpr (represents_optional_dependency_c<PluginDependency_T>)
-    {
-        return util::
-            hash_u64<std::remove_const_t<typename PluginDependency_T::ValueType>>();
-    }
-    else
-    {
-        return util::hash_u64<std::remove_cvref_t<PluginDependency_T>>();
-    }
-};
-
-template <typename PluginInjection_T>
-[[nodiscard]]
-auto collect_resolved_plugin_dependency_hashes(
-    const std::span<const uint64_t> unresolved_dependency_hashes
-) -> std::vector<uint64_t>
-{
-    std::vector<uint64_t> result;
-
-    util::for_each(
-        util::arguments_of_t<PluginInjection_T>{},
-        [&result, unresolved_dependency_hashes](const uint64_t plugin_hash) -> void
-        {
-            if (!std::ranges::contains(unresolved_dependency_hashes, plugin_hash)
-                && !std::ranges::contains(result, plugin_hash))
-            {
-                result.push_back(plugin_hash);
-            }
-        },
-        hash_plugin_dependency
-    );
-
-    return result;
-}
-
 template <typename PluginInjection_T>
 ErasedPluginInjection::ErasedPluginInjection(
-    PluginInjection_T&&     plugin_injection,
-    std::vector<uint64_t>&& unresolved_plugin_dependency_hashes
+    PluginInjection_T&& plugin_injection,
+    std::pair<std::vector<uint64_t>, std::size_t>
+        unresolved_and_resolved_plugin_dependency_hashes
 )
     : m_function{
           PluginInjectionLambda<std::decay_t<PluginInjection_T>>{
@@ -257,13 +245,11 @@ ErasedPluginInjection::ErasedPluginInjection(
       },
       m_plugin_type_hash{ util::hash_u64<util::result_of_t<PluginInjection_T>>() },
       m_plugin_name{ util::name_of<util::result_of_t<PluginInjection_T>>() },
-      m_resolved_plugin_dependency_hashes{
-          collect_resolved_plugin_dependency_hashes<PluginInjection_T>(
-              unresolved_plugin_dependency_hashes
-          )
+      m_unresolved_and_resolved_plugin_dependency_hashes{
+          std::move(unresolved_and_resolved_plugin_dependency_hashes.first)
       },
-      m_unresolved_plugin_dependency_hashes{
-          std::move(unresolved_plugin_dependency_hashes)
+      m_unresolved_dependency_hash_count{
+          unresolved_and_resolved_plugin_dependency_hashes.second
       }
 {
 }
@@ -356,7 +342,7 @@ auto PluginTree::check_for_cyclic_dependencies() const -> void
     using Plugin = util::result_of_t<PluginInjection_T>;
 
     if (!std::ranges::contains(
-            m_unresolved_optional_dependency_plugin_types, util::hash_u64<Plugin>()
+            m_unresolved_optional_dependency_plugin_hashes, util::hash_u64<Plugin>()
         ))
     {
         return;
@@ -366,39 +352,48 @@ auto PluginTree::check_for_cyclic_dependencies() const -> void
         util::arguments_of_t<PluginInjection_T>{},
         [this]<typename Dependency_T> -> void
         {
-            if constexpr (internal::represents_optional_dependency_c<Dependency_T>)
-            {
-                using DependencyPlugin =
-                    std::remove_const_t<typename Dependency_T::ValueType>;
+            const PluginNameChainNode plugin_name_chain_node{
+                .plugin_name = util::name_of<Plugin>(),
+            };
 
-                const PluginNameChainNode plugin_name_chain_node{
-                    .plugin_name = util::name_of<Plugin>(),
-                };
-                check_for_new_cyclic_dependency(
-                    util::hash_u64<Plugin>(),
-                    util::name_of<Plugin>(),
-                    util::hash_u64<DependencyPlugin>(),
-                    plugin_name_chain_node
-                );
-            }
+            check_for_new_cyclic_dependency(
+                util::hash_u64<Plugin>(),
+                util::name_of<Plugin>(),
+                util::hash_u64<
+                    typename internal::StripPluginDependency<Dependency_T>::type>(),
+                plugin_name_chain_node
+            );
         }
     );
 }
 
 template <typename PluginInjection_T>
-auto PluginTree::collect_unresolved_dependency_plugin_hashes() const
-    -> std::vector<uint64_t>
+auto PluginTree::collect_unresolved_and_resolved_dependency_plugin_hashes() const
+    -> std::pair<std::vector<uint64_t>, std::size_t>
 {
-    std::vector<uint64_t> result;
+    std::pair<std::vector<uint64_t>, std::size_t> result;
+    result.first.reserve(util::arguments_of_t<PluginInjection_T>::size());
 
+    collect_unresolved_dependency_plugin_hashes<PluginInjection_T>(result.first);
+    result.second = result.first.size();
+
+    collect_resolved_plugin_dependency_hashes<PluginInjection_T>(result.first);
+
+    return result;
+}
+
+template <typename PluginInjection_T>
+auto PluginTree::collect_unresolved_dependency_plugin_hashes(
+    std::vector<uint64_t>& out
+) const -> void
+{
     util::for_each(
         util::arguments_of_t<PluginInjection_T>{},
-        [this, &result]<typename Dependency_T> -> void
+        [this, &out]<typename Dependency_T> -> void
         {
             if constexpr (internal::represents_optional_dependency_c<Dependency_T>)
             {
-                using PluginDependency =
-                    std::remove_const_t<typename Dependency_T::ValueType>;
+                using PluginDependency = internal::strip_plugin_dependency_t<Dependency_T>;
 
                 constexpr static uint64_t dependency_hash{
                     util::hash_u64<PluginDependency>()
@@ -410,13 +405,41 @@ auto PluginTree::collect_unresolved_dependency_plugin_hashes() const
                         &internal::ErasedPluginInjection::plugin_type_hash
                     ))
                 {
-                    result.push_back(dependency_hash);
+                    out.push_back(dependency_hash);
                 }
             }
         }
     );
+}
 
-    return result;
+namespace internal {
+
+constexpr static auto hash_plugin_dependency =
+    []<typename PluginDependency_T> [[nodiscard]]
+    -> uint64_t
+{
+    return util::hash_u64<strip_plugin_dependency_t<PluginDependency_T>>();   //
+};
+
+}   // namespace internal
+
+template <typename PluginInjection_T>
+auto PluginTree::collect_resolved_plugin_dependency_hashes(
+    std::vector<uint64_t>& unresolved_dependency_hashes
+) -> void
+{
+    util::for_each(
+        util::arguments_of_t<PluginInjection_T>{},
+        [&unresolved_dependency_hashes](const uint64_t plugin_hash) -> void
+        {
+            if (!std::ranges::contains(unresolved_dependency_hashes, plugin_hash)
+                && !std::ranges::contains(unresolved_dependency_hashes, plugin_hash))
+            {
+                unresolved_dependency_hashes.push_back(plugin_hash);
+            }
+        },
+        internal::hash_plugin_dependency
+    );
 }
 
 template <decays_to_plugin_injection_c PluginInjection_T>
@@ -426,10 +449,10 @@ auto PluginTree::push_back(PluginInjection_T&& plugin_injection)
     internal::ErasedPluginInjection& erased_plugin_injection =
         m_plugin_injections.emplace_back(
             std::forward<PluginInjection_T>(plugin_injection),
-            collect_unresolved_dependency_plugin_hashes<PluginInjection_T>()
+            collect_unresolved_and_resolved_dependency_plugin_hashes<PluginInjection_T>()
         );
 
-    m_unresolved_optional_dependency_plugin_types.append_range(
+    m_unresolved_optional_dependency_plugin_hashes.append_range(
         erased_plugin_injection.unresolved_plugin_dependency_hashes()
     );
 
