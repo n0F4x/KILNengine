@@ -49,8 +49,14 @@ constexpr auto print_precondition_message_and_break(
         };
         precondition_violation.print();
 
-        // TODO: stop debugger if present #p2546r5
+        // TODO: std::breakpoint #p2546r5
+#ifdef _MSC_VER
         __debugbreak();
+#elifdef __clang__
+        __builtin_debugtrap();
+#else
+        static_assert(false, "Compiler not supported");
+#endif
     }
 }
 
@@ -71,8 +77,14 @@ constexpr auto print_precondition_message_and_break(
         };
         precondition_violation.print();
 
-        // TODO: stop debugger if present #p2546r5
+        // TODO: std::breakpoint #p2546r5
+#ifdef _MSC_VER
         __debugbreak();
+#elifdef __clang__
+        __builtin_debugtrap();
+#else
+        static_assert(false, "Compiler not supported");
+#endif
     }
 }
 
