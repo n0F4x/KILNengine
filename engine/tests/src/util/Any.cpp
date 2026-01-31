@@ -3,6 +3,7 @@
 #include <memory_resource>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -223,10 +224,14 @@ TEST_CASE("util::Any")
     {
         class CountingResource : public std::pmr::memory_resource {
         public:
-            explicit CountingResource(std::size_t& counter) : m_counter{ counter } {}
+            [[nodiscard]]
+            auto count() const noexcept -> std::size_t
+            {
+                return m_counter;
+            }
 
         private:
-            std::size_t& m_counter;   // NOLINT(*-avoid-const-or-ref-data-members)
+            std::size_t m_counter{};
 
             auto do_allocate(const std::size_t bytes, const std::size_t alignment)
                 -> void* override
@@ -254,12 +259,14 @@ TEST_CASE("util::Any")
 
         struct InnerObject {};
 
-        struct Container : std::array<int, 16> {
+        using BigObject = std::array<int, 16>;
+
+        struct Container : BigObject {
             using allocator_type =   // NOLINT(*-identifier-naming)
                 std::pmr::polymorphic_allocator<>;
 
             explicit Container(const allocator_type& allocator = {})
-                : array{},
+                : BigObject{},
                   m_allocator{ allocator },
                   m_data{ m_allocator.new_object<InnerObject>(),
                           kiln::util::Deleter{ allocator } }
@@ -282,21 +289,31 @@ TEST_CASE("util::Any")
             allocator_type                                    m_allocator;
             std::unique_ptr<InnerObject, kiln::util::Deleter> m_data{
                 nullptr,
-                kiln::util::Deleter{ std::pmr::polymorphic_allocator<>{
-                    std::pmr::get_default_resource() } }
+                kiln::util::Deleter{
+                    std::pmr::polymorphic_allocator{ std::pmr::get_default_resource() } }
             };
         };
 
-        std::size_t                             counter{};
-        CountingResource                        memory_resource{ counter };
-        const std::pmr::polymorphic_allocator<> allocator{ &memory_resource };
-        const kiln::util::MoveOnlyAny           any{
+        CountingResource              memory_resource;
+        const kiln::util::MoveOnlyAny any{
             std::allocator_arg,
-            allocator,
+            &memory_resource,
             std::in_place_type<Container>,
         };
 
         REQUIRE(any_cast<Container>(any).get_allocator() == any.get_allocator());
-        REQUIRE(sizeof(Container) + any_cast<Container>(any).capacity() == counter);
+        REQUIRE(
+            sizeof(Container) + any_cast<Container>(any).capacity()
+            == memory_resource.count()
+        );
+    }
+
+    SECTION("propagates allocator-awareness")
+    {
+        std::pmr::monotonic_buffer_resource memory_resource;
+        std::pmr::vector<kiln::util::Any>   vector{ &memory_resource };
+        vector.emplace_back(value);
+
+        REQUIRE(vector.get_allocator() == vector.front().get_allocator());
     }
 }
