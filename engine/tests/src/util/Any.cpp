@@ -1,10 +1,13 @@
 #include <array>
+#include <cstddef>
+#include <memory_resource>
 #include <type_traits>
 #include <utility>
 
 #include <catch2/catch_test_macros.hpp>
 
 import kiln.util.Any;
+import kiln.util.Deleter;
 
 TEST_CASE("util::Any")
 {
@@ -181,7 +184,7 @@ TEST_CASE("util::Any")
 
     SECTION("reinterpret_any_cast const&")
     {
-        constexpr static int original{ 42 };
+        constexpr static int  original{ 42 };
         const kiln::util::Any any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
@@ -194,7 +197,7 @@ TEST_CASE("util::Any")
     SECTION("reinterpret_any_cast &&")
     {
         constexpr static int original{ 42 };
-        kiln::util::Any any{ std::in_place_type<int>, original };
+        kiln::util::Any      any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
         decltype(auto) result = reinterpret_any_cast<float>(std::move(any));
@@ -205,7 +208,7 @@ TEST_CASE("util::Any")
 
     SECTION("reinterpret_any_cast const&&")
     {
-        constexpr static int original{ 42 };
+        constexpr static int  original{ 42 };
         const kiln::util::Any any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
@@ -214,5 +217,86 @@ TEST_CASE("util::Any")
 
         STATIC_REQUIRE(std::is_same_v<decltype(result), const float&&>);
         REQUIRE(result == reinterpret_cast<const float&>(original));
+    }
+
+    SECTION("allocator propagation")
+    {
+        class CountingResource : public std::pmr::memory_resource {
+        public:
+            explicit CountingResource(std::size_t& counter) : m_counter{ counter } {}
+
+        private:
+            std::size_t& m_counter;   // NOLINT(*-avoid-const-or-ref-data-members)
+
+            auto do_allocate(const std::size_t bytes, const std::size_t alignment)
+                -> void* override
+            {
+                m_counter += bytes;
+                return std::pmr::new_delete_resource()->allocate(bytes, alignment);
+            }
+
+            void do_deallocate(
+                void* const       p,
+                const std::size_t bytes,
+                const std::size_t alignment
+            ) override
+            {
+                std::pmr::new_delete_resource()->deallocate(p, bytes, alignment);
+            }
+
+            [[nodiscard]]
+            auto do_is_equal(const std::pmr::memory_resource& other) const noexcept
+                -> bool override
+            {
+                return std::pmr::new_delete_resource()->is_equal(other);
+            }
+        };
+
+        struct InnerObject {};
+
+        struct Container : std::array<int, 16> {
+            using allocator_type =   // NOLINT(*-identifier-naming)
+                std::pmr::polymorphic_allocator<>;
+
+            explicit Container(const allocator_type& allocator = {})
+                : array{},
+                  m_allocator{ allocator },
+                  m_data{ m_allocator.new_object<InnerObject>(),
+                          kiln::util::Deleter{ allocator } }
+            {
+            }
+
+            [[nodiscard]]
+            auto get_allocator() const -> allocator_type
+            {
+                return m_allocator;
+            }
+
+            [[nodiscard]]
+            static auto capacity() noexcept -> std::size_t
+            {
+                return sizeof(InnerObject);
+            }
+
+        private:
+            allocator_type                                    m_allocator;
+            std::unique_ptr<InnerObject, kiln::util::Deleter> m_data{
+                nullptr,
+                kiln::util::Deleter{ std::pmr::polymorphic_allocator<>{
+                    std::pmr::get_default_resource() } }
+            };
+        };
+
+        std::size_t                             counter{};
+        CountingResource                        memory_resource{ counter };
+        const std::pmr::polymorphic_allocator<> allocator{ &memory_resource };
+        const kiln::util::MoveOnlyAny           any{
+            std::allocator_arg,
+            allocator,
+            std::in_place_type<Container>,
+        };
+
+        REQUIRE(any_cast<Container>(any).get_allocator() == any.get_allocator());
+        REQUIRE(sizeof(Container) + any_cast<Container>(any).capacity() == counter);
     }
 }
