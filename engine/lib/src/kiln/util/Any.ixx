@@ -45,7 +45,7 @@ struct SmallBuffer {
 template <std::size_t size_T, std::size_t alignment_T>
 using storage_t = std::variant<SmallBuffer<size_T, alignment_T>, void*>;
 
-template <std::size_t size_T, std::size_t alignment_T>
+template <std::size_t size_T, std::size_t alignment_T, typename ExtraVTable_T>
 struct VTable {
     using Storage = storage_t<size_T, alignment_T>;
 
@@ -65,13 +65,14 @@ struct VTable {
     using VoidifyFunc      = auto(Storage& storage) -> void*;
     using VoidifyConstFunc = auto(const Storage& storage) -> const void*;
 
-    std::add_pointer_t<CopyFunc>             copy;
-    std::reference_wrapper<MoveFunc>         move;
-    std::reference_wrapper<DropFunc>         drop;
-    std::reference_wrapper<TypesMatchFunc>   types_match;
-    std::reference_wrapper<TypeNameFunc>     type_name;
-    std::reference_wrapper<VoidifyFunc>      voidify;
-    std::reference_wrapper<VoidifyConstFunc> voidify_const;
+    std::add_pointer_t<CopyFunc>                copy;
+    std::reference_wrapper<MoveFunc>            move;
+    std::reference_wrapper<DropFunc>            drop;
+    std::reference_wrapper<TypesMatchFunc>      types_match;
+    std::reference_wrapper<TypeNameFunc>        type_name;
+    std::reference_wrapper<VoidifyFunc>         voidify;
+    std::reference_wrapper<VoidifyConstFunc>    voidify_const;
+    std::reference_wrapper<const ExtraVTable_T> extra_vtable;
 };
 
 class AnyBase {};
@@ -230,10 +231,9 @@ protected:
 private:
     using Storage = internal::storage_t<size_T, alignment_T>;
 
-    allocator_type                               m_allocator;
-    const internal::VTable<size_T, alignment_T>* m_vtable{};
-    Storage                                      m_storage{ std::in_place_type<void*> };
-    const Traits::ExtraVTable*                   m_extra_vtable;
+    allocator_type m_allocator;
+    const internal::VTable<size_T, alignment_T, typename Traits::ExtraVTable>* m_vtable{};
+    Storage m_storage{ std::in_place_type<void*> };
 
     auto reset() -> void;
 };
@@ -293,7 +293,7 @@ template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t ali
 struct Operations<T, Traits_T, size_T, alignment_T> {
     using Storage     = storage_t<size_T, alignment_T>;
     using SmallBuffer = SmallBuffer<size_T, alignment_T>;
-    using VTable      = VTable<size_T, alignment_T>;
+    using VTable      = VTable<size_T, alignment_T, typename Traits_T::ExtraVTable>;
 
     template <typename... Args_T>
     static auto create(
@@ -395,6 +395,7 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
             static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
                 voidify
             ),
+        .extra_vtable = Traits_T::template extra_vtable<T>(),
     };
 
 private:
@@ -417,7 +418,7 @@ template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t ali
     requires large_c<T, size_T, alignment_T>
 struct Operations<T, Traits_T, size_T, alignment_T> {
     using Storage = storage_t<size_T, alignment_T>;
-    using VTable  = VTable<size_T, alignment_T>;
+    using VTable  = VTable<size_T, alignment_T, typename Traits_T::ExtraVTable>;
 
     template <typename... Args_T>
     static auto create(
@@ -523,6 +524,7 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
             static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
                 voidify
             ),
+        .extra_vtable = Traits_T::template extra_vtable<T>(),
     };
 };
 
@@ -613,8 +615,7 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
 )
     requires(!is_move_only())
     : m_allocator{ allocator },
-      m_vtable{ other.m_vtable },
-      m_extra_vtable{ other.m_extra_vtable }
+      m_vtable{ other.m_vtable }
 {
     PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
     if (m_vtable)
@@ -674,8 +675,7 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
 )
     requires(storable<T>())
     : m_allocator{ allocator },
-      m_vtable{ &internal::Operations<T, Traits_T, size_T, alignment_T>::vtable },
-      m_extra_vtable{ &Traits::template extra_vtable<T>() }
+      m_vtable{ &internal::Operations<T, Traits_T, size_T, alignment_T>::vtable }
 {
     internal::Operations<T, Traits_T, size_T, alignment_T>::create(
         m_allocator, m_storage, std::forward<Args_T>(args)...
@@ -768,8 +768,6 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexce
         }
     }
 
-    m_extra_vtable = std::exchange(other.m_extra_vtable, nullptr);
-
     other.reset();
 
     return *this;
@@ -786,8 +784,7 @@ auto BasicAny<Traits_T, size_T, alignment_T>::extra_vtable() const
     -> const Traits_T::ExtraVTable&
 {
     PRECOND(m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
-    assert(m_extra_vtable != nullptr);
-    return *m_extra_vtable;
+    return m_vtable->extra_vtable;
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
