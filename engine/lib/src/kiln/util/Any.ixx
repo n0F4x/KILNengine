@@ -7,6 +7,7 @@ module;
 #include <format>
 #include <functional>
 #include <memory>
+#include <memory_resource>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -17,16 +18,17 @@ module;
 export module kiln.util.Any;
 
 import kiln.util.concepts.decayed;
-import kiln.util.concepts.lvalue_reference;
+import kiln.util.concepts.naked;
 import kiln.util.concepts.nothrow_movable;
-import kiln.util.concepts.preserves_const;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.storable;
+import kiln.util.concepts.strips_to;
 import kiln.util.contracts;
-import kiln.util.Deallocator;
+import kiln.util.Deleter;
 import kiln.util.Dummy;
 import kiln.util.reflection;
 import kiln.util.type_traits.always_true;
+import kiln.util.type_traits.const_like;
 import kiln.util.type_traits.forward_like;
 
 namespace kiln::util {
@@ -47,19 +49,29 @@ template <std::size_t size_T, std::size_t alignment_T>
 struct VTable {
     using Storage = storage_t<size_T, alignment_T>;
 
-    using CopyFunc       = auto(Storage& out, const Storage& storage) -> void;
-    using MoveFunc       = auto(Storage& out, Storage&& storage) -> void;
-    using DropFunc       = auto(Storage&&) -> void;
-    using TypesMatchFunc = auto(uint64_t type_hash) -> bool;
-    using TypeNameFunc   = auto() -> std::string_view;
-    using VoidifyFunc    = auto(Storage& storage) -> void*;
+    using CopyFunc = auto(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        const Storage&                     storage
+    ) -> void;
+    using MoveFunc = auto(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        Storage&&                          storage
+    ) -> void;
+    using DropFunc = auto(std::pmr::polymorphic_allocator<>& allocator, Storage&) -> void;
+    using TypesMatchFunc   = auto(uint64_t type_hash) -> bool;
+    using TypeNameFunc     = auto() -> std::string_view;
+    using VoidifyFunc      = auto(Storage& storage) -> void*;
+    using VoidifyConstFunc = auto(const Storage& storage) -> const void*;
 
-    std::add_pointer_t<CopyFunc>           copy;
-    std::reference_wrapper<MoveFunc>       move;
-    std::reference_wrapper<DropFunc>       drop;
-    std::reference_wrapper<TypesMatchFunc> types_match;
-    std::reference_wrapper<TypeNameFunc>   type_name;
-    std::reference_wrapper<VoidifyFunc>    voidify;
+    std::add_pointer_t<CopyFunc>             copy;
+    std::reference_wrapper<MoveFunc>         move;
+    std::reference_wrapper<DropFunc>         drop;
+    std::reference_wrapper<TypesMatchFunc>   types_match;
+    std::reference_wrapper<TypeNameFunc>     type_name;
+    std::reference_wrapper<VoidifyFunc>      voidify;
+    std::reference_wrapper<VoidifyConstFunc> voidify_const;
 };
 
 class AnyBase {};
@@ -122,15 +134,9 @@ export template <typename T, typename Any_T>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
-export template <typename T, typename Any_T>
+export template <naked_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
-          && (std::remove_cvref_t<Any_T>::template storable<T>())
-auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
-
-export template <lvalue_reference_c T, typename Any_T>
-    requires any_c<std::remove_const_t<Any_T>>
-          && preserves_const_c<std::remove_reference_t<T>, Any_T>
-auto reinterpret_any_cast(Any_T& any) -> T;
+auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 export template <
     any_traits_c Traits_T    = DefaultAnyTraits<>,
@@ -142,14 +148,19 @@ public:
     constexpr static std::size_t size{ size_T };
     constexpr static std::size_t alignment{ alignment_T };
 
+    // required for interfacing with the standard
+    using allocator_type =   // NOLINT(*-identifier-naming)
+        std::pmr::polymorphic_allocator<>;
+
     consteval static auto is_move_only() -> bool;
     template <typename T>
     consteval static auto storable() -> bool;
 
 
-    constexpr BasicAny(const BasicAny&)
+    constexpr BasicAny(const BasicAny&, const allocator_type& allocator = {})
         requires(!is_move_only());
     constexpr BasicAny(BasicAny&&) noexcept;
+    constexpr BasicAny(BasicAny&&, const allocator_type& allocator);
     constexpr ~BasicAny();
 
     template <typename T, typename... Args_T>
@@ -157,10 +168,33 @@ public:
     constexpr explicit BasicAny(std::in_place_type_t<T>, Args_T&&... args)
         requires(storable<T>());
 
+    template <typename T, typename... Args_T>
+        requires std::constructible_from<T, Args_T&&...>
+    constexpr explicit BasicAny(
+        std::allocator_arg_t,
+        const allocator_type& allocator,
+        std::in_place_type_t<T>,
+        Args_T&&... args
+    )
+        requires(storable<T>());
+
     template <typename T>
     constexpr explicit BasicAny(T&& value)
-        requires(!std::same_as<std::decay_t<T>, BasicAny>)
-             && (!specialization_of_c<std::decay_t<T>, std::in_place_type_t>)
+        requires(!strips_to_c<T, BasicAny>)   //
+             && (!strips_to_c<T, std::allocator_arg_t>)
+             && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+             && std::constructible_from<std::decay_t<T>, T&&>
+             && (storable<std::decay_t<T>>());
+
+    template <typename T>
+    constexpr explicit BasicAny(
+        std::allocator_arg_t,
+        const allocator_type& allocator,
+        T&&                   value
+    )
+        requires(!strips_to_c<T, BasicAny>)   //
+             && (!strips_to_c<T, std::allocator_arg_t>)
+             && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
              && (storable<std::decay_t<T>>());
 
@@ -168,6 +202,11 @@ public:
     auto operator=(const BasicAny&) -> BasicAny&
         requires(!is_move_only());
     auto operator=(BasicAny&&) noexcept -> BasicAny&;
+
+
+    // required for interfacing with the standard
+    [[nodiscard]]
+    auto get_allocator() const -> allocator_type;
 
 
     template <typename T, typename Any_T>
@@ -180,11 +219,9 @@ public:
               && (std::remove_cvref_t<Any_T>::template storable<T>())
     friend auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
-    template <lvalue_reference_c T, typename Any_T>
-        requires any_c<std::remove_const_t<Any_T>>
-              && preserves_const_c<std::remove_reference_t<T>, Any_T>
-    friend auto reinterpret_any_cast(Any_T& any) -> T;
-
+    template <naked_c T, typename Any_T>
+        requires any_c<std::remove_cvref_t<Any_T>>
+    friend auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 protected:
     [[nodiscard]]
@@ -193,7 +230,8 @@ protected:
 private:
     using Storage = internal::storage_t<size_T, alignment_T>;
 
-    const internal::VTable<size_T, alignment_T>* m_vtable;
+    allocator_type                               m_allocator;
+    const internal::VTable<size_T, alignment_T>* m_vtable{};
     Storage                                      m_storage{ std::in_place_type<void*> };
     const Traits::ExtraVTable*                   m_extra_vtable;
 
@@ -258,25 +296,39 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
     using VTable      = VTable<size_T, alignment_T>;
 
     template <typename... Args_T>
-    static auto create(Storage& out, Args_T&&... args) -> void
+    static auto create(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        Args_T&&... args
+    ) -> void
     {
-        create_impl(out, std::forward<Args_T>(args)...);
+        create_impl(allocator, out, std::forward<Args_T>(args)...);
     }
 
-    static auto copy(Storage& out, const Storage& storage) -> void
+    static auto copy(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        const Storage&                     storage
+    ) -> void
         requires(!Traits_T::is_move_only())
     {
-        return create_impl(out, *static_cast<const T*>(voidify(storage)));
+        create_impl(allocator, out, *static_cast<const T*>(voidify(storage)));
     }
 
-    static auto move(Storage& out, Storage&& storage) noexcept -> void
+    static auto move(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        Storage&&                          storage
+    ) noexcept -> void
     {
-        return create_impl(out, std::move(*static_cast<T*>(voidify(storage))));
+        create_impl(allocator, out, std::move(*static_cast<T*>(voidify(storage))));
     }
 
-    static auto drop(Storage&& storage) noexcept -> void
+    static auto
+        drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) noexcept
+        -> void
     {
-        std::destroy_at(static_cast<T*>(voidify(storage)));
+        allocator.destroy(static_cast<T*>(voidify(storage)));
     }
 
     template <typename Storage_T>
@@ -284,16 +336,22 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
     [[nodiscard]]
     static auto any_cast(Storage_T&& storage) noexcept -> forward_like_t<T, Storage_T>
     {
-        using TPtr = std::
-            conditional_t<std::is_const_v<std::remove_reference_t<Storage_T>>, const T*, T*>;
-        using VoidPtr = std::conditional_t<
-            std::is_const_v<std::remove_reference_t<Storage_T>>,
-            const void*,
-            void*>;
+        using TPtr =
+            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
 
-        return std::forward_like<Storage_T>(
-            *static_cast<TPtr>(static_cast<VoidPtr>(voidify(storage)))
-        );
+        return std::forward_like<Storage_T>(*static_cast<TPtr>(voidify(storage)));
+    }
+
+    template <typename Storage_T>
+        requires std::same_as<std::remove_cvref_t<Storage_T>, Storage>
+    [[nodiscard]]
+    static auto reinterpret_any_cast(Storage_T&& storage) noexcept
+        -> forward_like_t<T, Storage_T>
+    {
+        using TPtr =
+            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
+
+        return std::forward_like<Storage_T>(*reinterpret_cast<TPtr>(voidify(storage)));
     }
 
     [[nodiscard]]
@@ -333,15 +391,23 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         .voidify = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(
             voidify
         ),
+        .voidify_const =
+            static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
+                voidify
+            ),
     };
 
 private:
     template <typename... Args_T>
-    static auto create_impl(Storage& out, Args_T&&... args) -> void
+    static auto create_impl(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        Args_T&&... args
+    ) -> void
     {
         SmallBuffer& small_buffer = out.template emplace<SmallBuffer>();
 
-        std::construct_at(
+        allocator.construct(
             reinterpret_cast<T*>(small_buffer.data.data()), std::forward<Args_T>(args)...
         );
     }
@@ -350,40 +416,47 @@ private:
 template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
     requires large_c<T, size_T, alignment_T>
 struct Operations<T, Traits_T, size_T, alignment_T> {
-    using Storage   = storage_t<size_T, alignment_T>;
-    using VTable    = VTable<size_T, alignment_T>;
-    using Allocator = std::allocator<T>;
+    using Storage = storage_t<size_T, alignment_T>;
+    using VTable  = VTable<size_T, alignment_T>;
 
     template <typename... Args_T>
-    static auto create(Storage& out, Args_T&&... args) -> void
+    static auto create(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        Args_T&&... args
+    ) -> void
     {
-        using Deallocator = Deallocator<Allocator>;
-
-        Allocator allocator{};
-
-        std::unique_ptr<T, Deallocator> handle{
-            allocator.allocate(1), Deallocator{ allocator }   //
+        std::unique_ptr<T, Deleter> handle{
+            allocator.new_object<T>(std::forward<Args_T>(args)...),
+            Deleter{ allocator }   //
         };
-        std::construct_at(handle.get(), std::forward<Args_T>(args)...);
 
         out.template emplace<void*>(handle.release());
     }
 
-    static auto copy(Storage& out, const Storage& storage) -> void
+    static auto copy(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           out,
+        const Storage&                     storage
+    ) -> void
         requires(!Traits_T::is_move_only())
     {
-        return create(out, *static_cast<const T*>(voidify(storage)));
+        create(allocator, out, *static_cast<const T*>(voidify(storage)));
     }
 
-    static auto move(Storage& out, Storage&& storage) noexcept -> void
+    static auto
+        move(std::pmr::polymorphic_allocator<>&, Storage& out, Storage&& storage) noexcept
+        -> void
     {
         out.template emplace<void*>(voidify(storage));
+        storage.template emplace<void*>(nullptr);
     }
 
-    static auto drop(Storage&& storage) noexcept -> void
+    static auto
+        drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) noexcept
+        -> void
     {
-        Allocator allocator{};
-        allocator.deallocate(static_cast<T*>(voidify(storage)), 1);
+        allocator.delete_object(static_cast<T*>(voidify(storage)));
     }
 
     template <typename Storage_T>
@@ -391,10 +464,22 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
     [[nodiscard]]
     static auto any_cast(Storage_T&& storage) noexcept -> forward_like_t<T, Storage_T>
     {
-        using TPtr = std::
-            conditional_t<std::is_const_v<std::remove_reference_t<Storage_T>>, const T*, T*>;
+        using TPtr =
+            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
 
         return std::forward_like<Storage_T>(*static_cast<TPtr>(voidify(storage)));
+    }
+
+    template <typename Storage_T>
+        requires std::same_as<std::remove_cvref_t<Storage_T>, Storage>
+    [[nodiscard]]
+    static auto reinterpret_any_cast(Storage_T&& storage) noexcept
+        -> forward_like_t<T, Storage_T>
+    {
+        using TPtr =
+            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
+
+        return std::forward_like<Storage_T>(*reinterpret_cast<TPtr>(voidify(storage)));
     }
 
     [[nodiscard]]
@@ -434,6 +519,10 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         .voidify = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(
             voidify
         ),
+        .voidify_const =
+            static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
+                voidify
+            ),
     };
 };
 
@@ -455,44 +544,52 @@ auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 #endif
 
     PRECOND(
+        any.NakedAny::BasicAny::m_vtable != nullptr,
+        "Don't use a 'moved-from' (or destroyed) Any!"
+    );
+
+    PRECOND(
         any.NakedAny::BasicAny::m_vtable->types_match(util::hash<T>()),
         std::format(
             "`Any` has type {}, but requested type is {}",
-            any.m_vtable->type_name(),
+            any.NakedAny::BasicAny::m_vtable->type_name(),
             util::name_of<T>()
         )
     );
-
-    return dynamic_any_cast<T>(std::forward<Any_T>(any));
-}
-
-template <typename T, typename Any_T>
-    requires any_c<std::remove_cvref_t<Any_T>>
-          && (std::remove_cvref_t<Any_T>::template storable<T>())
-auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
-{
-    PRECOND(any.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
 
     return internal::Operations<
         T,
         typename std::remove_cvref_t<Any_T>::BasicAny::Traits,
         std::remove_cvref_t<Any_T>::BasicAny::size,
         std::remove_cvref_t<Any_T>::BasicAny::alignment>::
-        any_cast(std::forward_like<Any_T>(any.m_storage));
+        any_cast(std::forward_like<Any_T>(any.NakedAny::BasicAny::m_storage));
 }
 
-template <lvalue_reference_c T, typename Any_T>
-    requires any_c<std::remove_const_t<Any_T>>
-          && preserves_const_c<std::remove_reference_t<T>, Any_T>
-auto reinterpret_any_cast(Any_T& any) -> T
+template <naked_c T, typename Any_T>
+    requires any_c<std::remove_cvref_t<Any_T>>
+auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
-    return *reinterpret_cast<std::add_pointer_t<std::remove_reference_t<T>>>(
-        any.BasicAny::m_vtable->voidify(
-            const_cast<std::remove_cvref_t<decltype(any.BasicAny::m_storage)>&>(
-                any.BasicAny::m_storage
-            )
-        )
+#ifdef __clang__
+  #pragma clang diagnostic push
+  #pragma clang diagnostic ignored "-Wunused-local-typedef"
+#endif
+    // GCC and MSVC needs this to lookup base type
+    using NakedAny = std::remove_cvref_t<Any_T>;
+#ifdef __clang__
+  #pragma clang diagnostic pop
+#endif
+
+    PRECOND(
+        any.NakedAny::BasicAny::m_vtable != nullptr,
+        "Don't use a 'moved-from' (or destroyed) Any!"
     );
+
+    return internal::Operations<
+        T,
+        typename std::remove_cvref_t<Any_T>::BasicAny::Traits,
+        std::remove_cvref_t<Any_T>::BasicAny::size,
+        std::remove_cvref_t<Any_T>::BasicAny::alignment>::
+        reinterpret_any_cast(std::forward_like<Any_T>(any.NakedAny::BasicAny::m_storage));
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
@@ -510,29 +607,36 @@ consteval auto BasicAny<Traits_T, size_T, alignment_T>::storable() -> bool
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(const BasicAny& other)
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+    const BasicAny&       other,
+    const allocator_type& allocator
+)
     requires(!is_move_only())
-    : m_vtable{ other.m_vtable },
+    : m_allocator{ allocator },
+      m_vtable{ other.m_vtable },
       m_extra_vtable{ other.m_extra_vtable }
 {
     PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
     if (m_vtable)
     {
-        m_vtable->copy(m_storage, other.m_storage);
+        m_vtable->copy(m_allocator, m_storage, other.m_storage);
     }
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(BasicAny&& other) noexcept
-    : m_vtable{ std::exchange(other.m_vtable, nullptr) },
-      m_extra_vtable{ std::exchange(other.m_extra_vtable, nullptr) }
+    : BasicAny{ std::move(other), other.get_allocator() }
 {
-    PRECOND(m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
-    if (m_vtable)
-    {
-        m_vtable->move(m_storage, std::move(other.m_storage));
-    }
-    other.reset();
+}
+
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+    BasicAny&&            other,
+    const allocator_type& allocator
+)
+    : m_allocator{ allocator }
+{
+    operator=(std::move(other));
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
@@ -550,21 +654,68 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
     Args_T&&... args
 )
     requires(storable<T>())
-    : m_vtable{ &internal::Operations<T, Traits_T, size_T, alignment_T>::vtable },
+    : BasicAny{
+          std::allocator_arg,
+          allocator_type{},
+          std::in_place_type<std::decay_t<T>>,
+          std::forward<Args_T>(args)...,
+      }
+{
+}
+
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename T, typename... Args_T>
+    requires std::constructible_from<T, Args_T&&...>
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+    std::allocator_arg_t,
+    const allocator_type& allocator,
+    std::in_place_type_t<T>,
+    Args_T&&... args
+)
+    requires(storable<T>())
+    : m_allocator{ allocator },
+      m_vtable{ &internal::Operations<T, Traits_T, size_T, alignment_T>::vtable },
       m_extra_vtable{ &Traits::template extra_vtable<T>() }
 {
     internal::Operations<T, Traits_T, size_T, alignment_T>::create(
-        m_storage, std::forward<Args_T>(args)...
+        m_allocator, m_storage, std::forward<Args_T>(args)...
     );
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 template <typename T>
 constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(T&& value)
-    requires(!std::same_as<std::decay_t<T>, BasicAny>)
-         && (!specialization_of_c<std::decay_t<T>, std::in_place_type_t>)
-         && std::constructible_from<std::decay_t<T>, T&&> && (storable<std::decay_t<T>>())
-    : BasicAny{ std::in_place_type<std::decay_t<T>>, std::forward<T>(value) }
+    requires(!strips_to_c<T, BasicAny>)   //
+         && (!strips_to_c<T, std::allocator_arg_t>)
+         && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+         && std::constructible_from<std::decay_t<T>, T&&>   //
+         && (storable<std::decay_t<T>>())
+    : BasicAny{
+          std::allocator_arg,
+          allocator_type{},
+          std::forward<T>(value),
+      }
+{
+}
+
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename T>
+constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+    std::allocator_arg_t,
+    const allocator_type& allocator,
+    T&&                   value
+)
+    requires(!strips_to_c<T, BasicAny>)   //
+         && (!strips_to_c<T, std::allocator_arg_t>)
+         && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+         && std::constructible_from<std::decay_t<T>, T&&>   //
+         && (storable<std::decay_t<T>>())
+    : BasicAny{
+          std::allocator_arg,
+          allocator,
+          std::in_place_type<std::decay_t<T>>,
+          std::forward<T>(value),
+      }
 {
 }
 
@@ -585,8 +736,6 @@ template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexcept
     -> BasicAny&
 {
-    PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
-
     if (&other == this)
     {
         return *this;
@@ -597,7 +746,26 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexce
     m_vtable = std::exchange(other.m_vtable, nullptr);
     if (m_vtable)
     {
-        m_vtable->move(m_storage, std::move(other.m_storage));
+        if (m_allocator == other.m_allocator)
+        {
+            m_vtable->move(m_allocator, m_storage, std::move(other.m_storage));
+            m_vtable->drop(other.m_allocator, other.m_storage);
+        }
+        else
+        {
+            if constexpr (!is_move_only())
+            {
+                m_vtable->copy(m_allocator, m_storage, other.m_storage);
+                m_vtable->drop(other.m_allocator, other.m_storage);
+            }
+            else
+            {
+                PRECOND(
+                    false,
+                    "Move only any cannot be move assigned using different allocators"
+                );
+            }
+        }
     }
 
     m_extra_vtable = std::exchange(other.m_extra_vtable, nullptr);
@@ -605,6 +773,12 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexce
     other.reset();
 
     return *this;
+}
+
+template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+auto BasicAny<Traits_T, size_T, alignment_T>::get_allocator() const -> allocator_type
+{
+    return m_allocator;
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
@@ -621,7 +795,7 @@ auto BasicAny<Traits_T, size_T, alignment_T>::reset() -> void
 {
     if (m_vtable)
     {
-        m_vtable->drop(std::move(m_storage));
+        m_vtable->drop(m_allocator, m_storage);
         m_vtable = nullptr;
     }
 }

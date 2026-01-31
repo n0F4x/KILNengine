@@ -1,0 +1,25 @@
+#pragma once
+
+#include <memory_resource>
+
+namespace kiln::util {
+
+class Deleter {
+public:
+    template <typename T>
+    constexpr explicit Deleter(const std::pmr::polymorphic_allocator<T>& allocator)
+        : m_allocator{ allocator }
+    {
+    }
+
+    template <typename T>
+    constexpr auto operator()(T* pointer) -> void
+    {
+        m_allocator.delete_object(pointer);
+    }
+
+private:
+    std::pmr::polymorphic_allocator<> m_allocator;
+};
+
+}   // namespace kiln::util

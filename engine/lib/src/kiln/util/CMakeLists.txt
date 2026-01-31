@@ -19,7 +19,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         Any.ixx
         concepts.ixx
         contracts.ixx
-        Deallocator.ixx
+        Deleter.ixx
         Dummy.ixx
         for_each.ixx
         Function.ixx

@@ -45,7 +45,7 @@ TEST_CASE("util::Any")
 
     SECTION("in_place construct")
     {
-        kiln::util::Any any(std::in_place_type<Value>, value.value());
+        const kiln::util::Any any{ std::in_place_type<Value>, value.value() };
         REQUIRE(any_cast<Value>(any) == value);
     }
 
@@ -59,7 +59,7 @@ TEST_CASE("util::Any")
     {
         const kiln::util::Any any{ value };
 
-        const kiln::util::Any copy{ any }; // NOLINT(*-unnecessary-copy-initialization)
+        const kiln::util::Any copy{ any };   // NOLINT(*-unnecessary-copy-initialization)
         REQUIRE(any_cast<Value>(any) == any_cast<Value>(copy));
     }
 
@@ -92,7 +92,39 @@ TEST_CASE("util::Any")
         REQUIRE(any_cast<Value>(moved_from) == value);
     }
 
-    SECTION("get &")
+    SECTION("large to small copy assignment")
+    {
+        const kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
+        kiln::util::Any       small{ std::in_place_type<Value> };
+
+        small = large;
+    }
+
+    SECTION("small to large copy assignment")
+    {
+        const kiln::util::Any small{ std::in_place_type<Value> };
+        kiln::util::Any       large{ std::in_place_type<std::array<Value, 16>> };
+
+        large = small;
+    }
+
+    SECTION("large to small move assignment")
+    {
+        kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
+        kiln::util::Any small{ std::in_place_type<Value> };
+
+        small = std::move(large);
+    }
+
+    SECTION("small to large move assignment")
+    {
+        kiln::util::Any small{ std::in_place_type<Value> };
+        kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
+
+        large = std::move(small);
+    }
+
+    SECTION("any_cast &")
     {
         kiln::util::Any any{ std::in_place_type<Value>, value };
 
@@ -103,7 +135,7 @@ TEST_CASE("util::Any")
         assert(result == value);
     }
 
-    SECTION("get const&")
+    SECTION("any_cast const&")
     {
         const kiln::util::Any any{ std::in_place_type<Value>, value };
 
@@ -114,7 +146,7 @@ TEST_CASE("util::Any")
         REQUIRE(result == value);
     }
 
-    SECTION("get &&")
+    SECTION("any_cast &&")
     {
         kiln::util::Any any{ std::in_place_type<Value>, value };
 
@@ -123,30 +155,64 @@ TEST_CASE("util::Any")
         REQUIRE(result == value);
     }
 
-    SECTION("get const&&")
+    SECTION("any_cast const&&")
     {
         const kiln::util::Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
-        decltype(auto) result = any_cast<Value>(std::move(any)); // NOLINT(*-move-const-arg)
+        decltype(auto) result =
+            any_cast<Value>(std::move(any));   // NOLINT(*-move-const-arg)
 
         STATIC_REQUIRE(std::is_same_v<decltype(result), const Value&&>);
         REQUIRE(result == value);
     }
 
-    SECTION("large to small")
+    SECTION("reinterpret_any_cast &")
     {
-        const kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
-        kiln::util::Any       small{ std::in_place_type<Value> };
+        constexpr static int original{ 42 };
+        kiln::util::Any      any{ std::in_place_type<int>, original };
 
-        small = large;
+        [[maybe_unused]]
+        decltype(auto) result = reinterpret_any_cast<float>(any);
+
+        STATIC_REQUIRE(std::is_same_v<decltype(result), float&>);
+        assert(result == reinterpret_cast<const float&>(original));
     }
 
-    SECTION("small to large")
+    SECTION("reinterpret_any_cast const&")
     {
-        const kiln::util::Any small{ std::in_place_type<Value> };
-        kiln::util::Any       large{ std::in_place_type<std::array<Value, 16>> };
+        constexpr static int original{ 42 };
+        const kiln::util::Any any{ std::in_place_type<int>, original };
 
-        large = small;
+        [[maybe_unused]]
+        decltype(auto) result = reinterpret_any_cast<float>(any);
+
+        STATIC_REQUIRE(std::is_same_v<decltype(result), const float&>);
+        REQUIRE(result == reinterpret_cast<const float&>(original));
+    }
+
+    SECTION("reinterpret_any_cast &&")
+    {
+        constexpr static int original{ 42 };
+        kiln::util::Any any{ std::in_place_type<int>, original };
+
+        [[maybe_unused]]
+        decltype(auto) result = reinterpret_any_cast<float>(std::move(any));
+
+        STATIC_REQUIRE(std::is_same_v<decltype(result), float&&>);
+        assert(result == reinterpret_cast<const float&>(original));
+    }
+
+    SECTION("reinterpret_any_cast const&&")
+    {
+        constexpr static int original{ 42 };
+        const kiln::util::Any any{ std::in_place_type<int>, original };
+
+        [[maybe_unused]]
+        decltype(auto) result =
+            reinterpret_any_cast<float>(std::move(any));   // NOLINT(*-move-const-arg)
+
+        STATIC_REQUIRE(std::is_same_v<decltype(result), const float&&>);
+        REQUIRE(result == reinterpret_cast<const float&>(original));
     }
 }
