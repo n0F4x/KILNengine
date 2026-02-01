@@ -36,6 +36,9 @@ user.kiln-engine:enable_examples=True
 PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin
 PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja
 PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin
+
+[platform_tool_requires]
+cmake/[>=4.1]
 ```
 
 #### Example Conan profile for MSYS2 (Linux is very similar):
@@ -61,6 +64,9 @@ user.kiln-engine:enable_examples=True
 
 [buildenv]
 PATH+=(path)C:/msys64/ucrt64/bin
+
+[platform_tool_requires]
+cmake/[>=4.1]
 ```
 
 ### Install the dependencies
