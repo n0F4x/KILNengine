@@ -75,9 +75,9 @@ class DataDrivenGameEngineRecipe(ConanFile):
                 f"Clang versions below {minimum_supported_clang_version} are not supported"
             )
 
-        if self.settings.compiler == "clang" and not self.settings.compiler.libcxx in [None, "libstdc++11"]:
+        if self.settings.compiler == "clang" and not self.settings.compiler.libcxx in [None, "libstdc++11", "libc++"]:
             raise ConanInvalidConfiguration(
-                f"Only supported standard libraries are Microsoft's STL and libstdc++11"
+                f"Only supported standard libraries are Microsoft's STL, libstdc++11 and libc++"
             )
 
         if self.conf.get("tools.cmake.cmaketoolchain:generator") != "Ninja":

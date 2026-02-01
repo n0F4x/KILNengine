@@ -4,7 +4,7 @@
 
 Make sure you have the following programs installed on your machine
 
--   MSVC (at least version v195)
+-   MSVC (at least version v195) or Clang (at least version 20)
 -   Ninja
 -   CMake (at least version 4.1)
 -   [Conan](https://docs.conan.io/2/installation.html)
