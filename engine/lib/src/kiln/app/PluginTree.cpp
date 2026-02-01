@@ -256,6 +256,7 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(const uint64_t new_plu
             continue;
         }
 
+        // TODO: use std::ranges::rotate when libc++ supports it
         first_dependent_injection_iter = std::rotate(
             first_dependent_injection_iter, injection_iter, std::next(injection_iter)
         );
