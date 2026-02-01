@@ -342,18 +342,6 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         return std::forward_like<Storage_T>(*static_cast<TPtr>(voidify(storage)));
     }
 
-    template <typename Storage_T>
-        requires std::same_as<std::remove_cvref_t<Storage_T>, Storage>
-    [[nodiscard]]
-    static auto reinterpret_any_cast(Storage_T&& storage) noexcept
-        -> forward_like_t<T, Storage_T>
-    {
-        using TPtr =
-            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
-
-        return std::forward_like<Storage_T>(*reinterpret_cast<TPtr>(voidify(storage)));
-    }
-
     [[nodiscard]]
     static auto types_match(uint64_t type_hash) -> bool
     {
@@ -471,18 +459,6 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         return std::forward_like<Storage_T>(*static_cast<TPtr>(voidify(storage)));
     }
 
-    template <typename Storage_T>
-        requires std::same_as<std::remove_cvref_t<Storage_T>, Storage>
-    [[nodiscard]]
-    static auto reinterpret_any_cast(Storage_T&& storage) noexcept
-        -> forward_like_t<T, Storage_T>
-    {
-        using TPtr =
-            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
-
-        return std::forward_like<Storage_T>(*reinterpret_cast<TPtr>(voidify(storage)));
-    }
-
     [[nodiscard]]
     static auto types_match(const uint64_t type_hash) -> bool
     {
@@ -586,12 +562,22 @@ auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
         "Don't use a 'moved-from' (or destroyed) Any!"
     );
 
-    return internal::Operations<
-        T,
-        typename std::remove_cvref_t<Any_T>::BasicAny::Traits,
-        std::remove_cvref_t<Any_T>::BasicAny::size,
-        std::remove_cvref_t<Any_T>::BasicAny::alignment>::
-        reinterpret_any_cast(std::forward_like<Any_T>(any.NakedAny::BasicAny::m_storage));
+    if constexpr (!std::is_const_v<std::remove_reference_t<Any_T>>)
+    {
+        return std::forward_like<Any_T>(*reinterpret_cast<std::add_pointer_t<T>>(
+            any.NakedAny::BasicAny::m_vtable->voidify(any.NakedAny::BasicAny::m_storage)
+        ));
+    }
+    else
+    {
+        return std::forward_like<Any_T>(
+            *reinterpret_cast<std::add_pointer_t<std::add_const_t<T>>>(
+                any.NakedAny::BasicAny::m_vtable->voidify_const(
+                    any.NakedAny::BasicAny::m_storage
+                )
+            )
+        );
+    }
 }
 
 template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
