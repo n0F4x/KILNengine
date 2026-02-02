@@ -54,18 +54,11 @@ class DataDrivenGameEngineRecipe(ConanFile):
     def validate(self):
         check_min_cppstd(self, "23")
 
-        supported_compilers = ["msvc", "clang"]
+        supported_compilers = ["clang"]
         if self.settings.compiler not in supported_compilers:
             raise ConanInvalidConfiguration(
                 f"{self.settings.compiler} is not supported."
                 f"Supported compilers are: {supported_compilers}"
-            )
-
-        minimum_supported_msvc_version = 195
-        if (self.settings.compiler == "msvc"
-                and self.settings.compiler.version < Version(minimum_supported_msvc_version)):
-            raise ConanInvalidConfiguration(
-                f"MSVC versions below {minimum_supported_msvc_version} are not supported"
             )
 
         minimum_supported_clang_version = 20
@@ -75,7 +68,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
                 f"Clang versions below {minimum_supported_clang_version} are not supported"
             )
 
-        if self.settings.compiler == "clang" and not self.settings.compiler.libcxx in [None, "libstdc++11", "libc++"]:
+        if not self.settings.compiler.libcxx in [None, "libstdc++11", "libc++"]:
             raise ConanInvalidConfiguration(
                 f"Only supported standard libraries are Microsoft's STL, libstdc++11 and libc++"
             )
@@ -140,9 +133,6 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "kiln")
         self.cpp_info.set_property("cmake_target_name", "kiln::engine")
 
-        if self.settings.compiler == "msvc":
-            self.cpp_info.cxxflags.append("/Zc:preprocessor")
-
         version = Version(self.version)
         self.cpp_info.defines.append(f"{self.project_prefix}VERSION_MAJOR={version.major}")
         self.cpp_info.defines.append(f"{self.project_prefix}VERSION_MINOR={version.minor}")
@@ -150,3 +140,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
 
         if self.options.debug:
             self.cpp_info.defines.append(f"{self.project_prefix}DEBUG")
+
+        # TODO: remove these once Conan learns cxx modules
+        self.cpp_info.set_property("cmake_find_mode", "none")
+        self.cpp_info.builddirs = ["."]

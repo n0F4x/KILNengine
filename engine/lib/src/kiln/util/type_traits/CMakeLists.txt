@@ -1,15 +1,15 @@
 target_sources(${PROJECT_NAME} PUBLIC
-        FILE_SET HEADERS
+        FILE_SET CXX_MODULES
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
-        always_true.hpp
-        arguments_of.hpp
-        const_like.hpp
-        forward_like.hpp
-        is_noexcept.hpp
-        result_of.hpp
-        Signature.hpp
-        type_list_drop_front.hpp
-        type_list_front.hpp
-        type_list_to.hpp
+        always_true.ixx
+        arguments_of.ixx
+        const_like.ixx
+        forward_like.ixx
+        is_noexcept.ixx
+        result_of.ixx
+        Signature.ixx
+        type_list_drop_front.ixx
+        type_list_front.ixx
+        type_list_to.ixx
 )

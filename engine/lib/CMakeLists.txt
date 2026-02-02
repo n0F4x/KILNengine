@@ -13,14 +13,6 @@ add_library(kiln::engine ALIAS ${PROJECT_NAME})
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
-if (${MSVC})
-    if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        target_compile_options(${PROJECT_NAME} PUBLIC
-                /Zc:preprocessor
-        )
-    endif ()
-endif ()
-
 target_compile_definitions(${PROJECT_NAME} PUBLIC
         ${project_prefix}VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
         ${project_prefix}VERSION_MINOR=${PROJECT_VERSION_MINOR}
@@ -44,6 +36,8 @@ install(TARGETS ${PROJECT_NAME}
         EXPORT kilnTargets
         FILE_SET HEADERS
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILE_SET CXX_MODULES
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 install(EXPORT kilnTargets
         FILE kilnTargets.cmake

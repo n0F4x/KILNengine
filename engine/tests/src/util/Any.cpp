@@ -4,7 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include "kiln/util/Any.hpp"
+import kiln.util.Any;
 
 TEST_CASE("util::Any")
 {

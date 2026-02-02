@@ -4,7 +4,7 @@
 
 Make sure you have the following programs installed on your machine
 
--   MSVC (at least version v195) or Clang (at least version 20)
+-   Clang (at least version 20)
 -   Ninja
 -   CMake (at least version 4.1)
 -   [Conan](https://docs.conan.io/2/installation.html)
@@ -25,7 +25,7 @@ compiler.cppstd=23
 compiler.version=20
 
 [conf]
-tools.build:compiler_executables={'c':'clang-cl.exe','cpp':'clang-cl.exe'}
+tools.build:compiler_executables={'c':'clang.exe','cpp':'clang++.exe'}
 tools.cmake.cmaketoolchain:generator=Ninja
 user.kiln-engine:dev=True
 user.kiln-engine:debug=True

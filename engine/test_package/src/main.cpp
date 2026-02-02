@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <kiln.hpp>
+import kiln;
 
 auto main() -> int
 {

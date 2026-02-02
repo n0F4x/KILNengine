@@ -1,8 +1,11 @@
 #include <print>
 #include <string_view>
 
-#include <kiln/app.hpp>
-#include <kiln/util/OptionalRef.hpp>
+#include <kiln/util/contract_macros.hpp>
+
+import kiln.app;
+import kiln.util.contracts;
+import kiln.util.OptionalRef;
 
 struct GraphicsSystemIntegration {};
 
