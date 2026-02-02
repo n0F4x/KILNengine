@@ -12,7 +12,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module kiln.app.PluginTree;
+export module kiln.app.plugin.PluginTree;
 
 import kiln.app.App;
 import kiln.util.concepts.specialization_of;

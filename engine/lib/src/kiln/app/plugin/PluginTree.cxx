@@ -10,7 +10,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module kiln.app.PluginTree;
+module kiln.app.plugin.PluginTree;
 
 import kiln.util.contracts;
 

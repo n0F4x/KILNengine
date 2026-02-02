@@ -1,6 +1,5 @@
-target_sources(${PROJECT_NAME} PRIVATE
-        PluginTree.cxx
-)
+add_subdirectory(plugin)
+add_subdirectory(resource)
 
 target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES
@@ -8,7 +7,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         App.ixx
         Builder.ixx
-        PluginTree.ixx
-        ResourceStack.ixx
-        ResourceInjectionStack.ixx
+        create.ixx
+        plugin.ixx
+        resource.ixx
 )

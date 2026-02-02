@@ -4,7 +4,7 @@ module;
 
 export module kiln.app.App;
 
-import kiln.app.ResourceStack;
+import kiln.app.resource.ResourceStack;
 import kiln.util.type_traits.forward_like;
 
 namespace kiln::app {

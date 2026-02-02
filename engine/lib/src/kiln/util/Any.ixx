@@ -722,6 +722,8 @@ template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
 auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexcept
     -> BasicAny&
 {
+    PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
+
     if (&other == this)
     {
         return *this;

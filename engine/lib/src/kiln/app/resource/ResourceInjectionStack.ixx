@@ -4,9 +4,12 @@ module;
 #include <type_traits>
 #include <vector>
 
-export module kiln.app.ResourceInjectionStack;
+export module kiln.app.resource.ResourceInjectionStack;
 
-import kiln.app.ResourceStack;
+import kiln.app.resource.decays_to_resource_c;
+import kiln.app.resource.decays_to_resource_injection_c;
+import kiln.app.resource.resource_c;
+import kiln.app.resource.ResourceStack;
 import kiln.util.Function;
 
 namespace kiln::app {

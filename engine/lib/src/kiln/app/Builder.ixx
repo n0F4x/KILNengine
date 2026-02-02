@@ -6,9 +6,11 @@ module;
 export module kiln.app.Builder;
 
 import kiln.app.App;
-import kiln.app.PluginTree;
-import kiln.app.ResourceStack;
-import kiln.app.ResourceInjectionStack;
+import kiln.app.plugin.PluginTree;
+import kiln.app.resource.decays_to_resource_c;
+import kiln.app.resource.decays_to_resource_injection_c;
+import kiln.app.resource.resource_c;
+import kiln.app.resource.ResourceInjectionStack;
 
 namespace kiln::app {
 
@@ -43,9 +45,6 @@ private:
     PluginTree             m_plugin_tree;
     ResourceInjectionStack m_resource_injection_stack;
 };
-
-export [[nodiscard]]
-auto create() -> Builder;
 
 }   // namespace kiln::app
 
@@ -118,11 +117,6 @@ inline auto Builder::build() && -> App
     std::move(m_resource_injection_stack).merge_into(result.resources());
 
     return result;
-}
-
-inline auto create() -> Builder
-{
-    return Builder{};
 }
 
 }   // namespace kiln::app
