@@ -1,10 +1,12 @@
-#pragma once
+module;
 
 #include <memory_resource>
 
+export module kiln.util.Deleter;
+
 namespace kiln::util {
 
-class Deleter {
+export class Deleter {
 public:
     template <typename T>
     constexpr explicit Deleter(const std::pmr::polymorphic_allocator<T>& allocator)
