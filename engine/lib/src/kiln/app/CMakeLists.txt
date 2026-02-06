@@ -1,4 +1,5 @@
 add_subdirectory(plugin)
+add_subdirectory(memory)
 add_subdirectory(resource)
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -8,6 +9,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         App.ixx
         Builder.ixx
         create.ixx
+        memory.ixx
         plugin.ixx
         resource.ixx
 )

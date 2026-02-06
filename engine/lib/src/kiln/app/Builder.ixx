@@ -6,6 +6,7 @@ module;
 export module kiln.app.Builder;
 
 import kiln.app.App;
+import kiln.app.memory.MemoryPluginInjection;
 import kiln.app.plugin.PluginTree;
 import kiln.app.resource.decays_to_resource_c;
 import kiln.app.resource.decays_to_resource_injection_c;
@@ -42,7 +43,7 @@ public:
     auto build() && -> App;
 
 private:
-    PluginTree             m_plugin_tree;
+    PluginTree             m_plugin_tree{ MemoryPluginInjection{} };
     ResourceInjectionStack m_resource_injection_stack;
 };
 
