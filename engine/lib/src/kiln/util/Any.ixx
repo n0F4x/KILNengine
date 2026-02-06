@@ -240,7 +240,9 @@ private:
 
 export using Any = BasicAny<>;
 
-export template <std::size_t size_T = 3 * sizeof(void*), std::size_t alignment_T = sizeof(void*)>
+export template <
+    std::size_t size_T      = 3 * sizeof(void*),
+    std::size_t alignment_T = sizeof(void*)>
 using BasicCopyableAny = BasicAny<DefaultAnyTraits<>, size_T, alignment_T>;
 
 export using CopyableAny = BasicCopyableAny<>;
@@ -248,7 +250,9 @@ export using CopyableAny = BasicCopyableAny<>;
 export template <typename T>
 concept copyable_any_c = any_c<T> && (!T::is_move_only());
 
-export template <std::size_t size_T = 3 * sizeof(void*), std::size_t alignment_T = sizeof(void*)>
+export template <
+    std::size_t size_T      = 3 * sizeof(void*),
+    std::size_t alignment_T = sizeof(void*)>
 using BasicMoveOnlyAny = BasicAny<DefaultAnyTraits<true>, size_T, alignment_T>;
 
 export using MoveOnlyAny = BasicMoveOnlyAny<>;
@@ -445,7 +449,10 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
         drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) noexcept
         -> void
     {
-        allocator.delete_object(static_cast<T*>(voidify(storage)));
+        if (T* const ptr = static_cast<T*>(voidify(storage)); ptr != nullptr)
+        {
+            allocator.delete_object(ptr);
+        }
     }
 
     template <typename Storage_T>
