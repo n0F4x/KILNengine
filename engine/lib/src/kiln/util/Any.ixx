@@ -45,9 +45,9 @@ struct SmallBuffer {
 template <std::size_t size_T, std::size_t alignment_T>
 using storage_t = std::variant<SmallBuffer<size_T, alignment_T>, void*>;
 
-template <std::size_t size_T, std::size_t alignment_T, typename ExtraVTable_T>
+template <typename Traits_T>
 struct VTable {
-    using Storage = storage_t<size_T, alignment_T>;
+    using Storage = storage_t<Traits_T::size(), Traits_T::alignment()>;
 
     using CopyFunc = auto(
         std::pmr::polymorphic_allocator<>& allocator,
@@ -65,14 +65,14 @@ struct VTable {
     using VoidifyFunc      = auto(Storage& storage) -> void*;
     using VoidifyConstFunc = auto(const Storage& storage) -> const void*;
 
-    std::add_pointer_t<CopyFunc>                copy;
-    std::reference_wrapper<MoveFunc>            move;
-    std::reference_wrapper<DropFunc>            drop;
-    std::reference_wrapper<TypesMatchFunc>      types_match;
-    std::reference_wrapper<TypeNameFunc>        type_name;
-    std::reference_wrapper<VoidifyFunc>         voidify;
-    std::reference_wrapper<VoidifyConstFunc>    voidify_const;
-    std::reference_wrapper<const ExtraVTable_T> extra_vtable;
+    std::add_pointer_t<CopyFunc>                                 copy;
+    std::reference_wrapper<MoveFunc>                             move;
+    std::reference_wrapper<DropFunc>                             drop;
+    std::reference_wrapper<TypesMatchFunc>                       types_match;
+    std::reference_wrapper<TypeNameFunc>                         type_name;
+    std::reference_wrapper<VoidifyFunc>                          voidify;
+    std::reference_wrapper<VoidifyConstFunc>                     voidify_const;
+    std::reference_wrapper<const typename Traits_T::ExtraVTable> extra_vtable;
 };
 
 class AnyBase {};
@@ -82,52 +82,120 @@ class AnyBase {};
 export template <typename T>
 concept any_c = std::derived_from<T, internal::AnyBase>;
 
-export template <typename T>
-concept any_traits_c = requires {
-    typename T::ExtraVTable;
-    decayed_c<typename T::ExtraVTable>;
-    { T::is_move_only() } -> std::convertible_to<bool>;
-    { T::template meets_custom_requirements<Dummy>() } -> std::convertible_to<bool>;
-    {
-        T::template extra_vtable<Dummy>()
-    }
-    -> std::same_as<std::add_lvalue_reference_t<std::add_const_t<typename T::ExtraVTable>>>;
-};
+export template <typename Any_T>
+class DefaultAnyInterfaceMixin;
 
-export struct DefaultAnyExtraVTable {};
-
-export template <typename>
-struct DefaultAnyExtraVTableOperations {
-    constexpr static DefaultAnyExtraVTable vtable;
-};
+export template <typename Any_T>
+struct DefaultAnyExtraVTable;
 
 export template <
-    bool is_move_only_T    = false,
-    typename ExtraVTable_T = DefaultAnyExtraVTable,
-    template <typename> typename ExtraVTableOperations_T = DefaultAnyExtraVTableOperations,
-    template <typename> typename Policy_T = always_true>
+    bool        is_move_only_T                          = false,
+    std::size_t size_T                                  = 3 * sizeof(void*),
+    std::size_t alignment_T                             = sizeof(void*),
+    template <typename> typename Policy_T               = always_true,
+    template <typename Any_T> typename InterfaceMixin_T = DefaultAnyInterfaceMixin,
+    template <typename Any_T> typename ExtraVTable_T    = DefaultAnyExtraVTable>
+struct DefaultAnyTraits;
+
+export template <typename Traits_T = DefaultAnyTraits<>>
+class BasicAny;
+
+export struct AnyExtraVTableAccessor {
+    template <typename Traits_T>
+    [[nodiscard]]
+    auto operator()(const BasicAny<Traits_T>& any) const noexcept
+        -> const BasicAny<Traits_T>::Traits::ExtraVTable&
+    {
+        return any.extra_vtable();
+    }
+
+private:
+    template <typename Traits_T>
+    friend class BasicAny;
+
+    AnyExtraVTableAccessor() = default;
+};
+
+export template <typename T>
+concept any_traits_c = requires {
+    { T::size() } -> std::same_as<std::size_t>;
+    { T::alignment() } -> std::same_as<std::size_t>;
+    { T::is_move_only() } -> std::convertible_to<bool>;
+    { T::template meets_custom_requirements<Dummy>() } -> std::convertible_to<bool>;
+
+    typename T::InterfaceMixin;
+    requires naked_c<typename T::InterfaceMixin>;
+    requires std::constructible_from<typename T::InterfaceMixin, AnyExtraVTableAccessor>;
+
+    typename T::ExtraVTable;
+    requires naked_c<typename T::ExtraVTable>;
+    requires std::same_as<
+        decltype(T::ExtraVTable::template Operations<Dummy>::vtable),
+        const typename T::ExtraVTable>;
+};
+
+template <any_traits_c>
+struct AssertAnyTraits {};
+
+export template <typename Any_T>
+class DefaultAnyInterfaceMixin {
+public:
+    explicit DefaultAnyInterfaceMixin(AnyExtraVTableAccessor) {}
+};
+
+export template <typename Any_T>
+struct DefaultAnyExtraVTable {
+    template <typename>
+    struct Operations {
+        constexpr static DefaultAnyExtraVTable vtable;
+    };
+};
+
+template <
+    bool        is_move_only_T,
+    std::size_t size_T,
+    std::size_t alignment_T,
+    template <typename> typename Policy_T,
+    template <typename Any_T> typename InterfaceMixin_T,
+    template <typename Any_T> typename ExtraVTable_T>
 struct DefaultAnyTraits {
-    using ExtraVTable = ExtraVTable_T;
+    template <typename Any_T>
+    struct type {
+        using InterfaceMixin = InterfaceMixin_T<Any_T>;
+        using ExtraVTable    = ExtraVTable_T<Any_T>;
 
-    [[nodiscard]]
-    consteval static auto is_move_only() noexcept -> bool
-    {
-        return is_move_only_T;
-    }
+        [[nodiscard]]
+        consteval static auto size() noexcept -> std::size_t
+        {
+            return size_T;
+        }
 
-    template <typename T>
-    [[nodiscard]]
-    consteval static auto meets_custom_requirements() noexcept -> bool
-    {
-        return Policy_T<T>::value;
-    }
+        [[nodiscard]]
+        consteval static auto alignment() noexcept -> std::size_t
+        {
+            return alignment_T;
+        }
 
-    template <typename T>
-    [[nodiscard]]
-    constexpr static auto extra_vtable() noexcept -> const ExtraVTable&
-    {
-        return ExtraVTableOperations_T<T>::vtable;
-    }
+        [[nodiscard]]
+        consteval static auto is_move_only() noexcept -> bool
+        {
+            return is_move_only_T;
+        }
+
+        template <typename T>
+        [[nodiscard]]
+        consteval static auto meets_custom_requirements() noexcept -> bool
+        {
+            return Policy_T<T>::value;
+        }
+
+        template <typename T>
+        [[nodiscard]]
+        consteval static auto vtable() noexcept -> const ExtraVTable&
+        {
+            return ExtraVTable::template Operations<T>::vtable;
+        }
+    };
 };
 
 export template <typename T, typename Any_T>
@@ -139,20 +207,22 @@ export template <naked_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
 auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
-export template <
-    any_traits_c Traits_T    = DefaultAnyTraits<>,
-    std::size_t  size_T      = 3 * sizeof(void*),
-    std::size_t  alignment_T = sizeof(void*)>
-class BasicAny : public internal::AnyBase {
+template <typename Traits_T = DefaultAnyTraits<>>
+class BasicAny final
+    : public internal::AnyBase,
+      public Traits_T::template type<BasicAny<Traits_T>>::InterfaceMixin,
+      AssertAnyTraits<typename Traits_T::template type<BasicAny<Traits_T>>>   //
+{
 public:
-    using Traits = Traits_T;
-    constexpr static std::size_t size{ size_T };
-    constexpr static std::size_t alignment{ alignment_T };
+    using Traits         = Traits_T::template type<BasicAny>;
+    using InterfaceMixin = Traits::InterfaceMixin;
 
     // required for interfacing with the standard
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
+    consteval static auto size() -> std::size_t;
+    consteval static auto alignment() -> std::size_t;
     consteval static auto is_move_only() -> bool;
     template <typename T>
     consteval static auto storable() -> bool;
@@ -225,15 +295,17 @@ public:
     friend auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 protected:
+    friend struct AnyExtraVTableAccessor;
+
     [[nodiscard]]
     auto extra_vtable() const -> const Traits::ExtraVTable&;
 
 private:
-    using Storage = internal::storage_t<size_T, alignment_T>;
+    using Storage = internal::storage_t<size(), alignment()>;
 
-    allocator_type m_allocator;
-    const internal::VTable<size_T, alignment_T, typename Traits::ExtraVTable>* m_vtable{};
-    Storage m_storage{ std::in_place_type<void*> };
+    allocator_type                  m_allocator;
+    const internal::VTable<Traits>* m_vtable{};
+    Storage                         m_storage{ std::in_place_type<void*> };
 
     auto reset() -> void;
 };
@@ -243,7 +315,7 @@ export using Any = BasicAny<>;
 export template <
     std::size_t size_T      = 3 * sizeof(void*),
     std::size_t alignment_T = sizeof(void*)>
-using BasicCopyableAny = BasicAny<DefaultAnyTraits<>, size_T, alignment_T>;
+using BasicCopyableAny = BasicAny<DefaultAnyTraits<false, size_T, alignment_T>>;
 
 export using CopyableAny = BasicCopyableAny<>;
 
@@ -253,7 +325,7 @@ concept copyable_any_c = any_c<T> && (!T::is_move_only());
 export template <
     std::size_t size_T      = 3 * sizeof(void*),
     std::size_t alignment_T = sizeof(void*)>
-using BasicMoveOnlyAny = BasicAny<DefaultAnyTraits<true>, size_T, alignment_T>;
+using BasicMoveOnlyAny = BasicAny<DefaultAnyTraits<true, size_T, alignment_T>>;
 
 export using MoveOnlyAny = BasicMoveOnlyAny<>;
 
@@ -273,7 +345,7 @@ concept small_c = sizeof(T) <= size_T && alignment_T % alignof(T) == 0
 template <typename T, std::size_t size_T, std::size_t alignment_T>
 concept large_c = !small_c<T, size_T, alignment_T>;
 
-template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename T, any_traits_c Traits_T>
 struct Operations;
 
 template <typename Operations_T, any_traits_c Traits_T>
@@ -292,12 +364,12 @@ struct OperationSelector {
     }
 };
 
-template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-    requires small_c<T, size_T, alignment_T>
-struct Operations<T, Traits_T, size_T, alignment_T> {
-    using Storage     = storage_t<size_T, alignment_T>;
-    using SmallBuffer = SmallBuffer<size_T, alignment_T>;
-    using VTable      = VTable<size_T, alignment_T, typename Traits_T::ExtraVTable>;
+template <typename T, any_traits_c Traits_T>
+    requires small_c<T, Traits_T::size(), Traits_T::alignment()>
+struct Operations<T, Traits_T> {
+    using Storage     = storage_t<Traits_T::size(), Traits_T::alignment()>;
+    using SmallBuffer = SmallBuffer<Traits_T::size(), Traits_T::alignment()>;
+    using VTable      = VTable<Traits_T>;
 
     template <typename... Args_T>
     static auto create(
@@ -387,7 +459,7 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
             static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
                 voidify
             ),
-        .extra_vtable = Traits_T::template extra_vtable<T>(),
+        .extra_vtable = Traits_T::template vtable<T>(),
     };
 
 private:
@@ -406,11 +478,11 @@ private:
     }
 };
 
-template <typename T, any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-    requires large_c<T, size_T, alignment_T>
-struct Operations<T, Traits_T, size_T, alignment_T> {
-    using Storage = storage_t<size_T, alignment_T>;
-    using VTable  = VTable<size_T, alignment_T, typename Traits_T::ExtraVTable>;
+template <typename T, any_traits_c Traits_T>
+    requires large_c<T, Traits_T::size(), Traits_T::alignment()>
+struct Operations<T, Traits_T> {
+    using Storage = storage_t<Traits_T::size(), Traits_T::alignment()>;
+    using VTable  = VTable<Traits_T>;
 
     template <typename... Args_T>
     static auto create(
@@ -507,7 +579,7 @@ struct Operations<T, Traits_T, size_T, alignment_T> {
             static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
                 voidify
             ),
-        .extra_vtable = Traits_T::template extra_vtable<T>(),
+        .extra_vtable = Traits_T::template vtable<T>(),
     };
 };
 
@@ -542,11 +614,7 @@ auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
         )
     );
 
-    return internal::Operations<
-        T,
-        typename std::remove_cvref_t<Any_T>::BasicAny::Traits,
-        std::remove_cvref_t<Any_T>::BasicAny::size,
-        std::remove_cvref_t<Any_T>::BasicAny::alignment>::
+    return internal::Operations<T, typename std::remove_cvref_t<Any_T>::BasicAny::Traits>::
         any_cast(std::forward_like<Any_T>(any.NakedAny::BasicAny::m_storage));
 }
 
@@ -587,27 +655,40 @@ auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
     }
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-consteval auto BasicAny<Traits_T, size_T, alignment_T>::is_move_only() -> bool
+template <typename Traits_T>
+consteval auto BasicAny<Traits_T>::size() -> std::size_t
 {
-    return Traits_T::is_move_only();
+    return Traits::size();
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename Traits_T>
+consteval auto BasicAny<Traits_T>::alignment() -> std::size_t
+{
+    return Traits::alignment();
+}
+
+template <typename Traits_T>
+consteval auto BasicAny<Traits_T>::is_move_only() -> bool
+{
+    return Traits::is_move_only();
+}
+
+template <typename Traits_T>
 template <typename T>
-consteval auto BasicAny<Traits_T, size_T, alignment_T>::storable() -> bool
+consteval auto BasicAny<Traits_T>::storable() -> bool
 {
     return storable_c<T> && (is_move_only() || std::copy_constructible<T>)
-        && Traits_T::template meets_custom_requirements<T>();
+        && Traits::template meets_custom_requirements<T>();
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+template <typename Traits_T>
+constexpr BasicAny<Traits_T>::BasicAny(
     const BasicAny&       other,
     const allocator_type& allocator
 )
     requires(!is_move_only())
-    : m_allocator{ allocator },
+    : InterfaceMixin{ AnyExtraVTableAccessor{} },
+      m_allocator{ allocator },
       m_vtable{ other.m_vtable }
 {
     PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
@@ -617,36 +698,30 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
     }
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(BasicAny&& other) noexcept
+template <typename Traits_T>
+constexpr BasicAny<Traits_T>::BasicAny(BasicAny&& other) noexcept
     : BasicAny{ std::move(other), other.get_allocator() }
 {
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
-    BasicAny&&            other,
-    const allocator_type& allocator
-)
-    : m_allocator{ allocator }
+template <typename Traits_T>
+constexpr BasicAny<Traits_T>::BasicAny(BasicAny&& other, const allocator_type& allocator)
+    : InterfaceMixin{ AnyExtraVTableAccessor{} },
+      m_allocator{ allocator }
 {
     operator=(std::move(other));
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::
-    ~BasicAny<Traits_T, size_T, alignment_T>()
+template <typename Traits_T>
+constexpr BasicAny<Traits_T>::~BasicAny<Traits_T>()
 {
     reset();
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename Traits_T>
 template <typename T, typename... Args_T>
     requires std::constructible_from<T, Args_T&&...>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
-    std::in_place_type_t<T>,
-    Args_T&&... args
-)
+constexpr BasicAny<Traits_T>::BasicAny(std::in_place_type_t<T>, Args_T&&... args)
     requires(storable<T>())
     : BasicAny{
           std::allocator_arg,
@@ -657,27 +732,28 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
 {
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename Traits_T>
 template <typename T, typename... Args_T>
     requires std::constructible_from<T, Args_T&&...>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+constexpr BasicAny<Traits_T>::BasicAny(
     std::allocator_arg_t,
     const allocator_type& allocator,
     std::in_place_type_t<T>,
     Args_T&&... args
 )
     requires(storable<T>())
-    : m_allocator{ allocator },
-      m_vtable{ &internal::Operations<T, Traits_T, size_T, alignment_T>::vtable }
+    : InterfaceMixin{ AnyExtraVTableAccessor{} },
+      m_allocator{ allocator },
+      m_vtable{ &internal::Operations<T, Traits>::vtable }
 {
-    internal::Operations<T, Traits_T, size_T, alignment_T>::create(
+    internal::Operations<T, Traits>::create(
         m_allocator, m_storage, std::forward<Args_T>(args)...
     );
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename Traits_T>
 template <typename T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(T&& value)
+constexpr BasicAny<Traits_T>::BasicAny(T&& value)
     requires(!strips_to_c<T, BasicAny>)   //
          && (!strips_to_c<T, std::allocator_arg_t>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
@@ -691,9 +767,9 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(T&& value)
 {
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
+template <typename Traits_T>
 template <typename T>
-constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
+constexpr BasicAny<Traits_T>::BasicAny(
     std::allocator_arg_t,
     const allocator_type& allocator,
     T&&                   value
@@ -712,9 +788,8 @@ constexpr BasicAny<Traits_T, size_T, alignment_T>::BasicAny(
 {
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-auto BasicAny<Traits_T, size_T, alignment_T>::operator=(const BasicAny& other)
-    -> BasicAny&
+template <typename Traits_T>
+auto BasicAny<Traits_T>::operator=(const BasicAny& other) -> BasicAny&
     requires(!is_move_only())
 {
     if (&other == this)
@@ -725,9 +800,8 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(const BasicAny& other)
     return *this = BasicAny{ other };
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexcept
-    -> BasicAny&
+template <typename Traits_T>
+auto BasicAny<Traits_T>::operator=(BasicAny&& other) noexcept -> BasicAny&
 {
     PRECOND(other.m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
 
@@ -768,22 +842,21 @@ auto BasicAny<Traits_T, size_T, alignment_T>::operator=(BasicAny&& other) noexce
     return *this;
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-auto BasicAny<Traits_T, size_T, alignment_T>::get_allocator() const -> allocator_type
+template <typename Traits_T>
+auto BasicAny<Traits_T>::get_allocator() const -> allocator_type
 {
     return m_allocator;
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-auto BasicAny<Traits_T, size_T, alignment_T>::extra_vtable() const
-    -> const Traits_T::ExtraVTable&
+template <typename Traits_T>
+auto BasicAny<Traits_T>::extra_vtable() const -> const Traits::ExtraVTable&
 {
     PRECOND(m_vtable != nullptr, "Don't use a 'moved-from' (or destroyed) Any!");
     return m_vtable->extra_vtable;
 }
 
-template <any_traits_c Traits_T, std::size_t size_T, std::size_t alignment_T>
-auto BasicAny<Traits_T, size_T, alignment_T>::reset() -> void
+template <typename Traits_T>
+auto BasicAny<Traits_T>::reset() -> void
 {
     if (m_vtable)
     {

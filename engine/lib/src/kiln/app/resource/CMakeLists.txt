@@ -6,6 +6,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         decays_to_resource_injection_c.ixx
         resource_c.ixx
         resource_injection_c.ixx
-        ResourceStack.ixx
         ResourceInjectionStack.ixx
+        ResourceStack.ixx
 )
