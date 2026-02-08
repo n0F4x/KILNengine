@@ -1,6 +1,7 @@
 module;
 
 #include <concepts>
+#include <memory_resource>
 #include <utility>
 
 export module kiln.app.Builder;
@@ -47,6 +48,7 @@ private:
     Arena      m_app_arena;
     Arena      m_builder_arena;
     PluginTree m_plugin_tree{
+        m_builder_arena,
         MemoryPluginInjection{ m_app_arena, m_builder_arena }
     };
     ResourceInjectionStack m_resource_injection_stack{
@@ -111,7 +113,8 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
     -> Self_T
 {
     self.Builder::m_plugin_tree.plug_in(
-        std::forward_like<PluginInjection_T>(plugin_injection)
+        std::forward_like<PluginInjection_T>(plugin_injection),
+        self.Builder::m_builder_arena.transitive_resource()
     );
 
     return std::forward<Self_T>(self);

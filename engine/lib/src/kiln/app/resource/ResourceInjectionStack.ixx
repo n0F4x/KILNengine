@@ -26,6 +26,11 @@ public:
     ResourceInjectionStack(ResourceInjectionStack&&, const allocator_type&);
 
 
+    // required for interfacing with the standard
+    [[nodiscard]]
+    auto get_allocator() const -> allocator_type;
+
+
     template <decays_to_resource_c Resource_T>
     auto insert_resource(Resource_T&& resource) -> void;
 
@@ -94,6 +99,11 @@ ResourceInjectionStack::ResourceInjectionStack(
 )
     : m_injections{ std::move(other.m_injections), allocator }
 {
+}
+
+auto ResourceInjectionStack::get_allocator() const -> allocator_type
+{
+    return m_injections.get_allocator();
 }
 
 inline auto ResourceInjectionStack::merge_into(ResourceStack& resource_stack) && -> void

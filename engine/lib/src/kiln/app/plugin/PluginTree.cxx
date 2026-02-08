@@ -3,6 +3,7 @@ module;
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <deque>
 #include <format>
 #include <ranges>
 #include <string>
@@ -17,6 +18,28 @@ import kiln.util.contracts;
 namespace kiln::app {
 
 namespace internal {
+
+ErasedPluginInjection::ErasedPluginInjection(
+    ErasedPluginInjection&& other,
+    const allocator_type&   allocator
+)
+    : m_function{ std::move(other.m_function), allocator },
+      m_plugin_type_hash{ std::move(other.m_plugin_type_hash) },
+      m_plugin_name{ std::move(other.m_plugin_name) },
+      m_unresolved_and_resolved_plugin_dependency_hashes{
+          std::move(other.m_unresolved_and_resolved_plugin_dependency_hashes),
+          allocator
+      },
+      m_unresolved_dependency_hash_count{
+          std::move(other.m_unresolved_dependency_hash_count)
+      }
+{
+}
+
+auto ErasedPluginInjection::get_allocator() const -> allocator_type
+{
+    return m_function.get_allocator();
+}
 
 auto ErasedPluginInjection::plugin_type_hash() const noexcept -> uint64_t
 {
@@ -187,8 +210,8 @@ auto PluginTree::check_for_new_cyclic_dependency(
 }
 
 auto PluginTree::collect_all_resolved_dependency_plugin_hashes(
-    const uint64_t         plugin_hash,
-    std::vector<uint64_t>& out
+    const uint64_t             plugin_hash,
+    std::pmr::deque<uint64_t>& out
 ) const -> void
 {
     const auto plugin_injection_iter = std::ranges::find(
@@ -212,15 +235,19 @@ auto PluginTree::collect_all_resolved_dependency_plugin_hashes(
     }
 }
 
-auto PluginTree::reestablish_internal_ordering_of_plugins(const uint64_t new_plugin_hash)
-    -> void
+auto PluginTree::reestablish_internal_ordering_of_plugins(
+    const uint64_t             new_plugin_hash,
+    std::pmr::memory_resource& transitive_memory_resource
+) -> void
 {
     /*
      * Shift the new injection and all its dependencies in front of the first
      *  injection that depends on the new one
      */
 
-    std::vector all_dependency_plugin_hashes{ new_plugin_hash };
+    std::pmr::deque<uint64_t> all_dependency_plugin_hashes{
+        std::initializer_list{ new_plugin_hash }, &transitive_memory_resource
+    };
     collect_all_resolved_dependency_plugin_hashes(
         new_plugin_hash, all_dependency_plugin_hashes
     );
@@ -279,7 +306,7 @@ auto PluginTree::resolve(const uint64_t new_plugin_hash) -> void
         plugin_injection.resolve_dependency(new_plugin_hash);
     }
 
-    std::erase(m_unresolved_optional_dependency_plugin_hashes, new_plugin_hash);
+    m_unresolved_optional_dependency_plugin_hashes.remove(new_plugin_hash);
 }
 
 }   // namespace kiln::app
