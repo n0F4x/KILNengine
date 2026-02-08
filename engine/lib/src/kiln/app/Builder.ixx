@@ -1,14 +1,19 @@
 module;
 
 #include <concepts>
+#include <memory_resource>
 #include <utility>
 
 export module kiln.app.Builder;
 
 import kiln.app.App;
-import kiln.app.PluginTree;
-import kiln.app.ResourceStack;
-import kiln.app.ResourceInjectionStack;
+import kiln.app.memory.Arena;
+import kiln.app.memory.MemoryPluginInjection;
+import kiln.app.plugin.PluginTree;
+import kiln.app.resource.decays_to_resource_c;
+import kiln.app.resource.decays_to_resource_injection_c;
+import kiln.app.resource.resource_c;
+import kiln.app.resource.ResourceInjectionStack;
 
 namespace kiln::app {
 
@@ -40,12 +45,16 @@ public:
     auto build() && -> App;
 
 private:
-    PluginTree             m_plugin_tree;
-    ResourceInjectionStack m_resource_injection_stack;
+    Arena      m_app_arena;
+    Arena      m_builder_arena;
+    PluginTree m_plugin_tree{
+        m_builder_arena,
+        MemoryPluginInjection{ m_app_arena, m_builder_arena }
+    };
+    ResourceInjectionStack m_resource_injection_stack{
+        &m_builder_arena.monotonic_resource()
+    };
 };
-
-export [[nodiscard]]
-auto create() -> Builder;
 
 }   // namespace kiln::app
 
@@ -104,7 +113,8 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
     -> Self_T
 {
     self.Builder::m_plugin_tree.plug_in(
-        std::forward_like<PluginInjection_T>(plugin_injection)
+        std::forward_like<PluginInjection_T>(plugin_injection),
+        self.Builder::m_builder_arena.transitive_resource()
     );
 
     return std::forward<Self_T>(self);
@@ -112,17 +122,12 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
 
 inline auto Builder::build() && -> App
 {
-    App result{};
+    App result{ std::move(m_app_arena) };
 
     std::move(m_plugin_tree).invoke_plugins(result);
     std::move(m_resource_injection_stack).merge_into(result.resources());
 
     return result;
-}
-
-inline auto create() -> Builder
-{
-    return Builder{};
 }
 
 }   // namespace kiln::app

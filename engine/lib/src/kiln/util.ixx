@@ -3,7 +3,7 @@ export module kiln.util;
 export import kiln.util.Any;
 export import kiln.util.concepts;
 export import kiln.util.contracts;
-export import kiln.util.Deallocator;
+export import kiln.util.Deleter;
 export import kiln.util.Dummy;
 export import kiln.util.for_each;
 export import kiln.util.Function;

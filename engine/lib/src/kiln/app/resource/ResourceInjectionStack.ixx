@@ -1,18 +1,36 @@
 module;
 
 #include <concepts>
+#include <deque>
+#include <memory_resource>
 #include <type_traits>
-#include <vector>
 
-export module kiln.app.ResourceInjectionStack;
+export module kiln.app.resource.ResourceInjectionStack;
 
-import kiln.app.ResourceStack;
+import kiln.app.resource.decays_to_resource_c;
+import kiln.app.resource.decays_to_resource_injection_c;
+import kiln.app.resource.resource_c;
+import kiln.app.resource.ResourceStack;
 import kiln.util.Function;
 
 namespace kiln::app {
 
 export class ResourceInjectionStack {
 public:
+    // required for interfacing with the standard
+    using allocator_type =   // NOLINT(*-identifier-naming)
+        std::pmr::polymorphic_allocator<>;
+
+    ResourceInjectionStack() = default;
+    explicit ResourceInjectionStack(const allocator_type&);
+    ResourceInjectionStack(ResourceInjectionStack&&, const allocator_type&);
+
+
+    // required for interfacing with the standard
+    [[nodiscard]]
+    auto get_allocator() const -> allocator_type;
+
+
     template <decays_to_resource_c Resource_T>
     auto insert_resource(Resource_T&& resource) -> void;
 
@@ -36,7 +54,7 @@ private:
         auto operator()(ResourceStack& resource_stack) && -> void;
     };
 
-    std::vector<ErasedResourceInjection> m_injections;
+    std::pmr::deque<ErasedResourceInjection> m_injections;
 };
 
 }   // namespace kiln::app
@@ -68,6 +86,24 @@ auto ResourceInjectionStack::inject_resource(Injection_T&& injection) -> void
     m_injections.emplace_back(
         ResourceInjectionLambda{ std::forward<Injection_T>(injection) }
     );
+}
+
+ResourceInjectionStack::ResourceInjectionStack(const allocator_type& allocator)
+    : m_injections{ allocator }
+{
+}
+
+ResourceInjectionStack::ResourceInjectionStack(
+    ResourceInjectionStack&& other,
+    const allocator_type&    allocator
+)
+    : m_injections{ std::move(other.m_injections), allocator }
+{
+}
+
+auto ResourceInjectionStack::get_allocator() const -> allocator_type
+{
+    return m_injections.get_allocator();
 }
 
 inline auto ResourceInjectionStack::merge_into(ResourceStack& resource_stack) && -> void
