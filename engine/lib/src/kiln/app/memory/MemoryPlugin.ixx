@@ -18,29 +18,18 @@ public:
     }
 
     [[nodiscard]]
-    auto app_local_monotonic_resource() const -> std::pmr::memory_resource&
+    auto app_local_arena() const noexcept -> Arena&
     {
-        return m_app_arena_ref.get().monotonic_resource();
+        return m_app_arena_ref;
     }
 
     [[nodiscard]]
-    auto app_local_pool_resource() const -> std::pmr::memory_resource&
+    auto builder_local_arena() const noexcept -> Arena&
     {
-        return m_app_arena_ref.get().pool_resource();
+        return m_builder_arena_ref;
     }
 
-    [[nodiscard]]
-    auto builder_local_monotonic_resource() const -> std::pmr::memory_resource&
-    {
-        return m_builder_arena_ref.get().monotonic_resource();
-    }
-
-    [[nodiscard]]
-    auto builder_local_pool_resource() const -> std::pmr::memory_resource&
-    {
-        return m_builder_arena_ref.get().pool_resource();
-    }
-
+    // This function is required to meet the plugin concept
     static auto operator()(App&) noexcept -> void {}
 
 private:
