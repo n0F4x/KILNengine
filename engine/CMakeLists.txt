@@ -43,5 +43,6 @@ if (${project_prefix}ENABLE_TESTS)
 endif ()
 
 if (${project_prefix}ENABLE_EXAMPLES)
+    enable_testing()
     add_subdirectory(examples)
 endif ()

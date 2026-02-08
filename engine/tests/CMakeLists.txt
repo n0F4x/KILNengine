@@ -7,8 +7,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE kiln::engine)
 find_package(Catch2 CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Catch2::Catch2WithMain)
 
-include(CTest)
+add_subdirectory(src)
+
 include(Catch)
 catch_discover_tests(${PROJECT_NAME})
-
-add_subdirectory(src)
