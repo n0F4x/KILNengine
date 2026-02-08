@@ -52,10 +52,10 @@ build_type=Debug
 compiler=clang
 compiler.cppstd=23
 compiler.version=20
-compiler.libcxx=libstdc++11
+compiler.libcxx=libc++
 
 [conf]
-tools.build:compiler_executables={'c':'C:/msys64/ucrt64/bin/clang.exe','cpp':'C:/msys64/ucrt64/bin/clang++.exe'}
+tools.build:compiler_executables={'c':'C:/msys64/clang64/bin/clang.exe','cpp':'C:/msys64/clang64/bin/clang++.exe'}
 tools.cmake.cmaketoolchain:generator=Ninja
 user.kiln-engine:dev=True
 user.kiln-engine:debug=True
@@ -63,7 +63,7 @@ user.kiln-engine:enable_tests=True
 user.kiln-engine:enable_examples=True
 
 [buildenv]
-PATH+=(path)C:/msys64/ucrt64/bin
+PATH+=(path)C:/msys64/clang64/bin
 
 [platform_tool_requires]
 cmake/[>=4.1]
