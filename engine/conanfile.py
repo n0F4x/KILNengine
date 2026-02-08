@@ -123,7 +123,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         cmake.configure(build_script_folder=None if self._dev else "lib")
         cmake.build()
         if self._enable_tests and not self.conf.get("tools.build:skip_test", default=False):
-            self.run("tests", cwd="tests")
+            cmake.ctest(cli_args=["--output-on-failure"])
 
     def package(self):
         cmake = CMake(self)
