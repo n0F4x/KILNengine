@@ -1,6 +1,6 @@
 module;
 
-#include <memory_resource>
+#include <functional>
 
 export module kiln.app.memory.MemoryPlugin;
 
@@ -11,34 +11,41 @@ namespace kiln::app {
 
 export class MemoryPlugin {
 public:
-    [[nodiscard]]
-    auto app_local_monotonic_resource() -> std::pmr::memory_resource&
+    MemoryPlugin(Arena& app_arena, Arena& builder_arena) noexcept
+        : m_app_arena_ref{ app_arena },
+          m_builder_arena_ref{ builder_arena }
     {
-        return *m_app_local_monotonic_resource;
     }
 
     [[nodiscard]]
-    auto app_local_pool_resource() -> std::pmr::memory_resource&
+    auto app_local_monotonic_resource() const -> std::pmr::memory_resource&
     {
-        return *m_app_local_pool_resource;
+        return m_app_arena_ref.get().monotonic_resource();
     }
 
-    auto operator()(App& app) && -> void
+    [[nodiscard]]
+    auto app_local_pool_resource() const -> std::pmr::memory_resource&
     {
-        app.arena() = Arena{
-            std::move(m_app_local_monotonic_resource),
-            std::move(m_app_local_pool_resource)   //
-        };
+        return m_app_arena_ref.get().pool_resource();
     }
+
+    [[nodiscard]]
+    auto builder_local_monotonic_resource() const -> std::pmr::memory_resource&
+    {
+        return m_builder_arena_ref.get().monotonic_resource();
+    }
+
+    [[nodiscard]]
+    auto builder_local_pool_resource() const -> std::pmr::memory_resource&
+    {
+        return m_builder_arena_ref.get().pool_resource();
+    }
+
+    static auto operator()(App&) noexcept -> void {}
 
 private:
-    // TODO: use std::indirect
-    std::unique_ptr<std::pmr::memory_resource> m_app_local_monotonic_resource{
-        std::make_unique<std::pmr::monotonic_buffer_resource>()
-    };
-    std::unique_ptr<std::pmr::memory_resource> m_app_local_pool_resource{
-        std::make_unique<std::pmr::unsynchronized_pool_resource>()
-    };
+    std::reference_wrapper<Arena> m_app_arena_ref;
+    std::reference_wrapper<Arena> m_builder_arena_ref;
 };
 
 }   // namespace kiln::app

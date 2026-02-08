@@ -5,6 +5,7 @@ module;
 #include <cstdint>
 #include <format>
 #include <functional>
+#include <memory_resource>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -67,14 +68,25 @@ class BasicGenericStack {
 public:
     using Any = Any_T;
 
+    // required for interfacing with the standard
+    using allocator_type =   // NOLINT(*-identifier-naming)
+        std::pmr::polymorphic_allocator<>;
 
-    BasicGenericStack()                             = default;
+
+    BasicGenericStack() = default;
+    explicit BasicGenericStack(const allocator_type&);
     BasicGenericStack(const BasicGenericStack&)     = delete;
     BasicGenericStack(BasicGenericStack&&) noexcept = default;
+    BasicGenericStack(BasicGenericStack&&, const allocator_type&);
     ~BasicGenericStack();
 
     auto operator=(const BasicGenericStack&) -> BasicGenericStack&     = delete;
     auto operator=(BasicGenericStack&&) noexcept -> BasicGenericStack& = default;
+
+
+    // required for interfacing with the standard
+    [[nodiscard]]
+    auto get_allocator() const -> allocator_type;
 
 
     [[nodiscard]]
@@ -109,7 +121,7 @@ public:
     auto for_each(this Self_T&&, F&& func) -> F;
 
 private:
-    std::vector<std::pair<uint64_t, Any_T>> m_types_and_items;
+    std::pmr::vector<std::pair<uint64_t, Any_T>> m_types_and_items;
 
     template <typename Injection_T>
     [[nodiscard]]
@@ -136,6 +148,23 @@ concept decays_to_generic_stack_item_injection_c =
 }   // namespace kiln::util
 
 namespace kiln::util {
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+BasicGenericStack<Any_T>::BasicGenericStack(const allocator_type& allocator)
+    : m_types_and_items{ allocator }
+{
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+BasicGenericStack<Any_T>::BasicGenericStack(
+    BasicGenericStack&&   other,
+    const allocator_type& allocator
+)
+    : m_types_and_items{ std::move(other.m_types_and_items), allocator }
+{
+}
 
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
@@ -179,6 +208,13 @@ auto BasicGenericStack<Any_T>::at(this Self_T&& self) -> forward_like_t<Item_T, 
     );
 
     return std::forward_like<Self_T>(*found_item);
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+auto BasicGenericStack<Any_T>::get_allocator() const -> allocator_type
+{
+    return m_types_and_items.get_allocator();
 }
 
 template <move_only_any_c Any_T>

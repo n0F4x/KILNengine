@@ -132,10 +132,6 @@ public:
     [[nodiscard]]
     auto contains() const noexcept -> bool;
 
-    template <plugin_injection_c PluginInjection_T, typename Self_T>
-    [[nodiscard]]
-    auto at(this Self_T&&) -> util::forward_like_t<PluginInjection_T, Self_T>;
-
     template <decays_to_plugin_injection_c PluginInjection_T>
     auto plug_in(PluginInjection_T&& plugin_injection)
         -> std::decay_t<PluginInjection_T>&;
@@ -285,19 +281,6 @@ auto PluginTree::contains() const noexcept -> bool
         util::hash_u64<Plugin_T>(),
         &internal::ErasedPluginInjection::plugin_type_hash
     );
-}
-
-template <plugin_injection_c PluginInjection_T, typename Self_T>
-auto PluginTree::at(this Self_T&& self) -> util::forward_like_t<PluginInjection_T, Self_T>
-{
-    return std::forward_like<Self_T>(*std::ranges::find(
-        self.PluginTree::m_plugin_injections,
-        util::hash_u64<util::result_of_t<PluginInjection_T>>(),
-        [](const internal::ErasedPluginInjection& erased_plugin_injection) -> uint64_t
-        {
-            return erased_plugin_injection.plugin_type_hash();   //
-        }
-    ));
 }
 
 template <decays_to_plugin_injection_c PluginInjection_T>

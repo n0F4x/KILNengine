@@ -6,6 +6,7 @@ module;
 export module kiln.app.Builder;
 
 import kiln.app.App;
+import kiln.app.memory.Arena;
 import kiln.app.memory.MemoryPluginInjection;
 import kiln.app.plugin.PluginTree;
 import kiln.app.resource.decays_to_resource_c;
@@ -43,8 +44,14 @@ public:
     auto build() && -> App;
 
 private:
-    PluginTree             m_plugin_tree{ MemoryPluginInjection{} };
-    ResourceInjectionStack m_resource_injection_stack;
+    Arena      m_app_arena;
+    Arena      m_builder_arena;
+    PluginTree m_plugin_tree{
+        MemoryPluginInjection{ m_app_arena, m_builder_arena }
+    };
+    ResourceInjectionStack m_resource_injection_stack{
+        &m_builder_arena.monotonic_resource()
+    };
 };
 
 }   // namespace kiln::app
@@ -112,7 +119,7 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
 
 inline auto Builder::build() && -> App
 {
-    App result{};
+    App result{ std::move(m_app_arena) };
 
     std::move(m_plugin_tree).invoke_plugins(result);
     std::move(m_resource_injection_stack).merge_into(result.resources());
