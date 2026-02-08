@@ -3,13 +3,13 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
+#include <deque>
 #include <format>
 #include <functional>
 #include <memory_resource>
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include "kiln/util/contract_macros.hpp"
 
@@ -121,7 +121,7 @@ public:
     auto for_each(this Self_T&&, F&& func) -> F;
 
 private:
-    std::pmr::vector<std::pair<uint64_t, Any_T>> m_types_and_items;
+    std::pmr::deque<std::pair<uint64_t, Any_T>> m_types_and_items;
 
     template <typename Injection_T>
     [[nodiscard]]

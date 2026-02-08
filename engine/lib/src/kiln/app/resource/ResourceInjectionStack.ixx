@@ -1,9 +1,9 @@
 module;
 
 #include <concepts>
+#include <deque>
 #include <memory_resource>
 #include <type_traits>
-#include <vector>
 
 export module kiln.app.resource.ResourceInjectionStack;
 
@@ -49,7 +49,7 @@ private:
         auto operator()(ResourceStack& resource_stack) && -> void;
     };
 
-    std::pmr::vector<ErasedResourceInjection> m_injections;
+    std::pmr::deque<ErasedResourceInjection> m_injections;
 };
 
 }   // namespace kiln::app
