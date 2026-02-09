@@ -52,7 +52,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         return self._dev and bool(self.conf.get(f"user.{self.name}:enable_examples", default=False))
 
     def validate(self):
-        check_min_cppstd(self, "23")
+        check_min_cppstd(self, "26")
 
         supported_compilers = ["clang"]
         if self.settings.compiler not in supported_compilers:
@@ -61,7 +61,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
                 f"Supported compilers are: {supported_compilers}"
             )
 
-        minimum_supported_clang_version = 20
+        minimum_supported_clang_version = 21
         if (self.settings.compiler == "clang"
                 and self.settings.compiler.version < Version(minimum_supported_clang_version)):
             raise ConanInvalidConfiguration(

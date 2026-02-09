@@ -4,7 +4,7 @@
 
 Make sure you have the following programs installed on your machine
 
--   Clang (at least version 20)
+-   Clang (at least version 21)
 -   Ninja
 -   CMake (at least version 4.1)
 -   [Conan](https://docs.conan.io/2/installation.html)
@@ -21,11 +21,11 @@ os=Windows
 arch=x86_64
 build_type=Debug
 compiler=clang
-compiler.cppstd=23
-compiler.version=20
+compiler.cppstd=26
+compiler.version=21
 
 [conf]
-tools.build:compiler_executables={'c':'clang.exe','cpp':'clang++.exe'}
+tools.build:compiler_executables={'c':'C:/Program Files/LLVM/bin/clang.exe','cpp':'C:/Program Files/LLVM/bin/clang++.exe'}
 tools.cmake.cmaketoolchain:generator=Ninja
 user.kiln-engine:dev=True
 user.kiln-engine:debug=True
@@ -33,12 +33,12 @@ user.kiln-engine:enable_tests=True
 user.kiln-engine:enable_examples=True
 
 [buildenv]
-PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin
-PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja
-PATH+=(path)C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin
+PATH+=(path)C:/Program Files/LLVM/bin
+PATH+=(path)C:/Program Files/CMake/bin
+PATH+=(path)C:/Program Files/Ninja
 
 [platform_tool_requires]
-cmake/[>=4.1]
+cmake/4.1
 ```
 
 #### Example Conan profile for MSYS2 (Linux is very similar):
@@ -50,8 +50,8 @@ os.subsystem=msys2
 arch=x86_64
 build_type=Debug
 compiler=clang
-compiler.cppstd=23
-compiler.version=20
+compiler.cppstd=26
+compiler.version=21
 compiler.libcxx=libc++
 
 [conf]
@@ -66,7 +66,7 @@ user.kiln-engine:enable_examples=True
 PATH+=(path)C:/msys64/clang64/bin
 
 [platform_tool_requires]
-cmake/[>=4.1]
+cmake/4.1
 ```
 
 ### Install the dependencies
