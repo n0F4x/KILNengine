@@ -4,7 +4,7 @@ module;
 
 module kiln.util.contracts;
 
-namespace kiln::util::internal {
+namespace kiln::util {
 
 auto PreconditionViolation::print() const -> void
 {
@@ -28,4 +28,4 @@ auto PreconditionViolation::print() const -> void
     );
 }
 
-}   // namespace kiln::util::internal
+}   // namespace kiln::util
