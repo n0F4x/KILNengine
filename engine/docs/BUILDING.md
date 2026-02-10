@@ -79,8 +79,26 @@ This will produce a _CMakeUserPresets.json_ file inside the working directory th
 
 ### Conan dev variables
 
-Please use `user.kiln-engine:dev=True` in your profile, otherwise you won't be able to properly build and contribute to development. \
-`debug`, `enable_tests` and `enable_examples` are used for setting the `${project_prefix}X` CMake variable (where X is either `DEBUG`, `ENABLE_TESTS` or `ENABLE_EXAMPLES`).
+Project local variables can be set using a Conan profile like this:
+
+```ini
+[conf]
+user.kiln-engine:<variable_name>=<value>
+```
+
+The following variables/toggles are used by the project:
+
+* `dev=True`- Tells the package to configure itself for development.
+    This also enables the CMakeLists.txt found in the root directory.
+    All other options below are dependent on this.
+    When `dev` is not set to `True`, the rest of the development options won't have an effect.
+  
+* `debug=True` - Enables extra functionalities useful for debugging.
+
+* `enable_tests=True` - Enables building the tests.
+    This flag will also define the `KILN_TEST` macro, which makes our contract violation handlers throw a custom exception (that the tests can catch) instead of printing a nice error message and stopping the debugger / terminating.
+
+* `enable_examples=True` - Enables building the examples.
 
 ### Project local Conan profile
 

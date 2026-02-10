@@ -39,10 +39,14 @@ endif ()
 add_subdirectory(lib)
 
 if (${project_prefix}ENABLE_TESTS)
+    target_compile_definitions(engine PUBLIC
+            ${project_prefix}TEST
+    )
+
+    enable_testing()
     add_subdirectory(tests)
 endif ()
 
 if (${project_prefix}ENABLE_EXAMPLES)
-    enable_testing()
     add_subdirectory(examples)
 endif ()
