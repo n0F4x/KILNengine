@@ -10,6 +10,8 @@
 import kiln.util.Any;
 import kiln.util.Deleter;
 
+namespace kiln::util {
+
 TEST_CASE("util::Any")
 {
     class Value {
@@ -49,36 +51,36 @@ TEST_CASE("util::Any")
 
     SECTION("in_place construct")
     {
-        const kiln::util::Any any{ std::in_place_type<Value>, value.value() };
+        const Any any{ std::in_place_type<Value>, value.value() };
         REQUIRE(any_cast<Value>(any) == value);
     }
 
     SECTION("forwarding construct")
     {
-        const kiln::util::Any any{ value };
+        const Any any{ value };
         REQUIRE(any_cast<Value>(any) == value);
     }
 
     SECTION("copy construct")
     {
-        const kiln::util::Any any{ value };
+        const Any any{ value };
 
-        const kiln::util::Any copy{ any };   // NOLINT(*-unnecessary-copy-initialization)
+        const Any copy{ any };   // NOLINT(*-unnecessary-copy-initialization)
         REQUIRE(any_cast<Value>(any) == any_cast<Value>(copy));
     }
 
     SECTION("move construct")
     {
-        kiln::util::Any any{ value };
+        Any any{ value };
 
-        const kiln::util::Any moved_to{ std::move(any) };
+        const Any moved_to{ std::move(any) };
         REQUIRE(any_cast<Value>(moved_to) == value);
     }
 
     SECTION("copy assignment")
     {
-        const kiln::util::Any any{ value };
-        kiln::util::Any       copy{ other_value };
+        const Any any{ value };
+        Any       copy{ other_value };
 
         copy = any;
         REQUIRE(any_cast<Value>(copy) == any_cast<Value>(any));
@@ -86,8 +88,8 @@ TEST_CASE("util::Any")
 
     SECTION("move assignment")
     {
-        kiln::util::Any moved_from{ value };
-        kiln::util::Any moved_to{ other_value };
+        Any moved_from{ value };
+        Any moved_to{ other_value };
 
         moved_to = std::move(moved_from);
         REQUIRE(any_cast<Value>(moved_to) == value);
@@ -98,39 +100,39 @@ TEST_CASE("util::Any")
 
     SECTION("large to small copy assignment")
     {
-        const kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
-        kiln::util::Any       small{ std::in_place_type<Value> };
+        const Any large{ std::in_place_type<std::array<Value, 16>> };
+        Any       small{ std::in_place_type<Value> };
 
         small = large;
     }
 
     SECTION("small to large copy assignment")
     {
-        const kiln::util::Any small{ std::in_place_type<Value> };
-        kiln::util::Any       large{ std::in_place_type<std::array<Value, 16>> };
+        const Any small{ std::in_place_type<Value> };
+        Any       large{ std::in_place_type<std::array<Value, 16>> };
 
         large = small;
     }
 
     SECTION("large to small move assignment")
     {
-        kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
-        kiln::util::Any small{ std::in_place_type<Value> };
+        Any large{ std::in_place_type<std::array<Value, 16>> };
+        Any small{ std::in_place_type<Value> };
 
         small = std::move(large);
     }
 
     SECTION("small to large move assignment")
     {
-        kiln::util::Any small{ std::in_place_type<Value> };
-        kiln::util::Any large{ std::in_place_type<std::array<Value, 16>> };
+        Any small{ std::in_place_type<Value> };
+        Any large{ std::in_place_type<std::array<Value, 16>> };
 
         large = std::move(small);
     }
 
     SECTION("any_cast &")
     {
-        kiln::util::Any any{ std::in_place_type<Value>, value };
+        Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
         decltype(auto) result = any_cast<Value>(any);
@@ -141,7 +143,7 @@ TEST_CASE("util::Any")
 
     SECTION("any_cast const&")
     {
-        const kiln::util::Any any{ std::in_place_type<Value>, value };
+        const Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
         decltype(auto) result = any_cast<Value>(any);
@@ -152,7 +154,7 @@ TEST_CASE("util::Any")
 
     SECTION("any_cast &&")
     {
-        kiln::util::Any any{ std::in_place_type<Value>, value };
+        Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
         const auto result = any_cast<Value>(std::move(any));
@@ -161,7 +163,7 @@ TEST_CASE("util::Any")
 
     SECTION("any_cast const&&")
     {
-        const kiln::util::Any any{ std::in_place_type<Value>, value };
+        const Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
         decltype(auto) result =
@@ -174,7 +176,7 @@ TEST_CASE("util::Any")
     SECTION("reinterpret_any_cast &")
     {
         constexpr static int original{ 42 };
-        kiln::util::Any      any{ std::in_place_type<int>, original };
+        Any                  any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
         decltype(auto) result = reinterpret_any_cast<float>(any);
@@ -185,8 +187,8 @@ TEST_CASE("util::Any")
 
     SECTION("reinterpret_any_cast const&")
     {
-        constexpr static int  original{ 42 };
-        const kiln::util::Any any{ std::in_place_type<int>, original };
+        constexpr static int original{ 42 };
+        const Any            any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
         decltype(auto) result = reinterpret_any_cast<float>(any);
@@ -198,7 +200,7 @@ TEST_CASE("util::Any")
     SECTION("reinterpret_any_cast &&")
     {
         constexpr static int original{ 42 };
-        kiln::util::Any      any{ std::in_place_type<int>, original };
+        Any                  any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
         decltype(auto) result = reinterpret_any_cast<float>(std::move(any));
@@ -209,8 +211,8 @@ TEST_CASE("util::Any")
 
     SECTION("reinterpret_any_cast const&&")
     {
-        constexpr static int  original{ 42 };
-        const kiln::util::Any any{ std::in_place_type<int>, original };
+        constexpr static int original{ 42 };
+        const Any            any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
         decltype(auto) result =
@@ -268,8 +270,7 @@ TEST_CASE("util::Any")
             explicit Container(const allocator_type& allocator = {})
                 : BigObject{},
                   m_allocator{ allocator },
-                  m_data{ m_allocator.new_object<InnerObject>(),
-                          kiln::util::Deleter{ allocator } }
+                  m_data{ m_allocator.new_object<InnerObject>(), Deleter{ allocator } }
             {
             }
 
@@ -286,16 +287,16 @@ TEST_CASE("util::Any")
             }
 
         private:
-            allocator_type                                    m_allocator;
-            std::unique_ptr<InnerObject, kiln::util::Deleter> m_data{
+            allocator_type                        m_allocator;
+            std::unique_ptr<InnerObject, Deleter> m_data{
                 nullptr,
-                kiln::util::Deleter{
+                Deleter{
                     std::pmr::polymorphic_allocator{ std::pmr::get_default_resource() } }
             };
         };
 
-        CountingResource              memory_resource;
-        const kiln::util::MoveOnlyAny any{
+        CountingResource  memory_resource;
+        const MoveOnlyAny any{
             std::allocator_arg,
             &memory_resource,
             std::in_place_type<Container>,
@@ -311,9 +312,11 @@ TEST_CASE("util::Any")
     SECTION("propagates allocator-awareness")
     {
         std::pmr::monotonic_buffer_resource memory_resource;
-        std::pmr::vector<kiln::util::Any>   vector{ &memory_resource };
+        std::pmr::vector<Any>               vector{ &memory_resource };
         vector.emplace_back(value);
 
         REQUIRE(vector.get_allocator() == vector.front().get_allocator());
     }
 }
+
+}   // namespace kiln::util
