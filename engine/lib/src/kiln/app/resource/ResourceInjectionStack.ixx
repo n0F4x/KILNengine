@@ -11,6 +11,7 @@ import kiln.app.resource.decays_to_resource_c;
 import kiln.app.resource.decays_to_resource_injection_c;
 import kiln.app.resource.resource_c;
 import kiln.app.resource.ResourceStack;
+import kiln.util.Deleter;
 import kiln.util.Function;
 
 namespace kiln::app {
@@ -21,9 +22,9 @@ public:
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
-    ResourceInjectionStack() = default;
-    explicit ResourceInjectionStack(const allocator_type&);
-    ResourceInjectionStack(ResourceInjectionStack&&, const allocator_type&);
+    ResourceInjectionStack();
+    explicit ResourceInjectionStack(allocator_type);
+    ResourceInjectionStack(ResourceInjectionStack&&, allocator_type);
 
 
     // required for interfacing with the standard
@@ -54,7 +55,8 @@ private:
         auto operator()(ResourceStack& resource_stack) && -> void;
     };
 
-    std::pmr::deque<ErasedResourceInjection> m_injections;
+    std::unique_ptr<std::pmr::monotonic_buffer_resource, util::Deleter> m_memory_resource;
+    std::pmr::deque<ErasedResourceInjection>                            m_injections;
 };
 
 }   // namespace kiln::app
@@ -88,22 +90,35 @@ auto ResourceInjectionStack::inject_resource(Injection_T&& injection) -> void
     );
 }
 
-ResourceInjectionStack::ResourceInjectionStack(const allocator_type& allocator)
-    : m_injections{ allocator }
+ResourceInjectionStack::ResourceInjectionStack()
+    : ResourceInjectionStack{ std::pmr::get_default_resource() }
+{
+}
+
+ResourceInjectionStack::ResourceInjectionStack(allocator_type allocator)
+    : m_memory_resource{
+          allocator.new_object<std::pmr::monotonic_buffer_resource>(allocator.resource()),
+          util::Deleter{ allocator }
+      },
+      m_injections{ m_memory_resource.get() }
 {
 }
 
 ResourceInjectionStack::ResourceInjectionStack(
     ResourceInjectionStack&& other,
-    const allocator_type&    allocator
+    allocator_type           allocator
 )
-    : m_injections{ std::move(other.m_injections), allocator }
+    : m_memory_resource{
+          allocator.new_object<std::pmr::monotonic_buffer_resource>(allocator.resource()),
+          util::Deleter{ allocator }
+      },
+      m_injections{ std::move(other.m_injections), m_memory_resource.get() }
 {
 }
 
 auto ResourceInjectionStack::get_allocator() const -> allocator_type
 {
-    return m_injections.get_allocator();
+    return m_memory_resource->upstream_resource();
 }
 
 inline auto ResourceInjectionStack::merge_into(ResourceStack& resource_stack) && -> void

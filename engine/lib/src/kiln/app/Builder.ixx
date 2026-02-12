@@ -1,6 +1,7 @@
 module;
 
 #include <concepts>
+#include <memory>
 #include <memory_resource>
 #include <utility>
 
@@ -14,6 +15,7 @@ import kiln.app.resource.decays_to_resource_c;
 import kiln.app.resource.decays_to_resource_injection_c;
 import kiln.app.resource.resource_c;
 import kiln.app.resource.ResourceInjectionStack;
+import kiln.util.Deleter;
 
 namespace kiln::app {
 
@@ -48,11 +50,20 @@ private:
     Arena      m_app_arena;
     Arena      m_builder_arena;
     PluginTree m_plugin_tree{
-        m_builder_arena,
+        &m_builder_arena.pool_resource(),
         MemoryPluginInjection{ m_app_arena, m_builder_arena }
     };
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter>
+        m_resource_injection_stack_resource{
+            std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() }
+                .new_object<std::pmr::monotonic_buffer_resource>(
+                    &m_builder_arena.pool_resource()
+                ),
+            util::Deleter{
+                std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() } }
+        };
     ResourceInjectionStack m_resource_injection_stack{
-        &m_builder_arena.monotonic_resource()
+        m_resource_injection_stack_resource.get()
     };
 };
 
