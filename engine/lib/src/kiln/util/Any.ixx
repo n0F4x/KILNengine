@@ -88,11 +88,24 @@ class DefaultAnyInterfaceMixin;
 export template <typename Any_T>
 struct DefaultAnyExtraVTable;
 
+export consteval auto default_any_size() -> std::size_t
+{
+    return 3 * sizeof(void*);
+}
+
+export consteval auto default_any_alignment() -> std::size_t
+{
+    return sizeof(void*);
+}
+
+export template <typename T>
+using DefaultAnyPolicy = always_true<T>;
+
 export template <
     bool        is_move_only_T                          = false,
-    std::size_t size_T                                  = 3 * sizeof(void*),
-    std::size_t alignment_T                             = sizeof(void*),
-    template <typename> typename Policy_T               = always_true,
+    std::size_t size_T                                  = default_any_size(),
+    std::size_t alignment_T                             = default_any_alignment(),
+    template <typename> typename Policy_T               = DefaultAnyPolicy,
     template <typename Any_T> typename InterfaceMixin_T = DefaultAnyInterfaceMixin,
     template <typename Any_T> typename ExtraVTable_T    = DefaultAnyExtraVTable>
 struct DefaultAnyTraits;

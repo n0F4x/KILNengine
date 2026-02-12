@@ -1,6 +1,8 @@
 {
     "version": "0.5",
     "requires": [
+        "vulkan-headers/1.4.313.0#83efc4aabdbe58d53aeae9494a720f7e%1747979764.107",
+        "spdlog/1.17.0#bcbaaf7147bda6ad24ffbd1ac3d7142c%1767636069.964",
         "fmt/12.1.0#50abab23274d56bb8f42c94b3b9a40c7%1761885265.231",
         "catch2/3.12.0#0477ac73ea43866eb7168f6030b6b591%1767110219.015"
     ],

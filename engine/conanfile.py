@@ -25,7 +25,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         "shared": False,
         "fPIC": True,
         # TODO: "visibility": "hidden",
-        "debug": True,
+        "debug": False,
     }
     implements = ["auto_shared_fpic"]
     exports_sources = (
@@ -95,7 +95,9 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.tool_requires("cmake/[>=4.1]")
 
     def requirements(self):
-        self.requires("fmt/12.1.0")
+        self.requires("fmt/12.1.0", transitive_headers=True)
+        self.requires("spdlog/1.17.0", transitive_headers=True)
+        self.requires("vulkan-headers/1.4.313.0", transitive_headers=True)
 
         if self._enable_tests:
             self.test_requires("catch2/3.12.0")

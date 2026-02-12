@@ -1,5 +1,6 @@
 add_subdirectory(app)
 add_subdirectory(config)
+add_subdirectory(gfx)
 add_subdirectory(util)
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -8,5 +9,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         app.ixx
         config.ixx
+        gfx.ixx
         util.ixx
 )

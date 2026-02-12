@@ -178,6 +178,7 @@ MainIncludeChar: Quote
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
 NamespaceMacros: [ ]
+OneLineFormatOffRegex: ^(// disable clang-format$)
 PPIndentWidth: 2
 PackConstructorInitializers: CurrentLine
 PenaltyBreakAssignment: 50

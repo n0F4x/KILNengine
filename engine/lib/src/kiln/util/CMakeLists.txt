@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         contract_macros.hpp
+        lifetime_bound.hpp
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -17,16 +18,20 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         Any.ixx
+        Bool.ixx
         concepts.ixx
         contracts.ixx
         Deleter.ixx
         Dummy.ixx
+        FlatMap.ixx
         for_each.ixx
         Function.ixx
         GenericStack.ixx
+        Lazy.ixx
         OptionalRef.ixx
         reflection.ixx
         StringLiteral.ixx
+        Strong.ixx
         transform.ixx
         type_traits.ixx
         TypeList.ixx
