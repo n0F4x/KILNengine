@@ -1,4 +1,4 @@
-project(hello_world)
+project(hello_kiln)
 
 add_executable(${PROJECT_NAME})
 
