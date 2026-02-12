@@ -5,6 +5,8 @@ module;
 #include <deque>
 #include <format>
 #include <list>
+#include <memory>
+#include <memory_resource>
 #include <span>
 #include <string_view>
 #include <tuple>
@@ -21,6 +23,7 @@ import kiln.app.memory.Arena;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.contracts;
+import kiln.util.Deleter;
 import kiln.util.for_each;
 import kiln.util.Function;
 import kiln.util.GenericStack;
@@ -148,8 +151,15 @@ concept decays_to_plugin_injection_c = plugin_injection_c<std::decay_t<T>>;
 
 export class PluginTree {
 public:
+    // required for interfacing with the standard
+    using allocator_type =   // NOLINT(*-identifier-naming)
+        std::pmr::polymorphic_allocator<>;
+
     template <decays_to_plugin_injection_c... PluginInjections_T>
-    explicit PluginTree(Arena& arena, PluginInjections_T&&... plugin_injections);
+    explicit PluginTree(
+        allocator_type allocator,
+        PluginInjections_T&&... plugin_injections
+    );
 
     template <plugin_c Plugin_T>
     [[nodiscard]]
@@ -176,7 +186,10 @@ private:
         auto format(std::string& out_string, std::size_t capacity) const -> void;
     };
 
-    std::pmr::deque<internal::ErasedPluginInjection> m_plugin_injections;
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_injections_resource;
+    std::pmr::deque<internal::ErasedPluginInjection>          m_plugin_injections;
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter>
+                             m_unresolved_plugin_hashes_resource;
     std::pmr::list<uint64_t> m_unresolved_optional_dependency_plugin_hashes;
 
     template <typename Plugin_T>
@@ -322,9 +335,21 @@ auto ErasedPluginInjection::underlying_function(this Self_T&& self)
 }   // namespace internal
 
 template <decays_to_plugin_injection_c... PluginInjections_T>
-PluginTree::PluginTree(Arena& arena, PluginInjections_T&&... plugin_injections)
-    : m_plugin_injections{ &arena.monotonic_resource() },
-      m_unresolved_optional_dependency_plugin_hashes{ &arena.pool_resource() }
+PluginTree::PluginTree(allocator_type allocator, PluginInjections_T&&... plugin_injections)
+    : m_injections_resource{
+          allocator.new_object<std::pmr::monotonic_buffer_resource>(allocator.resource()),
+          util::Deleter{ allocator }
+      },
+      m_plugin_injections{ m_injections_resource.get() },
+      m_unresolved_plugin_hashes_resource{
+          allocator.new_object<std::pmr::unsynchronized_pool_resource>(
+              allocator.resource()
+          ),
+          util::Deleter{ allocator }
+      },
+      m_unresolved_optional_dependency_plugin_hashes{
+          m_unresolved_plugin_hashes_resource.get()
+      }
 {
     (plug_in(std::forward<PluginInjections_T>(plugin_injections)), ...);
 }
