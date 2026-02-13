@@ -6,5 +6,6 @@ auto main() -> int
     auto app = kiln::app::Builder{}
                    .insert_plugin(kiln::config::Plugin{ "Hello triangle!" })
                    .inject_plugin(kiln::gfx::vulkan::InstancePluginInjection{})
+                   .inject_plugin(kiln::gfx::renderer::PluginInjection{})
                    .build();
 }

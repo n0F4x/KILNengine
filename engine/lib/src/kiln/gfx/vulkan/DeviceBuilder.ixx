@@ -324,7 +324,9 @@ auto DeviceBuilder::build(const vk::raii::Instance& instance) const
         .queueCreateInfoCount  = static_cast<uint32_t>(queue_create_infos.size()),
         .pQueueCreateInfos     = queue_create_infos.data(),
         .enabledExtensionCount = static_cast<uint32_t>(capabilities.extensions().size()),
-        .ppEnabledExtensionNames = capabilities.extensions().front().address(),
+        .ppEnabledExtensionNames = capabilities.extensions().empty()
+                                     ? nullptr
+                                     : capabilities.extensions().front().address(),
     };
 
     vk::raii::Device device{
@@ -346,13 +348,13 @@ auto DeviceBuilder::make_queue_group(
     QueueGroup::CreateInfo&& create_info
 ) -> QueueGroup
 {
-    for (QueuePack& queue_pack : create_info.queue_packs)
+    for (auto& [family_index, queue_index, queue] : create_info.queue_packs)
     {
         const vk::DeviceQueueInfo2 queue_info{
-            .queueFamilyIndex = queue_pack.family_index.underlying(),
-            .queueIndex       = queue_pack.queue_index,
+            .queueFamilyIndex = family_index.underlying(),
+            .queueIndex       = queue_index,
         };
-        queue_pack.queue = check_result(device.getQueue2(queue_info));
+        queue = check_result(device.getQueue2(queue_info));
     }
 
     return QueueGroup(std::move(create_info));
@@ -452,7 +454,7 @@ auto DeviceBuilder::create_device_queue_create_infos(
             };
         }
 
-        std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
+        const std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
             device_queue_create_infos.emplace_back(),
             per_family_queue_priorities.emplace_back()
         };

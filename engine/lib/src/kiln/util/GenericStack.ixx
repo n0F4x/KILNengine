@@ -122,7 +122,7 @@ public:
     auto for_each(this Self_T&&, F&& func) -> F;
 
 private:
-    std::pmr::deque<std::pair<uint64_t, Any_T>> m_types_and_items;
+    std::pmr::deque<std::pair<uint64_t, Any>> m_types_and_items;
 
     template <typename Injection_T>
     [[nodiscard]]
@@ -183,10 +183,13 @@ template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
 auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
     -> OptionalRef<const_like_t<Item_T, Self_T>>
 {
-    const auto iter = std::ranges::find(
+    // TODO: use `std::ranges::find` + projection with better MS STL compatibility
+    const auto iter = std::ranges::find_if(
         self.BasicGenericStack::m_types_and_items,
-        hash_u64<Item_T>(),
-        &std::pair<uint64_t, Any_T>::first
+        [](const_like_t<std::pair<uint64_t, Any>, Self_T>& type_hash_and_item)
+        {
+            return type_hash_and_item.first == hash_u64<Item_T>();   //
+        }
     );
     if (iter == self.BasicGenericStack::m_types_and_items.cend())
     {
@@ -233,7 +236,7 @@ auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
     // TODO: use std::ranges::contains once it compiler with MS STL
     return std::ranges::any_of(
         m_types_and_items,
-        [](const std::pair<uint64_t, Any_T>& hash_and_item) static -> bool
+        [](const std::pair<uint64_t, Any>& hash_and_item) static -> bool
         {
             return hash_and_item.first == hash_u64<Item_T>();   //
         }

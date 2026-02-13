@@ -37,8 +37,8 @@ public:
     auto cbegin() const noexcept -> ConstIterator
     {
         return ConstIterator{
-            m_keys.begin(),
-            m_values.begin(),
+            m_keys.cbegin(),
+            m_values.cbegin(),
         };
     }
 
@@ -191,7 +191,7 @@ public:
     auto operator++() -> Iterator&
     {
         ++m_key_iter;
-        ++m_key_iter;
+        ++m_value_iter;
         return *this;
     }
 
@@ -199,7 +199,7 @@ public:
     {
         Iterator result{ *this };
         ++m_key_iter;
-        ++m_key_iter;
+        ++m_value_iter;
         return result;
     }
 
