@@ -454,7 +454,7 @@ auto DeviceBuilder::create_device_queue_create_infos(
             };
         }
 
-        const std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
+        std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
             device_queue_create_infos.emplace_back(),
             per_family_queue_priorities.emplace_back()
         };

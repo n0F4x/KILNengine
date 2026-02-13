@@ -8,5 +8,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         Device.ixx
         Plugin.ixx
+        PluginFailedError.ixx
         PluginInjection.ixx
 )

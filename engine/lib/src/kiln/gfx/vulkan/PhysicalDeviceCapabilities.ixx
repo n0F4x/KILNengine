@@ -113,8 +113,7 @@ auto PhysicalDeviceCapabilities::supported_by(
     const vk::raii::PhysicalDevice& physical_device
 ) const -> bool
 {
-    if (const vk::PhysicalDeviceProperties properties{ physical_device.getProperties() };
-        properties.apiVersion < m_version)
+    if (physical_device.getProperties2().properties.apiVersion < m_version)
     {
         return false;
     }

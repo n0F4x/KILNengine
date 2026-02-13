@@ -7,9 +7,9 @@ namespace kiln::gfx::renderer {
 
 export class PluginInjection {
 public:
-    static auto operator()(vulkan::InstancePlugin&) -> Plugin
+    static auto operator()(vulkan::InstancePlugin& instance_plugin) -> Plugin
     {
-        return Plugin{};
+        return Plugin{ instance_plugin };
     }
 };
 

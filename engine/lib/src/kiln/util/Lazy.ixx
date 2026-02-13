@@ -1,6 +1,7 @@
 module;
 
 #include <concepts>
+#include <functional>
 #include <type_traits>
 
 export module kiln.util.Lazy;
@@ -16,9 +17,10 @@ public:
     constexpr explicit Lazy(F&& create) : m_create{ std::move(create) } {}
 
     [[nodiscard]]
-    explicit(false) operator std::invoke_result_t<F&&>() &&
+    explicit(false)   //
+        operator std::invoke_result_t<F&&>() && noexcept(std::is_nothrow_invocable_v<F&&>)
     {
-        return std::move(m_create)();
+        return std::invoke(std::move(m_create));
     }
 
 private:

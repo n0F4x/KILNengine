@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <utility>
 
 #include "kiln/util/lifetime_bound.hpp"
 
@@ -13,6 +14,8 @@ import kiln.config.Config;
 import kiln.gfx.vulkan.context;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.util.StringLiteral;
+import kiln.util.type_traits.const_like;
+import kiln.util.type_traits.forward_like;
 
 namespace kiln::gfx::vulkan {
 
@@ -26,18 +29,15 @@ public:
         [[lifetime_bound]] const vk::raii::Context& context = vulkan::context()
     );
 
-    auto request_api_version(uint32_t api_version) -> void;
+    template <typename Self_T>
     [[nodiscard]]
-    auto require_minimum_version(uint32_t version) -> bool;
-    [[nodiscard]]
-    auto enable_vulkan_layer(util::StringLiteral layer_name) -> bool;
-    [[nodiscard]]
-    auto enable_extension(util::StringLiteral extension_name) -> bool;
+    auto operator*(this Self_T&& self) -> util::forward_like_t<InstanceBuilder, Self_T>;
 
-    auto operator()(app::App& app) const -> void
-    {
-        app.resources().insert(m_instance_builder.build());
-    }
+    template <typename Self_T>
+    [[nodiscard]]
+    auto operator->(this Self_T& self) -> util::const_like_t<InstanceBuilder, Self_T>*;
+
+    auto operator()(app::App& app) const -> void;
 
 private:
     InstanceBuilder m_instance_builder;
@@ -86,24 +86,23 @@ InstancePlugin::InstancePlugin(
 {
 }
 
-auto InstancePlugin::request_api_version(const uint32_t api_version) -> void
+template <typename Self_T>
+auto InstancePlugin::operator*(this Self_T&& self)
+    -> util::forward_like_t<InstanceBuilder, Self_T>
 {
-    m_instance_builder.request_api_version(api_version);
+    return std::forward_like<Self_T>(self.m_instance_builder);
 }
 
-auto InstancePlugin::require_minimum_version(const uint32_t version) -> bool
+template <typename Self_T>
+auto InstancePlugin::operator->(this Self_T& self)
+    -> util::const_like_t<InstanceBuilder, Self_T>*
 {
-    return m_instance_builder.require_minimum_version(version);
+    return &self.m_instance_builder;
 }
 
-auto InstancePlugin::enable_vulkan_layer(const util::StringLiteral layer_name) -> bool
+auto InstancePlugin::operator()(app::App& app) const -> void
 {
-    return m_instance_builder.enable_vulkan_layer(layer_name);
-}
-
-auto InstancePlugin::enable_extension(const util::StringLiteral extension_name) -> bool
-{
-    return m_instance_builder.enable_extension(extension_name);
+    app.resources().insert(m_instance_builder.build());
 }
 
 }   // namespace kiln::gfx::vulkan
