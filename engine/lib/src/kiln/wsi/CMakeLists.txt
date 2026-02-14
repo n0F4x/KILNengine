@@ -11,6 +11,9 @@ target_sources(${PROJECT_NAME} PUBLIC
         monitor.ixx
         Plugin.ixx
         Size.ixx
+        vulkan_instance_extensions.ixx
+        vulkan_queue_family_supports_presenting.ixx
+        VulkanWindow.ixx
         Window.ixx
         WindowedWindowSettings.ixx
         WindowSettings.ixx

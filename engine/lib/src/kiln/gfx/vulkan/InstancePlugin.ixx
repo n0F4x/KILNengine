@@ -3,7 +3,7 @@ module;
 #include <cstdint>
 #include <utility>
 
-#include "kiln/util/kiln_lifetimebound.hpp"
+#include "kiln/util/lifetimebound.hpp"
 
 export module kiln.gfx.vulkan.InstancePlugin;
 

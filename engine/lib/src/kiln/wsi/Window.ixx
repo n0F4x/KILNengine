@@ -1,6 +1,7 @@
 module;
 
 #include <cassert>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -9,7 +10,7 @@ module;
 #include <GLFW/glfw3.h>
 
 #include "kiln/util/contract_macros.hpp"
-#include "kiln/util/kiln_lifetimebound.hpp"
+#include "kiln/util/lifetimebound.hpp"
 
 export module kiln.wsi.Window;
 
@@ -54,11 +55,15 @@ public:
 
 protected:
     [[nodiscard]]
+    auto context() const noexcept -> const Context&;
+
+    [[nodiscard]]
     auto handle() noexcept -> GLFWwindow&;
     [[nodiscard]]
     auto handle() const noexcept -> const GLFWwindow&;
 
 private:
+    std::reference_wrapper<const Context>                     m_context_ref;
     std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> m_handle;
 };
 
@@ -194,8 +199,9 @@ auto create_window(const Window::CreateInfo& create_info)
     };
 }
 
-Window::Window(const Context&, const CreateInfo& create_info)
-    : m_handle{ create_window(create_info) }
+Window::Window(const Context& context, const CreateInfo& create_info)
+    : m_context_ref{ context },
+      m_handle{ create_window(create_info) }
 {
 }
 
@@ -227,6 +233,11 @@ auto Window::key_pressed(const Key key) const noexcept -> bool
 auto Window::request_close() noexcept -> void
 {
     glfwSetWindowShouldClose(m_handle.get(), GLFW_TRUE);
+}
+
+auto Window::context() const noexcept -> const Context&
+{
+    return m_context_ref;
 }
 
 auto Window::handle() noexcept -> GLFWwindow&

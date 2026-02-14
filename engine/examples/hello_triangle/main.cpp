@@ -1,5 +1,7 @@
 #include <print>
 
+#include <vulkan/vulkan_raii.hpp>
+
 import kiln;
 
 auto game_loop(kiln::app::App& app) -> void;
@@ -22,7 +24,8 @@ auto main() -> int
     game_loop(app);
 }
 
-auto game_loop(kiln::app::App& app) -> void
+[[nodiscard]]
+auto create_window(kiln::app::App& app) -> kiln::wsi::VulkanWindow
 {
     constexpr kiln::wsi::WindowedWindowSettings screen_settings{
         .content_size{ .width = 640, .height = 480 }
@@ -32,8 +35,20 @@ auto game_loop(kiln::app::App& app) -> void
         .settings = screen_settings,
     };
 
+    const vk::raii::Instance& vulkan_instance{ app.resources().at<vk::raii::Instance>() };
     const kiln::wsi::Context& wsi_context{ app.resources().at<kiln::wsi::Context>() };
-    kiln::wsi::Window         window{ wsi_context, window_info };
+    const kiln::gfx::renderer::Device& render_device{
+        app.resources().at<kiln::gfx::renderer::Device>()
+    };
+
+    return render_device.create_window(vulkan_instance, wsi_context, window_info);
+}
+
+auto game_loop(kiln::app::App& app) -> void
+{
+    const kiln::wsi::Context& wsi_context{ app.resources().at<kiln::wsi::Context>() };
+
+    kiln::wsi::VulkanWindow window{ create_window(app) };
 
     while (!window.should_close())
     {

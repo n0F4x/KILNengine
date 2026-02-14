@@ -30,5 +30,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         QueueGroup.ixx
         QueuePack.ixx
         result.ixx
-        structure_chains.ixx
+        structure_chain.ixx
+        Swapchain.ixx
 )

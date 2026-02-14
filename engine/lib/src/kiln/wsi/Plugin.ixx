@@ -1,16 +1,27 @@
 export module kiln.wsi.Plugin;
 
 import kiln.app.App;
+import kiln.util.type_traits.const_like;
 import kiln.wsi.Context;
 
 namespace kiln::wsi {
 
 export class Plugin {
 public:
-    static auto operator()(app::App& app) -> void
+    template <typename Self_T>
+    [[nodiscard]]
+    auto context(this Self_T& self) -> util::const_like_t<Context, Self_T>
     {
-        app.resources().emplace<Context>();
+        return self.Plugin::m_context;
     }
+
+    auto operator()(app::App& app) const -> void
+    {
+        app.resources().insert(m_context);
+    }
+
+private:
+    Context m_context;
 };
 
 }   // namespace kiln::wsi

@@ -16,16 +16,25 @@ import kiln.gfx.vulkan.default_debug_messenger_callback;
 import kiln.gfx.vulkan.Device;
 import kiln.gfx.vulkan.DeviceBuilder;
 import kiln.gfx.vulkan.InstancePlugin;
+import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.type_traits.const_like;
 import kiln.util.type_traits.forward_like;
 import kiln.util.Lazy;
+import kiln.util.OptionalRef;
+import kiln.wsi.Context;
+import kiln.wsi.vulkan_queue_family_supports_presenting;
+import kiln.wsi.Plugin;
 
 namespace kiln::gfx::renderer {
 
 export class Plugin {
 public:
-    explicit Plugin(vulkan::InstancePlugin& instance_plugin);
+    struct CreateInfo {
+        bool headless{};
+    };
+
+    explicit Plugin(vulkan::InstancePlugin& instance_plugin, bool headless = false);
 
     template <typename Self_T>
     [[nodiscard]]
@@ -39,11 +48,12 @@ public:
 
     auto request_debug_messenger() -> bool;
 
-    auto operator()(app::App& app) const -> void;
+    auto operator()(app::App& app) -> void;
 
 private:
     std::reference_wrapper<vulkan::InstancePlugin> m_instance_plugin_ref;
     bool                                           m_request_debug_messenger{};
+    bool                                           m_headless{};
     vulkan::DeviceBuilder                          m_device_builder;
 };
 
@@ -51,8 +61,9 @@ private:
 
 namespace kiln::gfx::renderer {
 
-Plugin::Plugin(vulkan::InstancePlugin& instance_plugin)
-    : m_instance_plugin_ref{ instance_plugin }
+Plugin::Plugin(vulkan::InstancePlugin& instance_plugin, bool headless)
+    : m_instance_plugin_ref{ instance_plugin },
+      m_headless{ headless }
 {
 #ifdef KILN_DEBUG
     request_debug_messenger();
@@ -92,7 +103,7 @@ auto Plugin::request_debug_messenger() -> bool
     return true;
 }
 
-auto Plugin::operator()(app::App& app) const -> void
+auto Plugin::operator()(app::App& app) -> void
 {
     const vk::raii::Instance& instance{ app.resources().at<vk::raii::Instance>() };
 
@@ -113,6 +124,25 @@ auto Plugin::operator()(app::App& app) const -> void
               )
             : vk::raii::DebugUtilsMessengerEXT{ nullptr }
     };
+
+    if (!m_headless)
+    {
+        wsi::Context& wsi_context{ app.resources().at<wsi::Context>() };
+
+        m_device_builder.enable_extension(vk::KHRSwapchainExtensionName);
+        m_device_builder.ensure_queue(
+            [&wsi_context, &instance](
+                const vk::raii::PhysicalDevice& physical_device,
+                const vulkan::QueueFamilyIndex  queue_family_index,
+                const vk::QueueFamilyProperties2&
+            ) -> bool
+            {
+                return wsi::vulkan_queue_family_supports_presenting(
+                    wsi_context, instance, physical_device, queue_family_index
+                );
+            }
+        );
+    }
 
     auto [physical_device, logical_device, queues, enabled_capabilities] =
         m_device_builder.build(instance).value_or(
