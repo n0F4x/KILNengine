@@ -7,18 +7,18 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module kiln.gfx.vulkan.structure_chains.StructureChain;
+export module kiln.gfx.vulkan.structure_chain.StructureChain;
 
 import vulkan_hpp;
 
-import kiln.gfx.vulkan.structure_chains.core_feature_struct_from_vulkan1x_c;
-import kiln.gfx.vulkan.structure_chains.erase_physical_device_features;
-import kiln.gfx.vulkan.structure_chains.extends_struct_c;
-import kiln.gfx.vulkan.structure_chains.filter_physical_device_features;
-import kiln.gfx.vulkan.structure_chains.is_empty_feature_struct;
-import kiln.gfx.vulkan.structure_chains.match_physical_device_features;
-import kiln.gfx.vulkan.structure_chains.merge_physical_device_features;
-import kiln.gfx.vulkan.structure_chains.vulkan1x_feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.core_feature_struct_from_vulkan1x_c;
+import kiln.gfx.vulkan.structure_chain.erase_physical_device_features;
+import kiln.gfx.vulkan.structure_chain.extends_struct_c;
+import kiln.gfx.vulkan.structure_chain.filter_physical_device_features;
+import kiln.gfx.vulkan.structure_chain.is_empty_feature_struct;
+import kiln.gfx.vulkan.structure_chain.match_physical_device_features;
+import kiln.gfx.vulkan.structure_chain.merge_physical_device_features;
+import kiln.gfx.vulkan.structure_chain.vulkan1x_feature_struct_c;
 import kiln.util.Any;
 import kiln.util.concepts.naked;
 import kiln.util.contracts;
@@ -374,37 +374,32 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
 };
 
 template <typename Any_T>
-class ErasedStructInterfaceMixin : util::AnyExtraVTableAccessor {
+class ErasedStructInterfaceMixin {
 public:
-    explicit ErasedStructInterfaceMixin(const AnyExtraVTableAccessor extra_vtable_accessor)
-        : AnyExtraVTableAccessor{ extra_vtable_accessor }
+    explicit ErasedStructInterfaceMixin(
+        const util::AnyExtraVTableAccessor extra_vtable_accessor
+    )
+        : m_extra_vtable{ extra_vtable_accessor }
     {
     }
 
     [[nodiscard]]
     constexpr auto address(this ErasedStruct& self) -> void*
     {
-        return self.AnyExtraVTableAccessor::operator()(self).address_of(self);
+        return self.m_extra_vtable(self).address_of(self);
     }
 
     [[nodiscard]]
     constexpr auto next_pointer(this ErasedStruct& self) -> void*&
     {
-        return self.AnyExtraVTableAccessor::operator()(self).next_pointer_of(self);
+        return self.m_extra_vtable(self).next_pointer_of(self);
     }
 
     [[nodiscard]]
     constexpr auto empty(this const ErasedStruct& self) -> bool
     {
-        PRECOND(
-            self.AnyExtraVTableAccessor::operator()(self)
-                .empty
-            != nullptr
-        );
-        return self
-            .AnyExtraVTableAccessor::
-                operator()(self)
-            .empty(self);
+        PRECOND(self.m_extra_vtable(self).empty != nullptr);
+        return self.m_extra_vtable(self).empty(self);
     }
 
     [[nodiscard]]
@@ -412,22 +407,15 @@ public:
         matches(this const ErasedStruct& self, const vk::BaseInStructure& feature_struct)
             -> bool
     {
-        PRECOND(
-            self.AnyExtraVTableAccessor::operator()(self)
-                .matches
-            != nullptr
-        );
-        return self
-            .AnyExtraVTableAccessor::
-                operator()(self)
-            .matches(self, feature_struct);
+        PRECOND(self.m_extra_vtable(self).matches != nullptr);
+        return self.m_extra_vtable(self).matches(self, feature_struct);
     }
 
     constexpr auto merge(this ErasedStruct& self, const vk::BaseInStructure& features)
         -> void
     {
-        PRECOND(self.AnyExtraVTableAccessor::operator()(self).merge != nullptr);
-        self.AnyExtraVTableAccessor::operator()(self).merge(self, features);
+        PRECOND(self.m_extra_vtable(self).merge != nullptr);
+        self.m_extra_vtable(self).merge(self, features);
     }
 
     constexpr auto try_merge_to_Vulkan11_features(
@@ -435,12 +423,9 @@ public:
         vk::PhysicalDeviceVulkan11Features& vulkan11_features
     ) -> bool
     {
-        if (self.AnyExtraVTableAccessor::operator()(self)
-                .merge_to_Vulkan11_features
-            != nullptr)
+        if (self.m_extra_vtable(self).merge_to_Vulkan11_features != nullptr)
         {
-            self.AnyExtraVTableAccessor::operator()(self)
-                .merge_to_Vulkan11_features(self, vulkan11_features);
+            self.m_extra_vtable(self).merge_to_Vulkan11_features(self, vulkan11_features);
             return true;
         }
         return false;
@@ -451,12 +436,9 @@ public:
         vk::PhysicalDeviceVulkan12Features& vulkan12_features
     ) -> bool
     {
-        if (self.AnyExtraVTableAccessor::operator()(self)
-                .merge_to_Vulkan12_features
-            != nullptr)
+        if (self.m_extra_vtable(self).merge_to_Vulkan12_features != nullptr)
         {
-            self.AnyExtraVTableAccessor::operator()(self)
-                .merge_to_Vulkan12_features(self, vulkan12_features);
+            self.m_extra_vtable(self).merge_to_Vulkan12_features(self, vulkan12_features);
             return true;
         }
         return false;
@@ -467,12 +449,9 @@ public:
         vk::PhysicalDeviceVulkan13Features& vulkan13_features
     ) -> bool
     {
-        if (self.AnyExtraVTableAccessor::operator()(self)
-                .merge_to_Vulkan13_features
-            != nullptr)
+        if (self.m_extra_vtable(self).merge_to_Vulkan13_features != nullptr)
         {
-            self.AnyExtraVTableAccessor::operator()(self)
-                .merge_to_Vulkan13_features(self, vulkan13_features);
+            self.m_extra_vtable(self).merge_to_Vulkan13_features(self, vulkan13_features);
             return true;
         }
         return false;
@@ -483,12 +462,9 @@ public:
         vk::PhysicalDeviceVulkan14Features& vulkan14_features
     ) -> bool
     {
-        if (self.AnyExtraVTableAccessor::operator()(self).merge_to_Vulkan14_features
-            != nullptr)
+        if (self.m_extra_vtable(self).merge_to_Vulkan14_features != nullptr)
         {
-            self.AnyExtraVTableAccessor::operator()(self).merge_to_Vulkan14_features(
-                self, vulkan14_features
-            );
+            self.m_extra_vtable(self).merge_to_Vulkan14_features(self, vulkan14_features);
             return true;
         }
         return false;
@@ -497,16 +473,19 @@ public:
     constexpr auto filter(this ErasedStruct& self, const vk::BaseInStructure& features)
         -> void
     {
-        PRECOND(self.AnyExtraVTableAccessor::operator()(self).filter != nullptr);
-        self.AnyExtraVTableAccessor::operator()(self).filter(self, features);
+        PRECOND(self.m_extra_vtable(self).filter != nullptr);
+        self.m_extra_vtable(self).filter(self, features);
     }
 
     constexpr auto erase(this ErasedStruct& self, const vk::BaseInStructure& features)
         -> void
     {
-        PRECOND(self.AnyExtraVTableAccessor::operator()(self).erase != nullptr);
-        self.AnyExtraVTableAccessor::operator()(self).erase(self, features);
+        PRECOND(self.m_extra_vtable(self).erase != nullptr);
+        self.m_extra_vtable(self).erase(self, features);
     }
+
+private:
+    util::AnyExtraVTableAccessor m_extra_vtable;
 };
 
 }   // namespace internal

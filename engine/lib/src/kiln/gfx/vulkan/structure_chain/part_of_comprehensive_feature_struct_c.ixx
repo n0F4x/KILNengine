@@ -2,13 +2,13 @@ module;
 
 #include <concepts>
 
-export module kiln.gfx.vulkan.structure_chains.part_of_comprehensive_feature_struct_c;
+export module kiln.gfx.vulkan.structure_chain.part_of_comprehensive_feature_struct_c;
 
 import vulkan_hpp;
 
-import kiln.gfx.vulkan.structure_chains.comprehensive_feature_struct_c;
-import kiln.gfx.vulkan.structure_chains.core_feature_struct_from_vulkan1x_c;
-import kiln.gfx.vulkan.structure_chains.individual_feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.comprehensive_feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.core_feature_struct_from_vulkan1x_c;
+import kiln.gfx.vulkan.structure_chain.individual_feature_struct_c;
 
 namespace kiln::gfx::vulkan {
 

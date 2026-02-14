@@ -12,8 +12,8 @@ import vulkan_hpp;
 
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.result.check_result;
-import kiln.gfx.vulkan.structure_chains.feature_struct_c;
-import kiln.gfx.vulkan.structure_chains.StructureChain;
+import kiln.gfx.vulkan.structure_chain.feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.StructureChain;
 import kiln.util.Function;
 import kiln.util.StringLiteral;
 

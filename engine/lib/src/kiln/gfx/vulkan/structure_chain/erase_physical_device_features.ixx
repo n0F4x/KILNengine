@@ -2,13 +2,13 @@ module;
 
 #include <utility>
 
-export module kiln.gfx.vulkan.structure_chains.erase_physical_device_features;
+export module kiln.gfx.vulkan.structure_chain.erase_physical_device_features;
 
 import vulkan_hpp;
 
-import kiln.gfx.vulkan.structure_chains.comprehensive_feature_struct_c;
-import kiln.gfx.vulkan.structure_chains.feature_struct_c;
-import kiln.gfx.vulkan.structure_chains.part_of_comprehensive_feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.comprehensive_feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.part_of_comprehensive_feature_struct_c;
 
 namespace kiln::gfx::vulkan {
 

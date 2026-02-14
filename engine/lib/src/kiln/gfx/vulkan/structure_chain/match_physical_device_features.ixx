@@ -3,11 +3,11 @@ module;
 #include <cstddef>
 #include <utility>
 
-export module kiln.gfx.vulkan.structure_chains.match_physical_device_features;
+export module kiln.gfx.vulkan.structure_chain.match_physical_device_features;
 
 import vulkan_hpp;
 
-import kiln.gfx.vulkan.structure_chains.feature_struct_c;
+import kiln.gfx.vulkan.structure_chain.feature_struct_c;
 
 namespace kiln::gfx::vulkan {
 

@@ -5,6 +5,8 @@ module;
 #include <type_traits>
 #include <utility>
 
+#include "kiln/util/kiln_no_unique_address.hpp"
+
 export module kiln.util.Function;
 
 import kiln.util.Any;
@@ -134,10 +136,10 @@ struct FunctionTraits<
     };
 
     template <typename Any_T>
-    class Interface : AnyExtraVTableAccessor {
+    class Interface {
     public:
         constexpr explicit Interface(const AnyExtraVTableAccessor& extra_vtable_accessor)
-            : AnyExtraVTableAccessor{ extra_vtable_accessor }
+            : m_extra_vtable{ extra_vtable_accessor }
         {
         }
 
@@ -147,11 +149,15 @@ struct FunctionTraits<
             is_noexcept()
         ) -> Result
         {
-            return self.AnyExtraVTableAccessor::operator()(self).call(
+            return self.Interface::m_extra_vtable(self).call(
                 static_cast<invoke_qualified_self_t<Any_T>>(self),
                 std::forward<FArgs_T>(args)...
             );
         }
+
+    private:
+        [[kiln_no_unique_address]]
+        AnyExtraVTableAccessor m_extra_vtable;
     };
 
     template <typename F>

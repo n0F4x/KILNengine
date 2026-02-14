@@ -17,4 +17,4 @@ export import kiln.gfx.vulkan.QueueFamilyIndex;
 export import kiln.gfx.vulkan.QueueGroup;
 export import kiln.gfx.vulkan.QueuePack;
 export import kiln.gfx.vulkan.result;
-export import kiln.gfx.vulkan.structure_chains;
+export import kiln.gfx.vulkan.structure_chain;

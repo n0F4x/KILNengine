@@ -23,6 +23,9 @@ build_type=Debug
 compiler=clang
 compiler.cppstd=26
 compiler.version=21
+compiler.runtime=dynamic
+compiler.runtime_type=Debug
+compiler.runtime_version=v145
 
 [conf]
 tools.build:compiler_executables={'c':'C:/Program Files/LLVM/bin/clang.exe','cpp':'C:/Program Files/LLVM/bin/clang++.exe'}

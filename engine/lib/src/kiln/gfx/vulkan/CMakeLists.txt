@@ -1,7 +1,7 @@
 add_subdirectory(extension_inspection)
 add_subdirectory(format)
 add_subdirectory(result)
-add_subdirectory(structure_chains)
+add_subdirectory(structure_chain)
 
 target_sources(${PROJECT_NAME} PRIVATE
         default_debug_messenger_callback.cxx

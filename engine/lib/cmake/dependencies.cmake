@@ -12,6 +12,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)
 find_package(spdlog CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 
+# GLFW
+find_package(glfw3 CONFIG REQUIRED)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        GLFW_INCLUDE_VULKAN
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
+
 # Vulkan
 # The Vulkan module should really be provided and not hacked together
 # This also brakes conan export

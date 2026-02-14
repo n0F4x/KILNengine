@@ -4,7 +4,7 @@ module;
 #include <optional>
 #include <vector>
 
-#include "kiln/util/lifetime_bound.hpp"
+#include "kiln/util/kiln_lifetimebound.hpp"
 
 export module kiln.gfx.vulkan.InstanceBuilder;
 
@@ -44,7 +44,7 @@ public:
 
     InstanceBuilder(
         const CreateInfo& create_info,
-        [[lifetime_bound]]
+        [[kiln_lifetimebound]]
         const vk::raii::Context& context
     );
 

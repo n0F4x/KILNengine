@@ -10,7 +10,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         contract_macros.hpp
-        lifetime_bound.hpp
+        kiln_lifetimebound.hpp
+        kiln_no_unique_address.hpp
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -26,9 +27,11 @@ target_sources(${PROJECT_NAME} PUBLIC
         FlatMap.ixx
         for_each.ixx
         Function.ixx
+        FunctionWrapper.ixx
         GenericStack.ixx
         Lazy.ixx
         OptionalRef.ixx
+        Overloaded.ixx
         reflection.ixx
         StringLiteral.ixx
         Strong.ixx

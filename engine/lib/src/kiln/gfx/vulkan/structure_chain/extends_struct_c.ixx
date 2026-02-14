@@ -1,4 +1,4 @@
-export module kiln.gfx.vulkan.structure_chains.extends_struct_c;
+export module kiln.gfx.vulkan.structure_chain.extends_struct_c;
 
 import vulkan_hpp;
 

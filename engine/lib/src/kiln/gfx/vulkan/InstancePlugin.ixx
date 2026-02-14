@@ -3,7 +3,7 @@ module;
 #include <cstdint>
 #include <utility>
 
-#include "kiln/util/lifetime_bound.hpp"
+#include "kiln/util/kiln_lifetimebound.hpp"
 
 export module kiln.gfx.vulkan.InstancePlugin;
 
@@ -26,7 +26,7 @@ public:
 
     explicit InstancePlugin(
         const config::Config&                       config,
-        [[lifetime_bound]] const vk::raii::Context& context = vulkan::context()
+        [[kiln_lifetimebound]] const vk::raii::Context& context = vulkan::context()
     );
 
     template <typename Self_T>

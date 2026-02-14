@@ -2,7 +2,7 @@ module;
 
 #include <concepts>
 
-export module kiln.gfx.vulkan.structure_chains.vulkan1x_feature_struct_c;
+export module kiln.gfx.vulkan.structure_chain.vulkan1x_feature_struct_c;
 
 import vulkan_hpp;
 
