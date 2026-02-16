@@ -39,8 +39,6 @@ constexpr auto try_promote_extension_to_vulkan14(
 
 }   // namespace kiln::gfx::vulkan
 
-module :private;
-
 namespace kiln::gfx::vulkan {
 
 constexpr auto try_promote_extension_to_vulkan11(

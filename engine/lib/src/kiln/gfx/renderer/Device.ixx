@@ -40,7 +40,7 @@ private:
     vk::raii::Device                   m_logical_device;
     vulkan::QueueGroup                 m_queues;
     vulkan::PhysicalDeviceCapabilities m_capabilities;
-    uint32_t                           m_number_of_frames{ 1 };
+    uint32_t                           m_number_of_frames{ 2 };
 };
 
 }   // namespace kiln::gfx::renderer
