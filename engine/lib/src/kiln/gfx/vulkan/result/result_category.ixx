@@ -13,11 +13,13 @@ namespace kiln::gfx::vulkan {
 export [[nodiscard]]
 constexpr auto result_category(const vk::Result result) noexcept -> ResultCategory
 {
-    if (std::to_underlying(result) >= 0) {
+    if (std::to_underlying(result) >= 0)
+    {
         return ResultCategory::eSuccess;
     }
 
-    switch (result) {
+    switch (result)
+    {
         case vk::Result::eErrorExtensionNotPresent:
         case vk::Result::eErrorFeatureNotPresent:
         case vk::Result::eErrorIncompatibleDriver:

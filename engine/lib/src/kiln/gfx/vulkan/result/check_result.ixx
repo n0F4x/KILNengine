@@ -224,7 +224,8 @@ constexpr auto CheckResult<expected_result_codes_T...>::operator()(Result_T&& re
     PRECOND(!represents_precondition_violation(result));
     assert(!represents_internal_contract_violation(result));
 
-    if (represents_runtime_error(result)) {
+    if (represents_runtime_error(result))
+    {
         return make_result_from_error(std::move(result));
     }
 
@@ -242,11 +243,13 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
 {
     PRECOND(result_category(runtime_error_code) == ResultCategory::eRuntimeError);
 
-    if (((runtime_error_code != expected_result_codes_T) && ...)) {
+    if (((runtime_error_code != expected_result_codes_T) && ...))
+    {
         throw VulkanError{ runtime_error_code };
     }
 
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         assert(
             false &&
             "an exception should have been already thrown, "
@@ -254,7 +257,8 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
         );
         std::unreachable();
     }
-    else {
+    else
+    {
         return make_typed_result_code_variant<
             vk::Result::eSuccess,
             expected_result_codes_T...>(runtime_error_code);
@@ -273,11 +277,13 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
 
     PRECOND(result_category(runtime_error_code) == ResultCategory::eRuntimeError);
 
-    if (((runtime_error_code != expected_result_codes_T) && ...)) {
+    if (((runtime_error_code != expected_result_codes_T) && ...))
+    {
         throw VulkanError{ runtime_error_code };
     }
 
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         assert(
             false &&
             "an exception should have been already thrown, "
@@ -285,7 +291,8 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
         );
         std::unreachable();
     }
-    else {
+    else
+    {
         return Result<Value_T, vk::Result::eSuccess, expected_result_codes_T...>{
             runtime_error_code
         };
@@ -302,11 +309,13 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
 {
     PRECOND(represents_runtime_error(result));
 
-    if (((result.error() != expected_result_codes_T) && ...)) {
+    if (((result.error() != expected_result_codes_T) && ...))
+    {
         throw VulkanError{ result.error() };
     }
 
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         assert(
             false &&
             "an exception should have been already thrown, "
@@ -314,10 +323,16 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
         );
         std::unreachable();
     }
-    else {
-        return std::move(result).transform_error([](const vk::Result result_code) {
-            return make_typed_result_code_variant<expected_result_codes_T...>(result_code);
-        });
+    else
+    {
+        return std::move(result).transform_error(
+            [](const vk::Result result_code)
+            {
+                return make_typed_result_code_variant<expected_result_codes_T...>(
+                    result_code
+                );
+            }
+        );
     }
 }
 
@@ -328,10 +343,12 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_value(
     const vk::Result result
 ) -> result_type_t<vk::Result>
 {
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         return;
     }
-    else {
+    else
+    {
         return make_typed_result_code_variant<
             vk::Result::eSuccess,
             expected_result_codes_T...>(result);
@@ -348,10 +365,12 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_value(
 {
     PRECOND(result_category(result.result) == ResultCategory::eSuccess);
 
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         return std::move(result.value);
     }
-    else {
+    else
+    {
         return Result<Value_T, vk::Result::eSuccess, expected_result_codes_T...>{
             std::move(result.value),
             result.result   //
@@ -369,13 +388,20 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_value(
 {
     PRECOND(represents_success(result));
 
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         return std::move(*result);
     }
-    else {
-        return std::move(result).transform_error([](const vk::Result result_code) {
-            return make_typed_result_code_variant<expected_result_codes_T...>(result_code);
-        });
+    else
+    {
+        return std::move(result).transform_error(
+            [](const vk::Result result_code)
+            {
+                return make_typed_result_code_variant<expected_result_codes_T...>(
+                    result_code
+                );
+            }
+        );
     }
 }
 

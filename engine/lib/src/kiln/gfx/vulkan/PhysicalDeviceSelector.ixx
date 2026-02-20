@@ -201,7 +201,7 @@ auto PhysicalDeviceSelector::supports_custom_requirements(
         m_custom_requirements,
         [&physical_device](const CustomRequirement& requirement) -> bool
         {
-            return requirement(physical_device); //
+            return requirement(physical_device);   //
         }
     );
 }

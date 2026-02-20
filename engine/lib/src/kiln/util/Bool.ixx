@@ -12,9 +12,8 @@ import kiln.util.concepts.specialization_of;
 namespace kiln::util {
 
 template <typename F>
-concept and_then_func_c =
-    specialization_of_c<std::invoke_result_t<F&&>, std::optional>
-    || specialization_of_c<std::invoke_result_t<F&&>, OptionalRef>;
+concept and_then_func_c = specialization_of_c<std::invoke_result_t<F&&>, std::optional>
+                       || specialization_of_c<std::invoke_result_t<F&&>, OptionalRef>;
 
 template <typename F>
 using transform_result_t = std::conditional_t<
@@ -66,7 +65,8 @@ constexpr Bool::operator bool() const noexcept
 template <and_then_func_c F>
 constexpr auto Bool::and_then(F&& func) const -> std::invoke_result_t<F&&>
 {
-    if (*this) {
+    if (*this)
+    {
         return std::invoke(std::forward<F>(func));
     }
     return std::nullopt;
@@ -75,7 +75,8 @@ constexpr auto Bool::and_then(F&& func) const -> std::invoke_result_t<F&&>
 template <transform_func_c F>
 constexpr auto Bool::transform(F&& func) const -> transform_result_t<F&&>
 {
-    if (*this) {
+    if (*this)
+    {
         return transform_result_t<F&&>{ std::invoke(std::forward<F>(func)) };
     }
     return std::nullopt;

@@ -19,7 +19,8 @@ constexpr auto try_set_result(
     const vk::Result                                           result_code
 ) -> void
 {
-    if (expected_result_code_T == result_code) {
+    if (expected_result_code_T == result_code)
+    {
         result = TypedResultCode<expected_result_code_T>{};
     }
 }
@@ -31,10 +32,12 @@ constexpr auto make_typed_result_code_variant(const vk::Result result_code)
 {
     PRECOND(((result_code == expected_result_codes_T) || ...));
 
-    if constexpr (sizeof...(expected_result_codes_T) == 0) {
+    if constexpr (sizeof...(expected_result_codes_T) == 0)
+    {
         return {};
     }
-    else {
+    else
+    {
         std::variant<TypedResultCode<expected_result_codes_T>...> result;
 
         // TODO (Clang): use template for

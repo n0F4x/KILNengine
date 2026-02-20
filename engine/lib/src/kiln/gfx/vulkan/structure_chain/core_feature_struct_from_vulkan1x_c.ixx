@@ -67,8 +67,8 @@ concept core_feature_struct_from_vulkan14_c =
 
 export template <typename T>
 concept core_feature_struct_from_vulkan1x_c = core_feature_struct_from_vulkan11_c<T>
-                             || core_feature_struct_from_vulkan12_c<T>
-                             || core_feature_struct_from_vulkan13_c<T>
-                             || core_feature_struct_from_vulkan14_c<T>;
+                                           || core_feature_struct_from_vulkan12_c<T>
+                                           || core_feature_struct_from_vulkan13_c<T>
+                                           || core_feature_struct_from_vulkan14_c<T>;
 
 }   // namespace kiln::gfx::vulkan

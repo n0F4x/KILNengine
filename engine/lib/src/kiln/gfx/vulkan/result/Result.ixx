@@ -53,11 +53,13 @@ public:
     explicit Result(Value_T&& value, const vk::Result result_code)
         : m_value{ std::move(value) },
           m_result_code{ ensure_success(ensure_expected(result_code)) }
-    {}
+    {
+    }
 
     explicit Result(const vk::Result result_code)
         : m_result_code{ ensure_error(ensure_expected(result_code)) }
-    {}
+    {
+    }
 
     template <typename Self_T>
     [[nodiscard]]

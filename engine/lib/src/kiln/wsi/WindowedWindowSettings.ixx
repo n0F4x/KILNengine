@@ -13,13 +13,14 @@ export struct WindowedWindowSettings {
         bool resizable{ true };
     };
 
-    enum struct Visibility {
+    enum struct Visibility
+    {
         eDefault,
         eHidden,
         eFocused,
     };
 
-    Size2i            content_size;
+    Size2i                content_size;
     std::optional<int>    position_x;
     std::optional<int>    position_y;
     std::optional<Border> border{ std::in_place };

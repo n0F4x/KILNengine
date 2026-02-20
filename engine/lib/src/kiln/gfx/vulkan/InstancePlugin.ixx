@@ -25,7 +25,7 @@ public:
     consteval static auto minimum_version() noexcept -> uint32_t;
 
     explicit InstancePlugin(
-        const config::Config&                       config,
+        const config::Config&                           config,
         [[kiln_lifetimebound]] const vk::raii::Context& context = vulkan::context()
     );
 

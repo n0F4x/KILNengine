@@ -6,7 +6,8 @@ export module kiln.wsi.event.Key;
 
 namespace kiln::wsi {
 
-export enum struct Key {
+export enum struct Key
+{
     eSpace         = GLFW_KEY_SPACE,
     eApostrophe    = GLFW_KEY_APOSTROPHE,
     eComma         = GLFW_KEY_COMMA,

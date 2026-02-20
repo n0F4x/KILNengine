@@ -102,12 +102,8 @@ auto first_graphics_queue_family_index(const vk::raii::PhysicalDevice& physical_
     };
 
     // TODO: use std::views::enumerate
-    for (auto&& [index, queue_family] : std::views::zip(
-             std::views::iota(
-                 uint32_t{}
-             ),
-             queue_family_properties
-         ))
+    for (auto&& [index, queue_family] :
+         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
     {
         if (queue_family.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics)
         {
@@ -127,12 +123,8 @@ auto first_dedicated_compute_queue_family_index(
     };
 
     // TODO: use std::views::enumerate
-    for (const auto&& [index, queue_family] : std::views::zip(
-             std::views::iota(
-                 uint32_t{}
-             ),
-             queue_family_properties
-         ))
+    for (const auto&& [index, queue_family] :
+         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
     {
         if (!(queue_family.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics)
             && queue_family.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eCompute)
@@ -153,12 +145,8 @@ auto first_dedicated_transfer_queue_family_index(
     };
 
     // TODO: use std::views::enumerate
-    for (const auto&& [index, queue_family] : std::views::zip(
-             std::views::iota(
-                 uint32_t{}
-             ),
-             queue_family_properties
-         ))
+    for (const auto&& [index, queue_family] :
+         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
     {
         if (!(queue_family.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eCompute)
             && !(
@@ -184,12 +172,8 @@ auto first_dedicated_sparse_binding_queue_family_index(
     };
 
     // TODO: use std::views::enumerate
-    for (const auto&& [index, queue_family] : std::views::zip(
-             std::views::iota(
-                 uint32_t{}
-             ),
-             queue_family_properties
-         ))
+    for (const auto&& [index, queue_family] :
+         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
     {
         if (!(queue_family.queueFamilyProperties.queueFlags & vk::QueueFlagBits::eGraphics
               || queue_family.queueFamilyProperties.queueFlags
@@ -223,10 +207,7 @@ auto first_matching_queue_family_index(
 {
     // TODO: use std::views:enumerate
     for (auto&& [index, queue_family_properties] : std::views::zip(
-             std::views::iota(
-                 uint32_t{}
-             ),
-             physical_device.getQueueFamilyProperties2()
+             std::views::iota(uint32_t{}), physical_device.getQueueFamilyProperties2()
          ))
     {
         const QueueFamilyIndex queue_family_index{ index };

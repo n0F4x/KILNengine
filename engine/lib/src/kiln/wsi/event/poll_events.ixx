@@ -20,7 +20,8 @@ export auto poll_events(const Context&) -> void
 
     const char* error_description{};
     const int   error_code = glfwGetError(&error_description);
-    if (error_code != GLFW_NO_ERROR) {
+    if (error_code != GLFW_NO_ERROR)
+    {
         PRECOND(error_code != GLFW_NOT_INITIALIZED);
         assert(error_code == GLFW_PLATFORM_ERROR && "Other error codes are unspecified");
         throw Error{ error_description };
