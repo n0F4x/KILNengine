@@ -103,13 +103,13 @@ struct EventTest {
     int b;
 };
 
-auto event_test(const int a, const int b) -> void
+auto event_test(const EventTest e) -> void
 {
-    std::println("Event test, sum:{}", a+b);
+    std::println("Event test, sum:{}", e.a+e.b);
 }
-auto event_test2(const int a, const int b) -> void
+auto event_test2(const EventTest e) -> void
 {
-    std::println("Event test2, diff:{}", a-b);
+    std::println("Event test2, diff:{}", e.a-e.b);
 }
 
 auto main() -> int
@@ -137,11 +137,7 @@ auto main() -> int
     // Renderer is never headless when both window and graphics plugins are present
     std::println("{}", app.resources().at<Message>());
 
-    app.resources().at<event::EventSystem>().subscribe<EventTest>([](const EventTest& ev) -> void {
-        event_test(ev.a, ev.b);
-    });
-    app.resources().at<event::EventSystem>().subscribe<EventTest>([](const EventTest& ev) -> void {
-        event_test2(ev.a, ev.b);
-    });
+    app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test);
+    app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test2);
     app.resources().at<event::EventSystem>().publish<EventTest>(45, 42);
 }
