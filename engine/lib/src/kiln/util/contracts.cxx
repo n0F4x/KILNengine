@@ -22,8 +22,9 @@ auto PreconditionViolation::print() const -> void
         m_location.function_name()
     );
     fmt::println(
-        "    {} {}",
+        "    {} {}, {}",
         fmt::styled("message:", fmt::fg(fmt::color::cornflower_blue)),
+        fmt::styled(m_condition_as_string, fmt::emphasis::bold),
         fmt::styled(m_message, fmt::emphasis::bold)
     );
 }
