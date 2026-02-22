@@ -1,6 +1,7 @@
 add_subdirectory(app)
 add_subdirectory(config)
 add_subdirectory(util)
+add_subdirectory(event)
 
 target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES
@@ -9,4 +10,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         app.ixx
         config.ixx
         util.ixx
+        event.ixx
 )
