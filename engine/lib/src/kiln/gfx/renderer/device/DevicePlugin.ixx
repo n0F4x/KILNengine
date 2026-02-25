@@ -5,13 +5,13 @@ module;
 #include <print>
 #include <utility>
 
-export module kiln.gfx.renderer.DevicePlugin;
+export module kiln.gfx.renderer.device.DevicePlugin;
 
 import vulkan_hpp;
 
 import kiln.app.App;
-import kiln.gfx.renderer.Device;
-import kiln.gfx.renderer.DevicePluginFailedError;
+import kiln.gfx.renderer.device.Device;
+import kiln.gfx.renderer.device.DevicePluginFailedError;
 import kiln.gfx.vulkan.default_debug_messenger_callback;
 import kiln.gfx.vulkan.Device;
 import kiln.gfx.vulkan.DeviceBuilder;

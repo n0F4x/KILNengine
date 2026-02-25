@@ -2,7 +2,7 @@ module;
 
 #include <cstdint>
 
-export module kiln.gfx.renderer.CommandBufferHandle;
+export module kiln.gfx.renderer.command.CommandBufferHandle;
 
 import kiln.util.Strong;
 

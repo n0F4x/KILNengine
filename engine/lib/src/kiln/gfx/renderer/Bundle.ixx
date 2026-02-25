@@ -1,7 +1,7 @@
 export module kiln.gfx.renderer.Bundle;
 
 import kiln.app.Builder;
-import kiln.gfx.renderer.DevicePluginInjection;
+import kiln.gfx.renderer.device.DevicePluginInjection;
 
 namespace kiln::gfx::renderer {
 

@@ -2,7 +2,7 @@ module;
 
 #include <string>
 
-export module kiln.gfx.renderer.Device;
+export module kiln.gfx.renderer.device.Device;
 
 import vulkan_hpp;
 

@@ -3,12 +3,12 @@ module;
 #include <cstdint>
 #include <deque>
 
-export module kiln.gfx.renderer.CommandPool;
+export module kiln.gfx.renderer.command.CommandPool;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.CommandBufferHandle;
-import kiln.gfx.renderer.Device;
+import kiln.gfx.renderer.command.CommandBufferHandle;
+import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 

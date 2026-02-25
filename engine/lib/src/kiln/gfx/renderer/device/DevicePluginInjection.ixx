@@ -6,10 +6,10 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module kiln.gfx.renderer.DevicePluginInjection;
+export module kiln.gfx.renderer.device.DevicePluginInjection;
 
-import kiln.gfx.renderer.DevicePlugin;
-import kiln.gfx.renderer.DevicePluginFailedError;
+import kiln.gfx.renderer.device.DevicePlugin;
+import kiln.gfx.renderer.device.DevicePluginFailedError;
 import kiln.gfx.vulkan.InstancePlugin;
 import kiln.util.contracts;
 import kiln.util.Lazy;

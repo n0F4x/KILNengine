@@ -1,4 +1,4 @@
-export module kiln.gfx.renderer.DevicePluginFailedError;
+export module kiln.gfx.renderer.device.DevicePluginFailedError;
 
 import kiln.app.plugin.PluginFailedError;
 

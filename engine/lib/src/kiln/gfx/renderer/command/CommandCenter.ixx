@@ -6,12 +6,12 @@ module;
 #include <ranges>
 #include <vector>
 
-export module kiln.gfx.renderer.CommandCenter;
+export module kiln.gfx.renderer.command.CommandCenter;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.CommandBufferHandle;
-import kiln.gfx.renderer.CommandPool;
+import kiln.gfx.renderer.command.CommandBufferHandle;
+import kiln.gfx.renderer.command.CommandPool;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 
