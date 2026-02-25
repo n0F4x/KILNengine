@@ -11,7 +11,7 @@ module;
 #include <type_traits>
 #include <utility>
 
-#include "kiln/util/contract_macros.hpp"
+#include "contract_macros.hpp"
 
 export module kiln.util.GenericStack;
 
