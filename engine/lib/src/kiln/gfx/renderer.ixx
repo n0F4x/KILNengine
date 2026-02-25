@@ -1,5 +1,6 @@
 export module kiln.gfx.renderer;
 
+export import kiln.gfx.renderer.Bundle;
 export import kiln.gfx.renderer.CommandBufferHandle;
 export import kiln.gfx.renderer.CommandCenter;
 export import kiln.gfx.renderer.CommandPool;

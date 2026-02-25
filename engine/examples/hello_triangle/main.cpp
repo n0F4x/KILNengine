@@ -13,7 +13,7 @@ auto main() -> int
             .insert_plugin(kiln::config::Plugin{ "Hello triangle!" })
             .inject_plugin(kiln::gfx::vulkan::InstancePluginInjection{})
             .insert_plugin(kiln::wsi::Plugin{})
-            .inject_plugin(kiln::gfx::renderer::DevicePluginInjection{})
+            .apply_bundle(kiln::gfx::renderer::Bundle{})
             .build();
 
     std::println(
