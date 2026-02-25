@@ -13,6 +13,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
+        vulkan.cppm
         context.ixx
         InstanceBuilder.ixx
         InstancePlugin.ixx
@@ -20,8 +21,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         default_debug_messenger_callback.ixx
         Device.ixx
         DeviceBuilder.ixx
-        extension_inspection.ixx
-        format.ixx
         PhysicalDeviceCapabilities.ixx
         PhysicalDeviceSelector.ixx
         Profile.ixx
@@ -29,7 +28,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         QueueFamilyIndex.ixx
         QueueGroup.ixx
         QueuePack.ixx
-        result.ixx
-        structure_chain.ixx
         Swapchain.ixx
 )

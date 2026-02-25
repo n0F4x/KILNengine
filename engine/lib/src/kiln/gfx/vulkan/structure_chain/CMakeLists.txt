@@ -2,6 +2,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
+        structure_chain.cppm
         comprehensive_feature_struct_c.ixx
         core_feature_struct_from_vulkan1x_c.ixx
         erase_physical_device_features.ixx

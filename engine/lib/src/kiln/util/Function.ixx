@@ -5,7 +5,7 @@ module;
 #include <type_traits>
 #include <utility>
 
-#include "kiln/util/no_unique_address.hpp"
+#include "no_unique_address.hpp"
 
 export module kiln.util.Function;
 

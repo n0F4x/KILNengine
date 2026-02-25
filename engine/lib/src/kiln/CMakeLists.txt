@@ -8,9 +8,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
-        app.ixx
-        config.ixx
-        gfx.ixx
-        util.ixx
-        wsi.ixx
+        kiln.cppm
 )
