@@ -1,6 +1,7 @@
 module;
 
 #include <concepts>
+#include <functional>
 #include <memory>
 #include <memory_resource>
 #include <utility>
@@ -41,6 +42,10 @@ public:
 
     template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
     auto inject_plugin(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T&&;
+
+    template <typename Self_T, typename Bundle_T>
+        requires std::invocable<Bundle_T&&, Builder&>
+    auto apply_bundle(this Self_T&&, Bundle_T&& bundle) -> Self_T&&;
 
 
     [[nodiscard]]
@@ -128,6 +133,14 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
         self.Builder::m_builder_arena.transitive_resource()
     );
 
+    return std::forward<Self_T>(self);
+}
+
+template <typename Self_T, typename Bundle_T>
+    requires std::invocable<Bundle_T&&, Builder&>
+auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
+{
+    std::invoke(std::forward<Bundle_T>(bundle), self);
     return std::forward<Self_T>(self);
 }
 
