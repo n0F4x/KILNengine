@@ -5,7 +5,7 @@ module;
 #include <optional>
 #include <type_traits>
 
-#include "kiln/util/contract_macros.hpp"
+#include "contract_macros.hpp"
 
 export module kiln.util.OptionalRef;
 

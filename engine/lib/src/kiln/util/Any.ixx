@@ -13,7 +13,7 @@ module;
 #include <utility>
 #include <variant>
 
-#include "kiln/util/contract_macros.hpp"
+#include "contract_macros.hpp"
 
 export module kiln.util.Any;
 
