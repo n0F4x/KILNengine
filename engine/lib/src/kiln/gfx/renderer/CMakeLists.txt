@@ -6,7 +6,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandCenter.ixx
         CommandPool.ixx
         Device.ixx
-        Plugin.ixx
-        PluginFailedError.ixx
-        PluginInjection.ixx
+        DevicePlugin.ixx
+        DevicePluginFailedError.ixx
+        DevicePluginInjection.ixx
 )

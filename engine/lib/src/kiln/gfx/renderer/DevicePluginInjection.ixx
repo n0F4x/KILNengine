@@ -6,10 +6,10 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module kiln.gfx.renderer.PluginInjection;
+export module kiln.gfx.renderer.DevicePluginInjection;
 
-import kiln.gfx.renderer.Plugin;
-import kiln.gfx.renderer.PluginFailedError;
+import kiln.gfx.renderer.DevicePlugin;
+import kiln.gfx.renderer.DevicePluginFailedError;
 import kiln.gfx.vulkan.InstancePlugin;
 import kiln.util.contracts;
 import kiln.util.Lazy;
@@ -20,17 +20,17 @@ import kiln.wsi.vulkan_instance_extensions;
 
 namespace kiln::gfx::renderer {
 
-export class PluginInjection {
+export class DevicePluginInjection {
 public:
-    PluginInjection() = default;
+    DevicePluginInjection() = default;
 
-    explicit PluginInjection(const bool headless) : m_headless{ headless } {}
+    explicit DevicePluginInjection(const bool headless) : m_headless{ headless } {}
 
     [[nodiscard]]
     auto operator()(
         vulkan::InstancePlugin&                    instance_plugin,
         const util::OptionalRef<const wsi::Plugin> wsi_plugin
-    ) const -> Plugin
+    ) const -> DevicePlugin
     {
         if (!m_headless)
         {
@@ -45,7 +45,7 @@ public:
                          util::Lazy{
                              [] -> std::span<const char* const>
                              {
-                                 throw PluginFailedError{
+                                 throw DevicePluginFailedError{
                                      "Vulkan surface creation is not supported"
                                  };
                              }   //
@@ -62,7 +62,7 @@ public:
             }
         }
 
-        return Plugin{ instance_plugin, m_headless };
+        return DevicePlugin{ instance_plugin, m_headless };
     }
 
 private:

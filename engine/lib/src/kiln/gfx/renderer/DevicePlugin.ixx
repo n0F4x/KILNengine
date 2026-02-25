@@ -5,13 +5,13 @@ module;
 #include <print>
 #include <utility>
 
-export module kiln.gfx.renderer.Plugin;
+export module kiln.gfx.renderer.DevicePlugin;
 
 import vulkan_hpp;
 
 import kiln.app.App;
 import kiln.gfx.renderer.Device;
-import kiln.gfx.renderer.PluginFailedError;
+import kiln.gfx.renderer.DevicePluginFailedError;
 import kiln.gfx.vulkan.default_debug_messenger_callback;
 import kiln.gfx.vulkan.Device;
 import kiln.gfx.vulkan.DeviceBuilder;
@@ -28,13 +28,13 @@ import kiln.wsi.Plugin;
 
 namespace kiln::gfx::renderer {
 
-export class Plugin {
+export class DevicePlugin {
 public:
     struct CreateInfo {
         bool headless{};
     };
 
-    explicit Plugin(vulkan::InstancePlugin& instance_plugin, bool headless = false);
+    explicit DevicePlugin(vulkan::InstancePlugin& instance_plugin, bool headless = false);
 
     template <typename Self_T>
     [[nodiscard]]
@@ -61,7 +61,7 @@ private:
 
 namespace kiln::gfx::renderer {
 
-Plugin::Plugin(vulkan::InstancePlugin& instance_plugin, bool headless)
+DevicePlugin::DevicePlugin(vulkan::InstancePlugin& instance_plugin, bool headless)
     : m_instance_plugin_ref{ instance_plugin },
       m_headless{ headless }
 {
@@ -73,20 +73,20 @@ Plugin::Plugin(vulkan::InstancePlugin& instance_plugin, bool headless)
 }
 
 template <typename Self_T>
-auto Plugin::operator*(this Self_T&& self)
+auto DevicePlugin::operator*(this Self_T&& self)
     -> util::forward_like_t<vulkan::DeviceBuilder, Self_T>
 {
-    return std::forward_like<Self_T>(self.Plugin::m_device_builder);
+    return std::forward_like<Self_T>(self.DevicePlugin::m_device_builder);
 }
 
 template <typename Self_T>
-auto Plugin::operator->(this Self_T& self)
+auto DevicePlugin::operator->(this Self_T& self)
     -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*
 {
-    return &self.Plugin::m_device_builder;
+    return &self.DevicePlugin::m_device_builder;
 }
 
-auto Plugin::request_debug_messenger() -> bool
+auto DevicePlugin::request_debug_messenger() -> bool
 {
     if (m_request_debug_messenger)
     {
@@ -103,7 +103,7 @@ auto Plugin::request_debug_messenger() -> bool
     return true;
 }
 
-auto Plugin::operator()(app::App& app) -> void
+auto DevicePlugin::operator()(app::App& app) -> void
 {
     const vk::raii::Instance& instance{ app.resources().at<vk::raii::Instance>() };
 
@@ -149,7 +149,7 @@ auto Plugin::operator()(app::App& app) -> void
             util::Lazy{
                 [] [[noreturn]] -> vulkan::Device
                 {
-                    throw PluginFailedError{ "No supported device found" };   //
+                    throw DevicePluginFailedError{ "No supported device found" };   //
                 }   //
             }
         );
