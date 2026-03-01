@@ -20,7 +20,7 @@ import kiln.gfx.vulkan.structure_chain.merge_physical_device_features;
 import kiln.gfx.vulkan.structure_chain.erase_physical_device_features;
 import kiln.gfx.vulkan.structure_chain.StructureChain;
 import kiln.gfx.vulkan.structure_chain.vulkan1x_feature_struct_c;
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 import kiln.util.StringLiteral;
 import kiln.util.contracts;
 

@@ -12,14 +12,14 @@ module;
 #include <type_traits>
 #include <utility>
 
-#include "contract_macros.hpp"
+#include "kiln/util/contract_macros.hpp"
 
-export module kiln.util.GenericStack;
+export module kiln.util.containers.GenericStack;
 
-import kiln.util.Any;
+import kiln.util.containers.MoveOnlyAny;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.contracts;
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 import kiln.util.reflection;
 import kiln.util.transform;
 import kiln.util.type_traits.arguments_of;

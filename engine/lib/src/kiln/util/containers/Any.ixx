@@ -13,9 +13,9 @@ module;
 #include <utility>
 #include <variant>
 
-#include "contract_macros.hpp"
+#include "kiln/util/contract_macros.hpp"
 
-export module kiln.util.Any;
+export module kiln.util.containers.Any;
 
 import kiln.util.concepts.decayed;
 import kiln.util.concepts.naked;
@@ -324,26 +324,6 @@ private:
 };
 
 export using Any = BasicAny<>;
-
-export template <
-    std::size_t size_T      = 3 * sizeof(void*),
-    std::size_t alignment_T = sizeof(void*)>
-using BasicCopyableAny = BasicAny<DefaultAnyTraits<false, size_T, alignment_T>>;
-
-export using CopyableAny = BasicCopyableAny<>;
-
-export template <typename T>
-concept copyable_any_c = any_c<T> && (!T::is_move_only());
-
-export template <
-    std::size_t size_T      = 3 * sizeof(void*),
-    std::size_t alignment_T = sizeof(void*)>
-using BasicMoveOnlyAny = BasicAny<DefaultAnyTraits<true, size_T, alignment_T>>;
-
-export using MoveOnlyAny = BasicMoveOnlyAny<>;
-
-export template <typename T>
-concept move_only_any_c = any_c<T> && (T::is_move_only());
 
 }   // namespace kiln::util
 

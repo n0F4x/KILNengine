@@ -12,7 +12,7 @@ import kiln.app.resource.decays_to_resource_injection_c;
 import kiln.app.resource.resource_c;
 import kiln.app.resource.ResourceStack;
 import kiln.util.Deleter;
-import kiln.util.Function;
+import kiln.util.containers.MoveOnlyFunction;
 
 namespace kiln::app {
 

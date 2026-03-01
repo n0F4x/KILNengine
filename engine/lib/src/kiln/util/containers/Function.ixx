@@ -5,11 +5,11 @@ module;
 #include <type_traits>
 #include <utility>
 
-#include "no_unique_address.hpp"
+#include "kiln/util/no_unique_address.hpp"
 
-export module kiln.util.Function;
+export module kiln.util.containers.Function;
 
-import kiln.util.Any;
+import kiln.util.containers.Any;
 import kiln.util.concepts.function;
 import kiln.util.concepts.specialization_of;
 import kiln.util.type_traits.arguments_of;
@@ -42,18 +42,6 @@ using Function = BasicAny<typename internal::FunctionTraits<
     alignment_T,
     Signature_T,
     arguments_of_t<Signature_T>>::AnyTraits>;
-
-export template <
-    function_c  Signature_T,
-    std::size_t size_T      = 3 * sizeof(void*),
-    std::size_t alignment_T = sizeof(void*)>
-using CopyableFunction = Function<Signature_T, false, size_T, alignment_T>;
-
-export template <
-    function_c  Signature_T,
-    std::size_t size_T      = 3 * sizeof(void*),
-    std::size_t alignment_T = sizeof(void*)>
-using MoveOnlyFunction = Function<Signature_T, true, size_T, alignment_T>;
 
 }   // namespace kiln::util
 

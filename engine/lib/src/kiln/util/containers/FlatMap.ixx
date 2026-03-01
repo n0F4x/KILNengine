@@ -6,7 +6,7 @@ module;
 #include <utility>
 #include <vector>
 
-export module kiln.util.FlatMap;
+export module kiln.util.containers.FlatMap;
 
 namespace kiln::util {
 

@@ -11,6 +11,8 @@ export module kiln.app.Builder;
 import kiln.app.App;
 import kiln.app.memory.Arena;
 import kiln.app.memory.MemoryPluginInjection;
+import kiln.app.plugin.plugin_c;
+import kiln.app.plugin.plugin_injection_c;
 import kiln.app.plugin.PluginTree;
 import kiln.app.resource.decays_to_resource_c;
 import kiln.app.resource.decays_to_resource_injection_c;
@@ -42,6 +44,7 @@ public:
 
     template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
     auto inject_plugin(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T&&;
+
 
     template <typename Self_T, typename Bundle_T>
         requires std::invocable<Bundle_T&&, Builder&>

@@ -1,6 +1,6 @@
 export module kiln.app.resource.ResourceStack;
 
-import kiln.util.GenericStack;
+import kiln.util.containers.GenericStack;
 
 namespace kiln::app {
 

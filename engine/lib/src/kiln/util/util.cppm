@@ -1,20 +1,15 @@
 export module kiln.util;
 
 export import kiln.util.concepts;
+export import kiln.util.containers;
 export import kiln.util.type_traits;
 
-export import kiln.util.Any;
-export import kiln.util.Bool;
 export import kiln.util.contracts;
 export import kiln.util.Deleter;
 export import kiln.util.Dummy;
-export import kiln.util.FlatMap;
 export import kiln.util.for_each;
-export import kiln.util.Function;
-export import kiln.util.FunctionWrapper;
-export import kiln.util.GenericStack;
+export import kiln.util.containers.FunctionWrapper;
 export import kiln.util.Lazy;
-export import kiln.util.OptionalRef;
 export import kiln.util.Overloaded;
 export import kiln.util.reflection;
 export import kiln.util.StringLiteral;

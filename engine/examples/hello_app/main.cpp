@@ -5,7 +5,7 @@
 
 import kiln.app;
 import kiln.util.contracts;
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 
 struct GraphicsSystemIntegration {};
 

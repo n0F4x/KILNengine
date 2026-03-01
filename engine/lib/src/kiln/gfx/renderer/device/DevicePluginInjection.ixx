@@ -13,7 +13,7 @@ import kiln.gfx.renderer.device.DevicePluginFailedError;
 import kiln.gfx.vulkan.InstancePlugin;
 import kiln.util.contracts;
 import kiln.util.Lazy;
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 import kiln.util.StringLiteral;
 import kiln.wsi.Plugin;
 import kiln.wsi.vulkan_instance_extensions;

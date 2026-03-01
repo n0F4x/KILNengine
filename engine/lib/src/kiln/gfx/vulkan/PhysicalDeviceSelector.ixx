@@ -14,7 +14,7 @@ import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
 import kiln.gfx.vulkan.structure_chain.StructureChain;
-import kiln.util.Function;
+import kiln.util.containers.CopyableFunction;
 import kiln.util.StringLiteral;
 
 namespace kiln::gfx::vulkan {

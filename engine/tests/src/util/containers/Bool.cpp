@@ -2,8 +2,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-import kiln.util.Bool;
-import kiln.util.OptionalRef;
+import kiln.util.containers.Bool;
+import kiln.util.containers.OptionalRef;
 
 namespace kiln::util {
 

@@ -129,7 +129,7 @@ auto PluginTree::invoke_plugins(App& app) && -> void
 
     std::move(plugin_stack)
         .for_each(
-            [&app](internal::ErasedPlugin&& erased_plugin) -> void
+            [&app](ErasedPlugin&& erased_plugin) -> void
             {
                 std::move(erased_plugin)(app);   //
             }

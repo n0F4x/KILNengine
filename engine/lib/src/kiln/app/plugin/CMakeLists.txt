@@ -7,6 +7,10 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         plugin.cppm
+        ErasedPlugin.ixx
+        plugin_c.ixx
+        plugin_injection_c.ixx
         PluginFailedError.ixx
         PluginTree.ixx
+        strip_plugin_dependency_t.ixx
 )

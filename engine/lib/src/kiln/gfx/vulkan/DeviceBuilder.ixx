@@ -24,8 +24,8 @@ import kiln.gfx.vulkan.queue_properties;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueGroup;
 import kiln.gfx.vulkan.QueuePack;
-import kiln.util.Bool;
-import kiln.util.Function;
+import kiln.util.containers.Bool;
+import kiln.util.containers.CopyableFunction;
 import kiln.util.Lazy;
 import kiln.util.StringLiteral;
 
@@ -454,7 +454,7 @@ auto DeviceBuilder::create_device_queue_create_infos(
             };
         }
 
-        std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
+        const std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
             device_queue_create_infos.emplace_back(),
             per_family_queue_priorities.emplace_back()
         };

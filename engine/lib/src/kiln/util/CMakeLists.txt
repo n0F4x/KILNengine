@@ -1,4 +1,5 @@
 add_subdirectory(concepts)
+add_subdirectory(containers)
 add_subdirectory(type_traits)
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -19,18 +20,12 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         util.cppm
-        Any.ixx
-        Bool.ixx
         contracts.ixx
         Deleter.ixx
         Dummy.ixx
-        FlatMap.ixx
         for_each.ixx
-        Function.ixx
         FunctionWrapper.ixx
-        GenericStack.ixx
         Lazy.ixx
-        OptionalRef.ixx
         Overloaded.ixx
         reflection.ixx
         StringLiteral.ixx

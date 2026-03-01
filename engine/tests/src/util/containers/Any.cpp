@@ -7,7 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-import kiln.util.Any;
+import kiln.util.containers.Any;
 import kiln.util.Deleter;
 
 namespace kiln::util {
@@ -295,8 +295,8 @@ TEST_CASE("util::Any")
             };
         };
 
-        CountingResource  memory_resource;
-        const MoveOnlyAny any{
+        CountingResource                       memory_resource;
+        const BasicAny<DefaultAnyTraits<true>> any{
             std::allocator_arg,
             &memory_resource,
             std::in_place_type<Container>,

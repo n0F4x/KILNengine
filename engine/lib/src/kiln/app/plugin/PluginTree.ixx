@@ -19,15 +19,19 @@ module;
 export module kiln.app.plugin.PluginTree;
 
 import kiln.app.App;
+import kiln.app.plugin.ErasedPlugin;
+import kiln.app.plugin.plugin_c;
+import kiln.app.plugin.plugin_injection_c;
+import kiln.app.plugin.strip_plugin_dependency_t;
 import kiln.app.memory.Arena;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.contracts;
 import kiln.util.Deleter;
 import kiln.util.for_each;
-import kiln.util.Function;
-import kiln.util.GenericStack;
-import kiln.util.OptionalRef;
+import kiln.util.containers.MoveOnlyFunction;
+import kiln.util.containers.GenericStack;
+import kiln.util.containers.OptionalRef;
 import kiln.util.reflection;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.forward_like;
@@ -38,44 +42,12 @@ namespace kiln::app {
 
 namespace internal {
 
-using ErasedPlugin = util::MoveOnlyFunction<void(App&) &&, 0>;
-
-template <typename T>
-concept plugin_c = util::basic_generic_stack_item_c<T, ErasedPlugin>;
-
 using PluginStack = util::BasicGenericStack<ErasedPlugin>;
-
-template <typename>
-struct StripPluginDependency;
-
-template <util::specialization_of_c<util::OptionalRef> T>
-struct StripPluginDependency<T> {
-    using type = std::remove_const_t<typename T::ValueType>;
-};
-
-template <typename T>
-    requires(!util::specialization_of_c<T, util::OptionalRef>)
-struct StripPluginDependency<T> {
-    using type = std::remove_cvref_t<T>;
-};
-
-template <typename T>
-using strip_plugin_dependency_t = StripPluginDependency<T>::type;
 
 template <typename T>
 concept represents_optional_dependency_c = requires {
     requires util::specialization_of_c<T, util::OptionalRef>;
 };
-
-template <typename T>
-struct RepresentsPluginDependency {
-    constexpr static bool value = plugin_c<strip_plugin_dependency_t<T>>;
-};
-
-template <typename T>
-concept plugin_injection_c =
-    plugin_c<util::result_of_t<T&&>>
-    && util::type_list_all_of_c<util::arguments_of_t<T>, RepresentsPluginDependency>;
 
 class ErasedPluginInjection {
 public:
@@ -136,18 +108,6 @@ private:
 };
 
 }   // namespace internal
-
-export template <typename T>
-concept plugin_c = internal::plugin_c<T>;
-
-export template <typename T>
-concept decays_to_plugin_c = plugin_c<std::decay_t<T>>;
-
-export template <typename T>
-concept plugin_injection_c = internal::plugin_injection_c<T>;
-
-export template <typename T>
-concept decays_to_plugin_injection_c = plugin_injection_c<std::decay_t<T>>;
 
 export class PluginTree {
 public:
@@ -446,8 +406,7 @@ auto PluginTree::check_for_cyclic_dependencies() const -> void
             check_for_new_cyclic_dependency(
                 util::hash_u64<Plugin>(),
                 util::name_of<Plugin>(),
-                util::hash_u64<
-                    typename internal::StripPluginDependency<Dependency_T>::type>(),
+                util::hash_u64<strip_plugin_dependency_t<Dependency_T>>(),
                 plugin_name_chain_node
             );
         }
@@ -485,7 +444,7 @@ auto PluginTree::collect_unresolved_dependency_plugin_hashes(
         {
             if constexpr (internal::represents_optional_dependency_c<Dependency_T>)
             {
-                using PluginDependency = internal::strip_plugin_dependency_t<Dependency_T>;
+                using PluginDependency = strip_plugin_dependency_t<Dependency_T>;
 
                 constexpr static uint64_t dependency_hash{
                     util::hash_u64<PluginDependency>()

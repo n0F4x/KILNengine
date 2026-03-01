@@ -14,7 +14,7 @@ import vulkan_hpp;
 
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueuePack;
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
 import kiln.util.type_traits.const_like;
 

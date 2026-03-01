@@ -5,9 +5,9 @@ module;
 #include <optional>
 #include <type_traits>
 
-#include "contract_macros.hpp"
+#include "kiln/util/contract_macros.hpp"
 
-export module kiln.util.OptionalRef;
+export module kiln.util.containers.OptionalRef;
 
 import kiln.util.contracts;
 

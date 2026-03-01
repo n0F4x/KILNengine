@@ -4,9 +4,9 @@ module;
 #include <optional>
 #include <type_traits>
 
-export module kiln.util.Bool;
+export module kiln.util.containers.Bool;
 
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 import kiln.util.concepts.specialization_of;
 
 namespace kiln::util {

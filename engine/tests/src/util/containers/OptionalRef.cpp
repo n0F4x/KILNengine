@@ -3,7 +3,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-import kiln.util.OptionalRef;
+import kiln.util.containers.OptionalRef;
 
 namespace kiln::util {
 
