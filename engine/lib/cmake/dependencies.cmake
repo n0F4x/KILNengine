@@ -44,3 +44,11 @@ target_compile_definitions(VulkanCppModule PUBLIC
 target_link_libraries(VulkanCppModule PUBLIC Vulkan::Headers)
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Headers)
 target_link_libraries(${PROJECT_NAME} PUBLIC $<BUILD_LOCAL_INTERFACE:VulkanCppModule>)
+
+# VulkanMemoryAllocator
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+        VMA_STATIC_VULKAN_FUNCTIONS=0
+        VMA_DYNAMIC_VULKAN_FUNCTIONS=0
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)

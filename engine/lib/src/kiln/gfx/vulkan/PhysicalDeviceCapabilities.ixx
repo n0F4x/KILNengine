@@ -78,7 +78,7 @@ public:
     auto erase(const PhysicalDeviceCapabilities& other) -> void;
 
 private:
-    uint32_t                                    m_version{ vk::ApiVersion11 };
+    uint32_t                                    m_version{ vk::ApiVersion10 };
     std::vector<util::StringLiteral>            m_extension_names{};
     StructureChain<vk::PhysicalDeviceFeatures2> m_features;
 

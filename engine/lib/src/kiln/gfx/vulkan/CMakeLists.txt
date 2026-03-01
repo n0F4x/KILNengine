@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         default_debug_messenger_callback.cxx
         global_definitions.cpp
         InstanceBuilder.cxx
+        vma_global_definitions.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC

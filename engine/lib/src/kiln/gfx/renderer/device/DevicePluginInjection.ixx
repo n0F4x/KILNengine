@@ -54,7 +54,7 @@ public:
             {
                 {
                     [[maybe_unused]]
-                    const bool success = instance_plugin->enable_extension(
+                    const bool success = instance_plugin->enable_extension_if_available(
                         util::StringLiteral::unsafe_create(extension_name)
                     );
                     assert(success);

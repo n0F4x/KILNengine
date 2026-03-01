@@ -28,6 +28,15 @@ public:
     auto name() const -> std::string;
 
     [[nodiscard]]
+    auto physical_device() const noexcept -> const vk::raii::PhysicalDevice&;
+
+    [[nodiscard]]
+    auto logical_device() const noexcept -> const vk::raii::Device&;
+
+    [[nodiscard]]
+    auto capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&;
+
+    [[nodiscard]]
     auto create_window(
         const vk::raii::Instance&      vulkan_instance,
         const wsi::Context&            wsi_context,
@@ -67,6 +76,21 @@ Device::Device(
 auto Device::name() const -> std::string
 {
     return m_physical_device.getProperties2().properties.deviceName;
+}
+
+auto Device::physical_device() const noexcept -> const vk::raii::PhysicalDevice&
+{
+    return m_physical_device;
+}
+
+auto Device::logical_device() const noexcept -> const vk::raii::Device&
+{
+    return m_logical_device;
+}
+
+auto Device::capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&
+{
+    return m_capabilities;
 }
 
 auto Device::create_window(

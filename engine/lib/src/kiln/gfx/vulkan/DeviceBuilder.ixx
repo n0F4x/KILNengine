@@ -143,8 +143,8 @@ auto DeviceBuilder::enable_extension(
 
 template <typename Self_T>
 auto DeviceBuilder::enable_extension_if_available(
-    this Self_T&&       self,
-    util::StringLiteral extension_name
+    this Self_T&&             self,
+    const util::StringLiteral extension_name
 ) -> Self_T&&
 {
     if (!std::ranges::contains(
@@ -454,7 +454,7 @@ auto DeviceBuilder::create_device_queue_create_infos(
             };
         }
 
-        const std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
+        std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
             device_queue_create_infos.emplace_back(),
             per_family_queue_priorities.emplace_back()
         };

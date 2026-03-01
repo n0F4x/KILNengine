@@ -1,4 +1,6 @@
+add_subdirectory(allocator)
 add_subdirectory(command)
+add_subdirectory(descriptor)
 add_subdirectory(device)
 
 target_sources(${PROJECT_NAME} PUBLIC

@@ -21,7 +21,7 @@ export class CommandCenter {
 public:
     CommandCenter(
         const vk::raii::Device&  device,
-        vulkan::QueueFamilyIndex graphics_queue_family_index,
+        vulkan::QueueFamilyIndex queue_family_index,
         uint32_t                 number_of_frames
     );
 
@@ -45,7 +45,7 @@ namespace internal {
 [[nodiscard]]
 auto create_command_pools(
     const vk::raii::Device&        device,
-    const vulkan::QueueFamilyIndex graphics_queue_family_index,
+    const vulkan::QueueFamilyIndex queue_family_index,
     const uint32_t                 number_of_frames
 ) -> std::vector<CommandPool>
 {
@@ -54,7 +54,7 @@ auto create_command_pools(
 
     for (const auto _ : std::views::repeat(std::ignore, number_of_frames))
     {
-        result.push_back(CommandPool{ device, graphics_queue_family_index });
+        result.emplace_back(device, queue_family_index);
     }
 
     return result;
@@ -64,13 +64,13 @@ auto create_command_pools(
 
 CommandCenter::CommandCenter(
     const vk::raii::Device&        device,
-    const vulkan::QueueFamilyIndex graphics_queue_family_index,
+    const vulkan::QueueFamilyIndex queue_family_index,
     const uint32_t                 number_of_frames
 )
     : m_pools{
           internal::create_command_pools(
               device,
-              graphics_queue_family_index,
+              queue_family_index,
               number_of_frames
           )   //
       }

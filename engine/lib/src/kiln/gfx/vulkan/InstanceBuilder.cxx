@@ -1,6 +1,8 @@
 module;
 
 #include <algorithm>
+#include <print>
+#include <ranges>
 #include <vector>
 
 #include "kiln/util/contract_macros.hpp"
@@ -69,7 +71,9 @@ auto InstanceBuilder::require_minimum_version(const uint32_t version) -> bool
     return true;
 }
 
-auto InstanceBuilder::enable_vulkan_layer(const util::StringLiteral layer_name) -> bool
+auto InstanceBuilder::enable_vulkan_layer_if_available(
+    const util::StringLiteral layer_name
+) -> bool
 {
     const std::vector<vk::LayerProperties> layer_properties{
         m_context.get().enumerateInstanceLayerProperties()
@@ -102,7 +106,9 @@ auto InstanceBuilder::enable_vulkan_layer(const util::StringLiteral layer_name) 
     return true;
 }
 
-auto InstanceBuilder::enable_extension(const util::StringLiteral extension_name) -> bool
+auto InstanceBuilder::enable_extension_if_available(
+    const util::StringLiteral extension_name
+) -> bool
 {
     const std::vector<vk::ExtensionProperties> extension_properties{
         m_context.get().enumerateInstanceExtensionProperties()

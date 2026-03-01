@@ -51,10 +51,8 @@ public:
     auto request_api_version(uint32_t api_version) -> void;
     [[nodiscard]]
     auto require_minimum_version(uint32_t version) -> bool;
-    [[nodiscard]]
-    auto enable_vulkan_layer(util::StringLiteral layer_name) -> bool;
-    [[nodiscard]]
-    auto enable_extension(util::StringLiteral extension_name) -> bool;
+    auto enable_vulkan_layer_if_available(util::StringLiteral layer_name) -> bool;
+    auto enable_extension_if_available(util::StringLiteral extension_name) -> bool;
 
     [[nodiscard]]
     auto build() const -> vk::raii::Instance;
