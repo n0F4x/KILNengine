@@ -74,7 +74,7 @@ public:
     [[nodiscard]]
     auto find(this Self_T& self, const Key_T& key) -> Iterator<std::is_const_v<Self_T>>
     {
-        const auto key_iter   = std::ranges::lower_bound(self.m_keys, key);
+        const auto key_iter   = std::ranges::find(self.m_keys, key);
         const auto value_iter = std::next(
             self.m_values.begin(),
             static_cast<std::ranges::range_difference_t<std::vector<Value_T>>>(
@@ -85,9 +85,8 @@ public:
         return Iterator<std::is_const_v<Self_T>>{ key_iter, value_iter };
     }
 
-    template <typename... Args_T>
-    auto try_emplace(const Key_T& key, Args_T&&... args)
-        -> std::pair<Iterator<false>, bool>
+    template <typename UKey_T, typename... Args_T>
+    auto try_emplace(UKey_T&& key, Args_T&&... args) -> std::pair<Iterator<false>, bool>
     {
         const auto found_iter = find(key);
         if (found_iter != cend())
@@ -95,13 +94,14 @@ public:
             return std::pair<Iterator<false>, bool>{ found_iter, false };
         }
 
-        m_keys.push_back(key);
-        m_values.emplace_back(std::forward<Args_T>(args)...);
+        const auto key_iter = std::ranges::upper_bound(m_keys, key);
+        const auto diff     = std::distance(m_keys.begin(), key_iter);
+        const auto value_iter =
+            std::next(m_values.begin(), std::distance(m_keys.begin(), key_iter));
+        m_keys.emplace(key_iter, std::forward<UKey_T>(key));
+        m_values.emplace(value_iter, std::forward<Args_T>(args)...);
 
-        return std::pair<Iterator<false>, bool>{
-            std::next(begin(), static_cast<Iterator<false>::difference_type>(size()) - 1),
-            true
-        };
+        return std::pair<Iterator<false>, bool>{ std::next(begin(), diff), true };
     }
 
     auto erase(const ConstIterator iterator) -> std::size_t
