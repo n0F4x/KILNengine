@@ -11,6 +11,7 @@ export import kiln.util.GenericStack;
 export import kiln.util.OptionalRef;
 export import kiln.util.reflection;
 export import kiln.util.StringLiteral;
+export import kiln.util.Strong;
 export import kiln.util.transform;
 export import kiln.util.type_traits;
 export import kiln.util.TypeList;

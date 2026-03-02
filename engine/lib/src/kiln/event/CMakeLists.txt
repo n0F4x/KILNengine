@@ -5,4 +5,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         event.cppm
         event_c.ixx
         Plugin.ixx
+        SubscriberID.ixx
 )

@@ -11,6 +11,7 @@ export module kiln.event.Plugin;
 
 import kiln.app.App;
 import kiln.event.event_c;
+import kiln.event.SubscriberID;
 import kiln.util;
 
 namespace kiln::event {
@@ -20,22 +21,22 @@ export class EventSystem {
     using ErasedListener = util::MoveOnlyFunction<void(const Event_T&)>;
 
     struct HandlerEntry {
-        std::uint64_t id;
-        std::any      subscriber;
-        std::int64_t  priority;
+        SubscriberID id;
+        std::any     subscriber;
+        std::int64_t priority;
     };
 
     std::unordered_map<std::uint64_t, std::vector<HandlerEntry>> m_event_map;
-    std::unordered_map<std::uint64_t, std::uint64_t>             m_id_event_type;
+    std::unordered_map<SubscriberID, std::uint64_t>              m_id_event_type;
     std::uint64_t                                                m_next_id = 0;
 
 public:
     template <event_c Event_T, typename Subscriber_T>
     auto subscribe(Subscriber_T&& subscriber, const std::int64_t priority = 0)
-        -> std::uint64_t
+        -> SubscriberID
     {
-        const auto          type_key = util::hash_u64<Event_T>();
-        const std::uint64_t id       = m_next_id++;
+        const uint64_t     type_key{ util::hash_u64<Event_T>() };
+        const SubscriberID id{ m_next_id++ };
 
         auto& handlers = m_event_map[type_key];
 
@@ -54,10 +55,10 @@ public:
         );
 
         handlers.insert(iter, std::move(entry));
-        return id;
+        return SubscriberID{ id };
     };
 
-    auto unsubscribe(std::uint64_t id) -> void
+    auto unsubscribe(const SubscriberID id) -> void
     {
         const auto type_key = m_id_event_type.at(id);
         const auto iter     = m_event_map.find(type_key);
