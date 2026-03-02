@@ -29,6 +29,7 @@ private:
     };
 
     std::unordered_map<std::uint64_t, std::vector<HandlerEntry>> m_event_map;
+    std::unordered_map<std::uint64_t, std::uint64_t> m_id_event_type;
     std::uint64_t m_next_id = 0;
 
 public:
@@ -42,6 +43,7 @@ public:
 
         std::function<void(const Event_T&)> func = std::forward<Callback_T>(callback);
         HandlerEntry entry{ id, std::move(func), priority };
+        m_id_event_type[id] = type_key;
 
         auto iter = std::ranges::upper_bound(
             handlers.begin(),
@@ -55,10 +57,9 @@ public:
         return id;
     };
 
-    template<typename Event_T>
     auto unsubscribe(std::uint64_t id) -> void
     {
-        const auto type_key = kiln::util::hash_u64<Event_T>();
+        const auto type_key = m_id_event_type.at(id);
         const auto iter = m_event_map.find(type_key);
         if (iter == m_event_map.end()) { return; }
 
@@ -70,7 +71,7 @@ public:
     template<event_c Event_T>
     auto publish(const Event_T& event) -> void
     {
-        const auto type_key = kiln::util::hash_u64<Event_T>();
+        const auto type_key = util::hash_u64<Event_T>();
         const auto iter = m_event_map.find(type_key);
         if (iter == m_event_map.end()) { return; }
 

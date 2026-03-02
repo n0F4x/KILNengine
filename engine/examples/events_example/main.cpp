@@ -35,7 +35,7 @@ auto main() -> int
         event_system.subscribe<EventTest>(event_test2, 1);
 
     event_system.publish<EventTest>({3, 2});
-    event_system.unsubscribe<EventTest>(id1);
+    event_system.unsubscribe(id1);
     event_system.publish<EventTest>({4, 1});
-    event_system.unsubscribe<EventTest>(id2);
+    event_system.unsubscribe(id2);
 }
