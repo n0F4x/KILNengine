@@ -30,7 +30,8 @@ private:
 
 public:
     template <typename T>
-    auto subscribe(std::function<void(const T&)> callback, const Priority priority = 0) -> ListenerId {
+    auto subscribe(std::function<void(const T&)> callback, const Priority priority = 0)
+    -> ListenerId {
         const auto type_key = std::type_index(typeid(T));
         const ListenerId id = m_next_id++;
 
