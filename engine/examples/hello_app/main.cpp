@@ -104,17 +104,17 @@ auto main() -> int
 
     // builder needs to be configured on the stack, otherwise we run into a bug on Windows
     app::Builder builder = app::create()
-                                .inject_resource(
+                               .inject_resource(
                                    [](const RenderSystem& render_system) -> Message
                                    {
                                        return render_system.window_system == nullptr
                                                 ? "Renderer is headless"
                                                 : "Renderer is not headless";
                                    }
-                                )
-                                .insert_plugin(GraphicsSystemIntegrationPlugin{})
-                                .inject_plugin(RendererPluginInjection{})
-                                .inject_plugin(window_plugin_injection);
+                               )
+                               .insert_plugin(GraphicsSystemIntegrationPlugin{})
+                               .inject_plugin(RendererPluginInjection{})
+                               .inject_plugin(window_plugin_injection);
     app::App app = std::move(builder).build();
 
     // Renderer is never headless when both window and graphics plugins are present
