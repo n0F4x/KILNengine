@@ -27,6 +27,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         OptionalRef.ixx
         reflection.ixx
         StringLiteral.ixx
+        Strong.ixx
         transform.ixx
         TypeList.ixx
 )
