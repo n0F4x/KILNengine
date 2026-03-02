@@ -1,10 +1,9 @@
 #include <print>
 
-#include <vulkan/vulkan_raii.hpp>
-
 import kiln;
+import demo;
 
-auto game_loop(kiln::app::App& app) -> void;
+auto run(kiln::app::App& app) -> void;
 
 auto main() -> int
 {
@@ -14,6 +13,7 @@ auto main() -> int
             .inject_plugin(kiln::gfx::vulkan::InstancePluginInjection{})
             .insert_plugin(kiln::wsi::Plugin{})
             .apply_bundle(kiln::gfx::renderer::Bundle{})
+            .inject_plugin(demo_plugin_injection)
             .build();
 
     std::println(
@@ -21,42 +21,21 @@ auto main() -> int
         app.resources().at<kiln::gfx::renderer::Device>().name()
     );
 
-    game_loop(app);
+    run(app);
 }
 
-[[nodiscard]]
-auto create_window(kiln::app::App& app) -> kiln::wsi::VulkanWindow
-{
-    constexpr kiln::wsi::WindowedWindowSettings screen_settings{
-        .content_size{ .width = 640, .height = 480 }
-    };
-    const kiln::wsi::Window::CreateInfo window_info{
-        .title    = app.resources().at<kiln::config::Config>().app_name(),
-        .settings = screen_settings,
-    };
-
-    const vk::raii::Instance& vulkan_instance{ app.resources().at<vk::raii::Instance>() };
-    const kiln::wsi::Context& wsi_context{ app.resources().at<kiln::wsi::Context>() };
-    const kiln::gfx::renderer::Device& render_device{
-        app.resources().at<kiln::gfx::renderer::Device>()
-    };
-
-    return render_device.create_window(vulkan_instance, wsi_context, window_info);
-}
-
-auto game_loop(kiln::app::App& app) -> void
+auto run(kiln::app::App& app) -> void
 {
     const kiln::wsi::Context& wsi_context{ app.resources().at<kiln::wsi::Context>() };
+    Demo&                     demo{ app.resources().at<Demo>() };
 
-    kiln::wsi::VulkanWindow window{ create_window(app) };
-
-    while (!window.should_close())
+    while (!demo.window.should_close())
     {
         kiln::wsi::poll_events(wsi_context);
 
-        if (window.key_pressed(kiln::wsi::Key::eEscape))
+        if (demo.window.key_pressed(kiln::wsi::Key::eEscape))
         {
-            window.request_close();
+            demo.window.request_close();
         }
     }
 }

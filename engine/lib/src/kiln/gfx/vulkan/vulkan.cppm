@@ -2,6 +2,7 @@ export module kiln.gfx.vulkan;
 
 export import kiln.gfx.vulkan.extension_inspection;
 export import kiln.gfx.vulkan.format;
+export import kiln.gfx.vulkan.pipeline;
 export import kiln.gfx.vulkan.result;
 export import kiln.gfx.vulkan.structure_chain;
 

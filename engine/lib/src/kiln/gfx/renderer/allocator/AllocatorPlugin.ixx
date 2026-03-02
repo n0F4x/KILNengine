@@ -10,13 +10,14 @@ namespace kiln::gfx::renderer {
 
 export class AllocatorPlugin {
 public:
-    [[nodiscard]]
-    static auto operator()(app::App& app) -> Allocator
+    static auto operator()(app::App& app) -> void
     {
-        return Allocator{
-            app.resources().at<vk::raii::Instance>(),
-            app.resources().at<Device>(),
-        };
+        app.resources().insert(
+            Allocator{
+                app.resources().at<vk::raii::Instance>(),
+                app.resources().at<Device>(),
+            }
+        );
     }
 };
 
