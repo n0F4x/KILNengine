@@ -12,8 +12,6 @@ export template <typename T>
 consteval auto name_of() noexcept -> std::string_view;
 
 export template <typename T>
-consteval auto hash() noexcept -> uint64_t;
-export template <typename T>
 consteval auto hash_u64() noexcept -> uint64_t;
 
 }   // namespace kiln::util
@@ -86,12 +84,6 @@ consteval auto name_of() noexcept -> std::string_view
         offset + leading_characters.length(),
         trailing_offset - (offset + leading_characters.length())
     );
-}
-
-template <typename T>
-consteval auto hash() noexcept -> uint64_t
-{
-    return hash_u64<T>();
 }
 
 template <typename T>

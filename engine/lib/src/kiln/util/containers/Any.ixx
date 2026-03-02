@@ -414,7 +414,7 @@ struct Operations<T, Traits_T> {
     [[nodiscard]]
     static auto types_match(uint64_t type_hash) -> bool
     {
-        return type_hash == hash<T>();
+        return type_hash == hash_u64<T>();
     }
 
     [[nodiscard]]
@@ -534,7 +534,7 @@ struct Operations<T, Traits_T> {
     [[nodiscard]]
     static auto types_match(const uint64_t type_hash) -> bool
     {
-        return type_hash == hash<T>();
+        return type_hash == hash_u64<T>();
     }
 
     [[nodiscard]]
@@ -599,7 +599,7 @@ auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
     );
 
     PRECOND(
-        any.NakedAny::BasicAny::m_vtable->types_match(util::hash<T>()),
+        any.NakedAny::BasicAny::m_vtable->types_match(util::hash_u64<T>()),
         std::format(
             "`Any` has type {}, but requested type is {}",
             any.NakedAny::BasicAny::m_vtable->type_name(),
