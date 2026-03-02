@@ -8,7 +8,7 @@ import kiln.util.Strong;
 
 namespace kiln::event {
 
-export class SubscriberID : public util::Strong<uint64_t, SubscriberID> {
+export class SubscriberID : public util::Strong<uint32_t, SubscriberID> {
 public:
     using Strong::Strong;
 };
