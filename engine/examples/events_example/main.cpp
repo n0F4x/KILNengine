@@ -1,9 +1,11 @@
+#include <any>
 #include <print>
 #include <string_view>
 
 #include <kiln/util/contract_macros.hpp>
 
 import kiln.app;
+import kiln.event;
 import kiln.util.contracts;
 import kiln.util.OptionalRef;
 
@@ -96,6 +98,20 @@ struct RendererPluginInjection {
     }
 };
 
+struct EventTest {
+    int a;
+    int b;
+};
+
+auto event_test(const EventTest e) -> void
+{
+    std::println("Event test, sum:{}", e.a+e.b);
+}
+auto event_test2(const EventTest e) -> void
+{
+    std::println("Event test2, diff:{}", e.a-e.b);
+}
+
 auto main() -> int
 {
     using namespace kiln;
@@ -114,9 +130,21 @@ auto main() -> int
                                 )
                                 .insert_plugin(GraphicsSystemIntegrationPlugin{})
                                 .inject_plugin(RendererPluginInjection{})
-                                .inject_plugin(window_plugin_injection);
+                                .inject_plugin(window_plugin_injection)
+                                .insert_plugin(event::EventPlugin{});
     app::App app = std::move(builder).build();
 
     // Renderer is never headless when both window and graphics plugins are present
     std::println("{}", app.resources().at<Message>());
+
+    const auto id1 =
+        app.resources().at<event::EventSystem>()
+                       .subscribe<EventTest>(event_test);
+    const auto id2 =
+        app.resources().at<event::EventSystem>()
+                       .subscribe<EventTest>(event_test2, 1);
+    app.resources().at<event::EventSystem>().publish<EventTest>(3, 2);
+    app.resources().at<event::EventSystem>().unsubscribe<EventTest>(id1);
+    app.resources().at<event::EventSystem>().publish<EventTest>(4, 1);
+    app.resources().at<event::EventSystem>().unsubscribe<EventTest>(id2);
 }
