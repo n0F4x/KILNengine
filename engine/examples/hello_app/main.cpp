@@ -137,7 +137,10 @@ auto main() -> int
     // Renderer is never headless when both window and graphics plugins are present
     std::println("{}", app.resources().at<Message>());
 
-    app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test);
-    app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test2);
-    app.resources().at<event::EventSystem>().publish<EventTest>(45, 42);
+    auto id1 = app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test);
+    auto id2 = app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test2, 1);
+    app.resources().at<event::EventSystem>().publish<EventTest>(3, 2);
+    app.resources().at<event::EventSystem>().unsubscribe<EventTest>(id1);
+    app.resources().at<event::EventSystem>().publish<EventTest>(4, 1);
+    app.resources().at<event::EventSystem>().unsubscribe<EventTest>(id2);
 }
