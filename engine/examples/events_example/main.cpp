@@ -22,14 +22,20 @@ auto main() -> int
 {
     using namespace kiln;
 
-    app::App app = app::create().insert_plugin(event::EventPlugin{}).build();
+    // builder needs to be configured on the stack, otherwise we run into a bug on Windows
+    app::Builder builder = app::create()
+                                .insert_plugin(event::Plugin{});
+    app::App app = std::move(builder).build();
+
+    event::EventSystem& event_system = app.resources().at<event::EventSystem>();
 
     const auto id1 =
-        app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test);
+        event_system.subscribe<EventTest>(event_test);
     const auto id2 =
-        app.resources().at<event::EventSystem>().subscribe<EventTest>(event_test2, 1);
-    app.resources().at<event::EventSystem>().publish<EventTest>(3, 2);
-    app.resources().at<event::EventSystem>().unsubscribe<EventTest>(id1);
-    app.resources().at<event::EventSystem>().publish<EventTest>(4, 1);
-    app.resources().at<event::EventSystem>().unsubscribe<EventTest>(id2);
+        event_system.subscribe<EventTest>(event_test2, 1);
+
+    event_system.publish<EventTest>({3, 2});
+    event_system.unsubscribe<EventTest>(id1);
+    event_system.publish<EventTest>({4, 1});
+    event_system.unsubscribe<EventTest>(id2);
 }

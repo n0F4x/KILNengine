@@ -1,3 +1,3 @@
+add_subdirectory(events_example)
 add_subdirectory(hello_app)
 add_subdirectory(hello_kiln)
-add_subdirectory(events_example)
