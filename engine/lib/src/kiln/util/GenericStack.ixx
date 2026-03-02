@@ -184,7 +184,7 @@ auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
 {
     const auto iter = std::ranges::find(
         self.BasicGenericStack::m_types_and_items,
-        hash<Item_T>(),
+        hash_u64<Item_T>(),
         &std::pair<uint64_t, Any_T>::first
     );
     if (iter == self.BasicGenericStack::m_types_and_items.cend())
