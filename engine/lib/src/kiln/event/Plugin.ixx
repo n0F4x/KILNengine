@@ -23,16 +23,16 @@ export class EventSystem {
     struct HandlerEntry {
         SubscriberID id;
         std::any     subscriber;
-        std::int32_t priority;
+        int32_t priority;
     };
 
-    std::unordered_map<std::uint64_t, std::vector<HandlerEntry>> m_event_map;
-    std::unordered_map<SubscriberID, std::uint64_t>              m_id_event_type;
-    std::uint32_t                                                m_next_id = 0;
+    std::unordered_map<uint64_t, std::vector<HandlerEntry>> m_event_map;
+    std::unordered_map<SubscriberID, uint64_t>              m_id_event_type;
+    uint32_t                                                m_next_id = 0;
 
 public:
     template <event_c Event_T, typename Subscriber_T>
-    auto subscribe(Subscriber_T&& subscriber, const std::int32_t priority = 0)
+    auto subscribe(Subscriber_T&& subscriber, const int32_t priority = 0)
         -> SubscriberID
     {
         const uint64_t     type_key{ util::hash_u64<Event_T>() };
