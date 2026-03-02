@@ -60,6 +60,7 @@ auto EventSystem::subscribe(Subscriber_T&& subscriber, const int32_t priority)
     };
     m_id_event_type[id] = type_key;
 
+    // TODO: use projection with fixed Clang - MS STL ABI
     const auto iter = std::ranges::upper_bound(
         handlers,
         entry,
