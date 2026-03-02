@@ -35,7 +35,7 @@ public:
     template <event_c Event_T, typename Callback_T>
     auto subscribe(Callback_T&& callback, const std::int64_t priority = 0) -> std::uint64_t
     {
-        const auto type_key = util::hash<Event_T>();
+        const auto type_key = util::hash_u64<Event_T>();
         const std::uint64_t id = m_next_id++;
 
         auto& handlers = m_event_map[type_key];
@@ -58,7 +58,8 @@ public:
     template<typename Event_T>
     auto unsubscribe(std::uint64_t id) -> void
     {
-        const auto iter = m_event_map.find(util::hash<Event_T>());
+        const auto type_key = kiln::util::hash_u64<Event_T>();
+        const auto iter = m_event_map.find(type_key);
         if (iter == m_event_map.end()) { return; }
 
         std::erase_if(iter->second, [id](const HandlerEntry& entry) -> auto {
@@ -69,7 +70,8 @@ public:
     template<event_c Event_T>
     auto publish(const Event_T& event) -> void
     {
-        const auto iter = m_event_map.find(util::hash<Event_T>());
+        const auto type_key = kiln::util::hash_u64<Event_T>();
+        const auto iter = m_event_map.find(type_key);
         if (iter == m_event_map.end()) { return; }
 
         for (auto& entry : iter->second) {
