@@ -10,12 +10,10 @@ module;
 export module kiln.event.Plugin;
 
 import kiln.app.App;
+import kiln.event.event_c;
 import kiln.util;
 
 namespace kiln::event {
-
-template <typename Event_T>
-concept event_c = util::storable_c<Event_T> && util::naked_c<Event_T>;
 
 template <event_c Event_T>
 using Callback = util::MoveOnlyFunction<void(const Event_T&)>;
