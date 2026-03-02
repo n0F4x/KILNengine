@@ -22,9 +22,7 @@ auto main() -> int
 {
     using namespace kiln;
 
-    // builder needs to be configured on the stack, otherwise we run into a bug on Windows
-    app::Builder builder = app::create().insert_plugin(event::Plugin{});
-    app::App     app     = std::move(builder).build();
+    app::App app = app::create().insert_plugin(event::Plugin{}).build();
 
     event::EventSystem& event_system = app.resources().at<event::EventSystem>();
 
