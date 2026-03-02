@@ -15,14 +15,13 @@ import kiln.util;
 
 namespace kiln::event {
 
-template <event_c Event_T>
-using Callback = util::MoveOnlyFunction<void(const Event_T&)>;
-
 export class EventSystem {
-private:
+    template <event_c Event_T>
+    using ErasedListener = util::MoveOnlyFunction<void(const Event_T&)>;
+
     struct HandlerEntry {
         std::uint64_t id;
-        std::any      callback;
+        std::any      subscriber;
         std::int64_t  priority;
     };
 
@@ -31,8 +30,8 @@ private:
     std::uint64_t                                                m_next_id = 0;
 
 public:
-    template <event_c Event_T, typename Callback_T>
-    auto subscribe(Callback_T&& callback, const std::int64_t priority = 0)
+    template <event_c Event_T, typename Subscriber_T>
+    auto subscribe(Subscriber_T&& subscriber, const std::int64_t priority = 0)
         -> std::uint64_t
     {
         const auto          type_key = util::hash_u64<Event_T>();
@@ -40,7 +39,7 @@ public:
 
         auto& handlers = m_event_map[type_key];
 
-        std::function<void(const Event_T&)> func = std::forward<Callback_T>(callback);
+        std::function<void(const Event_T&)> func = std::forward<Subscriber_T>(subscriber);
         HandlerEntry                        entry{ id, std::move(func), priority };
         m_id_event_type[id] = type_key;
 
@@ -87,7 +86,7 @@ public:
         {
             // Cast back to the specific function type
             using FuncType = std::function<void(const Event_T&)>;
-            auto& func     = std::any_cast<FuncType&>(entry.callback);
+            auto& func     = std::any_cast<FuncType&>(entry.subscriber);
             func(event);
         }
     };
