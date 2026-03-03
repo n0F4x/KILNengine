@@ -1,13 +1,19 @@
 module;
 
 #include <cstdint>
-#include <deque>
+#include <functional>
+#include <optional>
+#include <ranges>
+#include <vector>
+
+#include "kiln/util/lifetimebound.hpp"
 
 export module kiln.gfx.renderer.command.CommandPool;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.command.CommandBufferHandle;
+import kiln.gfx.renderer.command.GraphicsCommandBuffer;
+import kiln.gfx.renderer.command.OneTimeTransferCommandBuffer;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.QueueFamilyIndex;
@@ -17,16 +23,24 @@ namespace kiln::gfx::renderer {
 export class CommandPool {
 public:
     CommandPool(
-        const vk::raii::Device&  device,
-        vulkan::QueueFamilyIndex graphics_queue_family_index
+        [[kiln_lifetimebound]]
+        const Device& device,
+        uint32_t      number_of_frames
     );
 
-    auto allocate(const vk::raii::Device& device) -> CommandBufferHandle;
-    auto reset() -> void;
+    auto allocate_for_graphics() -> GraphicsCommandBuffer;
+    auto allocate_for_one_time_host_to_device_transfer() -> OneTimeTransferCommandBuffer;
+
+    auto swap_buffers() -> void;
 
 private:
-    vk::raii::CommandPool               m_pool;
-    std::deque<vk::raii::CommandBuffer> m_buffers;
+    std::reference_wrapper<const Device> m_device;
+    uint32_t                             m_frame_index{};
+
+    std::vector<vk::raii::CommandPool>   m_graphics_pools;
+    std::vector<vk::raii::CommandBuffer> m_graphics_command_buffers;
+
+    vk::raii::CommandPool m_one_time_host_to_device_transfer_pool;
 };
 
 }   // namespace kiln::gfx::renderer
@@ -38,50 +52,99 @@ namespace kiln::gfx::renderer {
 namespace internal {
 
 [[nodiscard]]
-auto create_command_pool(
-    const vk::raii::Device&        device,
-    const vulkan::QueueFamilyIndex graphics_queue_family_index
-) -> vk::raii::CommandPool
+auto create_graphics_command_pools(const Device& device, const uint32_t number_of_frames)
+    -> std::vector<vk::raii::CommandPool>
 {
-    const vk::CommandPoolCreateInfo create_info{
-        .flags            = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
-        .queueFamilyIndex = graphics_queue_family_index.underlying()
-    };
+    std::vector<vk::raii::CommandPool> result;
 
-    return vulkan::check_result(device.createCommandPool(create_info));
+    for (const vk::CommandPoolCreateInfo create_info{
+             .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer
+                    | vk::CommandPoolCreateFlagBits::eTransient,
+             .queueFamilyIndex = device.graphics_queue_family_index().underlying() };
+         const auto _ : std::views::repeat(std::ignore, number_of_frames))
+    {
+        result.push_back(
+            vulkan::check_result(device.logical_device().createCommandPool(create_info))
+        );
+    }
+
+    return result;
 }
 
 }   // namespace internal
 
-CommandPool::CommandPool(
-    const vk::raii::Device&        device,
-    const vulkan::QueueFamilyIndex graphics_queue_family_index
-)
-    : m_pool{ internal::create_command_pool(device, graphics_queue_family_index) }
+CommandPool::CommandPool(const Device& device, const uint32_t number_of_frames)
+    : m_device{ device },
+      m_graphics_pools{
+          internal::create_graphics_command_pools(
+              device,
+              number_of_frames
+          )   //
+      },
+      m_one_time_host_to_device_transfer_pool{
+          vulkan::check_result(device.logical_device().createCommandPool(
+              vk::CommandPoolCreateInfo{
+                  .flags = vk::CommandPoolCreateFlagBits::eTransient,
+                  .queueFamilyIndex =
+                      device.host_to_device_transfer_queue_family_index().underlying(),
+              }
+          ))   //
+      }
 {
 }
 
-auto CommandPool::allocate(const vk::raii::Device& device) -> CommandBufferHandle
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto CommandPool::allocate_for_graphics() -> GraphicsCommandBuffer
+{
+    std::vector<vk::raii::CommandBuffer> command_buffers;
+    command_buffers.reserve(m_graphics_pools.size());
+
+    for (const vk::raii::CommandPool& pool : m_graphics_pools)
+    {
+        const vk::CommandBufferAllocateInfo allocate_info{
+            .commandPool        = pool,
+            .level              = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1,
+        };
+
+        command_buffers.push_back(
+            std::move(
+                vulkan::check_result(
+                    m_device.get().logical_device().allocateCommandBuffers(allocate_info)
+                )
+                    .front()
+            )
+        );
+    }
+
+    return GraphicsCommandBuffer{ std::move(command_buffers),
+                                  static_cast<uint8_t>(m_graphics_pools.size()) };
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto CommandPool::allocate_for_one_time_host_to_device_transfer()
+    -> OneTimeTransferCommandBuffer
 {
     const vk::CommandBufferAllocateInfo allocate_info{
-        .commandPool        = m_pool,
+        .commandPool        = m_one_time_host_to_device_transfer_pool,
         .level              = vk::CommandBufferLevel::ePrimary,
         .commandBufferCount = 1,
     };
 
-    m_buffers.push_back(
+    return OneTimeTransferCommandBuffer{
         std::move(
-            vulkan::check_result(device.allocateCommandBuffers(allocate_info)).front()
-        )
-    );
-
-    return CommandBufferHandle{ static_cast<uint32_t>(m_buffers.size() - 1) };
+            vulkan::check_result(
+                m_device.get().logical_device().allocateCommandBuffers(allocate_info)
+            )
+                .front()
+        )   //
+    };
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto CommandPool::reset() -> void
+auto CommandPool::swap_buffers() -> void
 {
-    m_pool.reset();
+    m_graphics_pools[m_frame_index].reset();
+    m_frame_index = (m_frame_index + 1) % m_graphics_pools.size();
 }
 
 }   // namespace kiln::gfx::renderer

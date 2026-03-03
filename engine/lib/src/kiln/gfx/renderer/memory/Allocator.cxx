@@ -5,8 +5,11 @@ module;
 
 #include <vk_mem_alloc.h>
 
-module kiln.gfx.renderer.allocator.Allocator;
+module kiln.gfx.renderer.memory.Allocator;
 
+import vulkan_hpp;
+
+import kiln.gfx.renderer.memory.MemoryTypeID;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.StringLiteral;
@@ -175,8 +178,43 @@ auto create_allocator(const vk::raii::Instance& instance, const Device& device)
 }
 
 Allocator::Allocator(const vk::raii::Instance& instance, const Device& device)
-    : m_handle{ create_allocator(instance, device) }
+    : m_device{ device },
+      m_handle{ create_allocator(instance, device) }
 {
+}
+
+auto Allocator::create_buffer(
+    const vk::BufferCreateInfo&    buffer_create_info,
+    const VmaAllocationCreateInfo& allocation_create_info
+) const -> std::tuple<Buffer, Allocation, VmaAllocationInfo>
+{
+    vk::Buffer        buffer;
+    VmaAllocation     allocation{};
+    VmaAllocationInfo allocation_info{};
+    auto              result = ::vmaCreateBuffer(
+        m_handle.get(),
+        reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
+        &allocation_create_info,
+        reinterpret_cast<VkBuffer*>(&buffer),
+        &allocation,
+        &allocation_info
+    );
+
+    vulkan::check_result(result);
+
+    return std::make_tuple(
+        Buffer{
+            vk::raii::Buffer{ m_device.get().logical_device(), buffer },
+            buffer_create_info.size,
+    },
+        Allocation{
+            m_handle.get(),
+            allocation,
+            MemoryTypeID{ allocation_info.memoryType },
+            allocation_info.size,
+        },
+        allocation_info
+    );
 }
 
 }   // namespace kiln::gfx::renderer

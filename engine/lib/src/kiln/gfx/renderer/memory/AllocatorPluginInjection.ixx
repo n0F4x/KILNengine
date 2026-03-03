@@ -1,8 +1,8 @@
-export module kiln.gfx.renderer.allocator.AllocatorPluginInjection;
+export module kiln.gfx.renderer.memory.AllocatorPluginInjection;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.allocator.AllocatorPlugin;
+import kiln.gfx.renderer.memory.AllocatorPlugin;
 import kiln.gfx.renderer.device.DevicePlugin;
 import kiln.gfx.vulkan.InstancePlugin;
 

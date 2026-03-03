@@ -22,8 +22,6 @@ DevicePlugin::DevicePlugin(vulkan::InstancePlugin& instance_plugin, bool headles
 #ifdef KILN_DEBUG
     request_debug_messenger();
 #endif
-
-    m_device_builder.request_graphics_queue();
 }
 
 auto DevicePlugin::request_debug_messenger() -> bool

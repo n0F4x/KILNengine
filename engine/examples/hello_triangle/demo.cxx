@@ -4,10 +4,15 @@ module;
 #include <cstdint>
 #include <filesystem>
 #include <source_location>
+#include <span>
+
+#include <vk_mem_alloc.h>
 
 #include "kiln/util/contract_macros.hpp"
 
 module demo;
+
+import kiln;
 
 [[nodiscard]]
 auto create_window(
@@ -38,6 +43,11 @@ auto create_graphics_pipeline(
     PRECOND(device.capabilities().contains_features(
         vk::PhysicalDeviceMaintenance5Features{ .maintenance5 = vk::True }
     ));
+    PRECOND(device.capabilities().contains_features(
+        vk::PhysicalDeviceDynamicRenderingFeatures{ .dynamicRendering = vk::True }
+    ));
+
+    // TODO: inject dynamic rendering info
 
     const vk::ShaderModuleCreateInfo vertex_shader_module_create_info{
         .codeSize = shader_module.code().size_bytes(),
@@ -129,11 +139,73 @@ auto create_graphics_pipeline(
     );
 }
 
+[[nodiscard]]
+auto create_index_buffer(
+    const kiln::gfx::renderer::Device&,
+    const kiln::gfx::renderer::Allocator& render_allocator,
+    kiln::gfx::renderer::CommandPool&     command_pool
+) -> kiln::gfx::renderer::Buffer
+{
+    constexpr static std::array<uint16_t, 3> indices{ 0, 1, 2 };
+    constexpr static uint32_t buffer_size{ (std::span{ indices }.size_bytes()) };
+
+    constexpr static vk::BufferCreateInfo staging_buffer_create_info{
+        .size  = buffer_size,
+        .usage = vk::BufferUsageFlagBits::eTransferSrc,
+    };
+
+    auto [staging_buffer, staging_allocation, _]{
+        render_allocator.create_buffer(
+            staging_buffer_create_info,
+            VmaAllocationCreateInfo{
+                .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
+                       | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+                .usage = VMA_MEMORY_USAGE_AUTO,
+            }
+        )   //
+    };
+
+    std::memcpy(staging_allocation.map().data(), indices.data(), buffer_size);
+    if (!(staging_allocation.memory_properties()
+          & vk::MemoryPropertyFlagBits::eHostCoherent))
+    {
+        staging_allocation.flush(0, buffer_size);
+    }
+    staging_allocation.unmap();
+
+    constexpr static vk::BufferCreateInfo buffer_create_info = {
+        .size  = buffer_size,
+        .usage = vk::BufferUsageFlagBits::eIndexBuffer
+               | vk::BufferUsageFlagBits::eTransferDst
+    };
+    auto [buffer, allocation, _]{
+        render_allocator.create_buffer(
+            buffer_create_info,
+            VmaAllocationCreateInfo{
+                .usage = VMA_MEMORY_USAGE_AUTO,
+            }
+        )   //
+    };
+
+    kiln::gfx::renderer::OneTimeTransferCommandBuffer command_buffer{
+        command_pool.allocate_for_one_time_host_to_device_transfer()
+    };
+    command_buffer.begin();
+    command_buffer.enqueue_buffer_copy(staging_buffer, buffer);
+    command_buffer.end();
+
+    // TODO: submit and wait for copy
+
+    return std::move(buffer);
+}
+
 Demo::Demo(
-    const kiln::config::Config&        config,
-    const vk::raii::Instance&          vulkan_instance,
-    const kiln::wsi::Context&          wsi_context,
-    const kiln::gfx::renderer::Device& render_device
+    const kiln::config::Config&           config,
+    const vk::raii::Instance&             vulkan_instance,
+    const kiln::wsi::Context&             wsi_context,
+    const kiln::gfx::renderer::Device&    render_device,
+    const kiln::gfx::renderer::Allocator& render_allocator,
+    kiln::gfx::renderer::CommandPool&     render_command_pool
 )
     : window{ create_window(config, vulkan_instance, wsi_context, render_device) },
       pipeline_layout{
@@ -148,7 +220,10 @@ Demo::Demo(
               / "shaders" / "triangle.spv"
           )   //
       },
-      pipeline{ create_graphics_pipeline(render_device, pipeline_layout, shader_module) }
+      pipeline{ nullptr },
+      index_buffer{
+          create_index_buffer(render_device, render_allocator, render_command_pool)
+      }
 {
 }
 
@@ -160,6 +235,8 @@ auto DemoPlugin::operator()(kiln::app::App& app) -> void
             app.resources().at<vk::raii::Instance>(),
             app.resources().at<kiln::wsi::Context>(),
             app.resources().at<kiln::gfx::renderer::Device>(),
+            app.resources().at<kiln::gfx::renderer::Allocator>(),
+            app.resources().at<kiln::gfx::renderer::CommandPool>(),
         }
     );
 }
@@ -168,11 +245,16 @@ auto demo_plugin_injection(
     const kiln::config::Plugin&,
     const kiln::gfx::vulkan::InstancePlugin&,
     const kiln::wsi::Plugin&,
-    kiln::gfx::renderer::DevicePlugin& device_plugin
+    kiln::gfx::renderer::DevicePlugin& device_plugin,
+    kiln::gfx::renderer::AllocatorPlugin&,
+    kiln::gfx::renderer::CommandPoolPlugin&
 ) -> DemoPlugin
 {
     device_plugin->enable_features(
         vk::PhysicalDeviceMaintenance5Features{ .maintenance5 = vk::True }
+    );
+    device_plugin->enable_features(
+        vk::PhysicalDeviceDynamicRenderingFeatures{ .dynamicRendering = vk::True }
     );
 
     return DemoPlugin{};

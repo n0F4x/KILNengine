@@ -101,11 +101,11 @@ public:
     auto compute_queue(this Self_T& self) noexcept
         -> util::OptionalRef<util::const_like_t<vk::raii::Queue, Self_T>>
     {
-        return self.queue_at[self.m_compute_queue_pack_index];
+        return self.queue_at(self.m_compute_queue_pack_index);
     }
 
     [[nodiscard]]
-    auto host_to_device_tranfer_queue_family() const noexcept
+    auto host_to_device_transfer_queue_family() const noexcept
         -> std::optional<QueueFamilyIndex>
     {
         return family_at(m_host_to_device_transfer_queue_pack_index);
@@ -116,7 +116,7 @@ public:
     auto host_to_device_tranfer_queue(this Self_T& self) noexcept
         -> util::OptionalRef<util::const_like_t<vk::raii::Queue, Self_T>>
     {
-        return self.queue_at[self.m_host_to_device_transfer_queue_pack_index];
+        return self.queue_at(self.m_host_to_device_transfer_queue_pack_index);
     }
 
     [[nodiscard]]
@@ -131,7 +131,7 @@ public:
     auto device_to_host_transfer_queue(this Self_T& self) noexcept
         -> util::OptionalRef<util::const_like_t<vk::raii::Queue, Self_T>>
     {
-        return self.queue_at[self.m_device_to_host_transfer_queue_pack_index];
+        return self.queue_at(self.m_device_to_host_transfer_queue_pack_index);
     }
 
     [[nodiscard]]
@@ -146,7 +146,7 @@ public:
     auto dedicated_sparse_binding_queue(this Self_T& self) noexcept
         -> util::OptionalRef<util::const_like_t<vk::raii::Queue, Self_T>>
     {
-        return self.queue_at[self.m_dedicated_sparse_binding_queue_pack_index];
+        return self.queue_at(self.m_dedicated_sparse_binding_queue_pack_index);
     }
 
 private:
