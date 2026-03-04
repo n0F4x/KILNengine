@@ -1,5 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
         OneTimeTransferCommandBuffer.cxx
+        TransferQueueRef.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -11,5 +12,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandPoolPlugin.ixx
         CommandPoolPluginInjection.ixx
         GraphicsCommandBuffer.ixx
+        GraphicsQueueRef.ixx
         OneTimeTransferCommandBuffer.ixx
+        SubmitInfo.ixx
+        TransferQueueRef.ixx
 )

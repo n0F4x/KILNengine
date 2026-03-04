@@ -6,6 +6,7 @@ add_subdirectory(structure_chain)
 
 target_sources(${PROJECT_NAME} PRIVATE
         default_debug_messenger_callback.cxx
+        DeviceBuilder.cxx
         global_definitions.cpp
         InstanceBuilder.cxx
         vma_global_definitions.cxx

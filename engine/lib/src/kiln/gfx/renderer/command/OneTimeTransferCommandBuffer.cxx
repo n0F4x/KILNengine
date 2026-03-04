@@ -17,6 +17,11 @@ OneTimeTransferCommandBuffer::OneTimeTransferCommandBuffer(
 {
 }
 
+auto OneTimeTransferCommandBuffer::get() const noexcept -> const vk::raii::CommandBuffer&
+{
+    return m_command_buffer;
+}
+
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto OneTimeTransferCommandBuffer::begin() -> void
 {

@@ -27,25 +27,20 @@ auto Device::name() const -> std::string
     return m_physical_device.getProperties2().properties.deviceName;
 }
 
-auto Device::graphics_queue() const -> const vk::raii::Queue&
+auto Device::graphics_queue() const -> GraphicsQueueRef
 {
-    return *m_queues.graphics_queue();
+    return GraphicsQueueRef{
+        *m_queues.graphics_queue(),
+        *m_queues.graphics_queue_family(),
+    };
 }
 
-auto Device::graphics_queue_family_index() const -> vulkan::QueueFamilyIndex
+auto Device::host_to_device_transfer_queue() const -> TransferQueueRef
 {
-    return *m_queues.graphics_queue_family();
-}
-
-auto Device::host_to_device_transfer_queue() const -> const vk::raii::Queue&
-{
-    return *m_queues.host_to_device_tranfer_queue();
-}
-
-auto Device::host_to_device_transfer_queue_family_index() const
-    -> vulkan::QueueFamilyIndex
-{
-    return *m_queues.host_to_device_transfer_queue_family();
+    return TransferQueueRef{
+        *m_queues.host_to_device_tranfer_queue(),
+        *m_queues.host_to_device_transfer_queue_family(),
+    };
 }
 
 auto Device::physical_device() const noexcept -> const vk::raii::PhysicalDevice&

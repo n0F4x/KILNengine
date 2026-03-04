@@ -11,6 +11,9 @@ export class OneTimeTransferCommandBuffer {
 public:
     explicit OneTimeTransferCommandBuffer(vk::raii::CommandBuffer&& command_buffer);
 
+    [[nodiscard]]
+    auto get() const noexcept -> const vk::raii::CommandBuffer&;
+
     auto begin() -> void;
     auto end() -> void;
 

@@ -2,10 +2,14 @@ module;
 
 #include <string>
 
+#include "kiln/util/lifetimebound.hpp"
+
 export module kiln.gfx.renderer.device.Device;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.command.GraphicsQueueRef;
+import kiln.gfx.renderer.command.TransferQueueRef;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueGroup;
@@ -28,13 +32,9 @@ public:
     [[nodiscard]]
     auto name() const -> std::string;
     [[nodiscard]]
-    auto graphics_queue() const -> const vk::raii::Queue&;
+    auto graphics_queue() const [[kiln_lifetimebound]] -> GraphicsQueueRef;
     [[nodiscard]]
-    auto graphics_queue_family_index() const -> vulkan::QueueFamilyIndex;
-    [[nodiscard]]
-    auto host_to_device_transfer_queue() const -> const vk::raii::Queue&;
-    [[nodiscard]]
-    auto host_to_device_transfer_queue_family_index() const -> vulkan::QueueFamilyIndex;
+    auto host_to_device_transfer_queue() const [[kiln_lifetimebound]] -> TransferQueueRef;
     [[nodiscard]]
     auto physical_device() const noexcept -> const vk::raii::PhysicalDevice&;
     [[nodiscard]]

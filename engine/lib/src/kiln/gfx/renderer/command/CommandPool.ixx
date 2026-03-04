@@ -60,7 +60,7 @@ auto create_graphics_command_pools(const Device& device, const uint32_t number_o
     for (const vk::CommandPoolCreateInfo create_info{
              .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer
                     | vk::CommandPoolCreateFlagBits::eTransient,
-             .queueFamilyIndex = device.graphics_queue_family_index().underlying() };
+             .queueFamilyIndex = device.graphics_queue().family_index().underlying() };
          const auto _ : std::views::repeat(std::ignore, number_of_frames))
     {
         result.push_back(
@@ -86,7 +86,7 @@ CommandPool::CommandPool(const Device& device, const uint32_t number_of_frames)
               vk::CommandPoolCreateInfo{
                   .flags = vk::CommandPoolCreateFlagBits::eTransient,
                   .queueFamilyIndex =
-                      device.host_to_device_transfer_queue_family_index().underlying(),
+                      device.host_to_device_transfer_queue().family_index().underlying(),
               }
           ))   //
       }

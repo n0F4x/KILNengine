@@ -141,7 +141,7 @@ auto create_graphics_pipeline(
 
 [[nodiscard]]
 auto create_index_buffer(
-    const kiln::gfx::renderer::Device&,
+    const kiln::gfx::renderer::Device&    render_device,
     const kiln::gfx::renderer::Allocator& render_allocator,
     kiln::gfx::renderer::CommandPool&     command_pool
 ) -> kiln::gfx::renderer::Buffer
@@ -194,7 +194,17 @@ auto create_index_buffer(
     command_buffer.enqueue_buffer_copy(staging_buffer, buffer);
     command_buffer.end();
 
-    // TODO: submit and wait for copy
+    const vk::raii::Fence fence{
+        kiln::gfx::vulkan::check_result(
+            render_device.logical_device().createFence(vk::FenceCreateInfo{})
+        )   //
+    };
+    render_device.host_to_device_transfer_queue().submit(
+        command_buffer, kiln::gfx::renderer::SubmitInfo{ .fence = fence }
+    );
+    kiln::gfx::vulkan::check_result(render_device.logical_device().waitForFences(
+        std::array{ *fence }, vk::True, 100'000'000'000
+    ));
 
     return std::move(buffer);
 }

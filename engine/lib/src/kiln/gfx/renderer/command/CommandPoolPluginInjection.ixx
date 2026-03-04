@@ -29,6 +29,9 @@ public:
         device_plugin->require_minimum_version(vk::ApiVersion13);
         device_plugin->request_graphics_queue();
         device_plugin->request_host_to_device_transfer_queue();
+        device_plugin->enable_features(
+            vk::PhysicalDeviceSynchronization2Features{ .synchronization2 = vk::True }
+        );
 
         return CommandPoolPlugin{ m_number_of_frames };
     }
