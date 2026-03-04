@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 4.1)
 
+include(CheckCXXSymbolExists)
+
 project(kiln)
 
 set(project_prefix KILN_)
@@ -11,6 +13,8 @@ option(${project_prefix}ENABLE_EXAMPLES "Enables building examples" OFF)
 
 # We only support Clang for now
 if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    check_cxx_symbol_exists(_LIBCPP_VERSION "vector" LIBCPP)
+
     add_compile_options(
             -Werror
             -Wall
@@ -26,6 +30,11 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL 21)
         add_compile_options(
                 -Wnrvo
+        )
+    endif ()
+    if (${project_prefix}DEBUG AND LIBCPP)
+        add_compile_definitions(
+                _LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG
         )
     endif ()
 endif ()
