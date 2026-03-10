@@ -19,8 +19,8 @@ public:
 
     auto operator()(app::App& app) const -> void
     {
-        app.resources().insert(
-            CommandPool{ app.resources().at<Device>(), m_number_of_frames }
+        app.context().insert(
+            CommandPool{ app.context().at<Device>(), m_number_of_frames }
         );
     }
 

@@ -25,7 +25,7 @@ public:
 
     constexpr auto operator()(app::App& app) const -> void
     {
-        app.resources().insert(m_config);
+        app.context().insert(m_config);
     }
 
 private:

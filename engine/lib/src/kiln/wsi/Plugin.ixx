@@ -17,7 +17,7 @@ public:
 
     auto operator()(app::App& app) const -> void
     {
-        app.resources().insert(m_context);
+        app.context().insert(m_context);
     }
 
 private:

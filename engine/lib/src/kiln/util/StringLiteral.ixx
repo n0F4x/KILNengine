@@ -27,7 +27,8 @@ public:
         return std::strcmp(m_value, other.m_value) == 0;
     }
 
-    constexpr auto operator<=>(const StringLiteral& other) const noexcept -> std::strong_ordering
+    constexpr auto operator<=>(const StringLiteral& other) const noexcept
+        -> std::strong_ordering
     {
         const int result{ std::strcmp(m_value, other.m_value) };
         if (result == 0)

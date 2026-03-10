@@ -12,10 +12,10 @@ export class AllocatorPlugin {
 public:
     static auto operator()(app::App& app) -> void
     {
-        app.resources().insert(
+        app.context().insert(
             Allocator{
-                app.resources().at<vk::raii::Instance>(),
-                app.resources().at<Device>(),
+                app.context().at<vk::raii::Instance>(),
+                app.context().at<Device>(),
             }
         );
     }

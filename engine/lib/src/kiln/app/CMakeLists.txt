@@ -1,6 +1,6 @@
-add_subdirectory(plugin)
+add_subdirectory(context)
 add_subdirectory(memory)
-add_subdirectory(resource)
+add_subdirectory(plugin)
 
 target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES

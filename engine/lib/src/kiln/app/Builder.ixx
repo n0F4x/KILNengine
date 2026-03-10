@@ -14,25 +14,26 @@ import kiln.app.memory.MemoryPluginInjection;
 import kiln.app.plugin.plugin_c;
 import kiln.app.plugin.plugin_injection_c;
 import kiln.app.plugin.PluginTree;
-import kiln.app.resource.decays_to_resource_c;
-import kiln.app.resource.decays_to_resource_injection_c;
-import kiln.app.resource.resource_c;
-import kiln.app.resource.ResourceInjectionStack;
+import kiln.app.context.context_variable_c;
+import kiln.app.context.ContextBuilder;
+import kiln.app.context.decays_to_context_variable_c;
+import kiln.app.context.decays_to_context_variable_injection_c;
 import kiln.util.Deleter;
 
 namespace kiln::app {
 
 export class Builder {
 public:
-    template <typename Self_T, decays_to_resource_c Resource_T>
-    auto insert_resource(this Self_T&&, Resource_T&& resource) -> Self_T&&;
+    template <typename Self_T, decays_to_context_variable_c ContextVariable_T>
+    auto insert_context_variable(this Self_T&&, ContextVariable_T&& context_variable)
+        -> Self_T&&;
 
-    template <resource_c Resource_T, typename Self_T, typename... Args_T>
-        requires std::constructible_from<Resource_T, Args_T&&...>
-    auto emplace_resource(this Self_T&&, Args_T&&... args) -> Self_T&&;
+    template <context_variable_c ContextVariable_T, typename Self_T, typename... Args_T>
+        requires std::constructible_from<ContextVariable_T, Args_T&&...>
+    auto emplace_context_variable(this Self_T&&, Args_T&&... args) -> Self_T&&;
 
-    template <typename Self_T, decays_to_resource_injection_c Injection_T>
-    auto inject_resource(this Self_T&&, Injection_T&& injection) -> Self_T&&;
+    template <typename Self_T, decays_to_context_variable_injection_c Injection_T>
+    auto inject_context_variable(this Self_T&&, Injection_T&& injection) -> Self_T&&;
 
 
     template <typename Self_T, decays_to_plugin_c Plugin_T>
@@ -55,14 +56,15 @@ public:
     auto build() && -> App;
 
 private:
-    Arena      m_app_arena;
-    Arena      m_builder_arena;
+    Arena m_app_arena;
+    Arena m_builder_arena;
+
     PluginTree m_plugin_tree{
         &m_builder_arena.pool_resource(),
         MemoryPluginInjection{ m_app_arena, m_builder_arena }
     };
     std::unique_ptr<std::pmr::memory_resource, util::Deleter>
-        m_resource_injection_stack_resource{
+        m_context_builder_memory_resource{
             std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() }
                 .new_object<std::pmr::monotonic_buffer_resource>(
                     &m_builder_arena.pool_resource()
@@ -70,40 +72,40 @@ private:
             util::Deleter{
                 std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() } }
         };
-    ResourceInjectionStack m_resource_injection_stack{
-        m_resource_injection_stack_resource.get()
-    };
+    ContextBuilder m_context_builder{ m_context_builder_memory_resource.get() };
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
 
-template <typename Self_T, decays_to_resource_c Resource_T>
-auto Builder::insert_resource(this Self_T&& self, Resource_T&& resource) -> Self_T&&
+template <typename Self_T, decays_to_context_variable_c ContextVariable_T>
+auto Builder::insert_context_variable(
+    this Self_T&&       self,
+    ContextVariable_T&& context_variable
+) -> Self_T&&
 {
-    self.Builder::m_resource_injection_stack.insert_resource(
-        std::forward<Resource_T>(resource)
+    self.Builder::m_context_builder.insert(
+        std::forward<ContextVariable_T>(context_variable)
     );
     return std::forward<Self_T>(self);
 }
 
-template <resource_c Resource_T, typename Self_T, typename... Args_T>
-    requires std::constructible_from<Resource_T, Args_T&&...>
-auto Builder::emplace_resource(this Self_T&& self, Args_T&&... args) -> Self_T&&
+template <context_variable_c ContextVariable_T, typename Self_T, typename... Args_T>
+    requires std::constructible_from<ContextVariable_T, Args_T&&...>
+auto Builder::emplace_context_variable(this Self_T&& self, Args_T&&... args) -> Self_T&&
 {
-    self.Builder::m_resource_injection_stack.template emplace_resource<Resource_T>(
+    self.Builder::m_context_builder.template emplace<ContextVariable_T>(
         std::forward<Args_T>(args)...
     );
     return std::forward<Self_T>(self);
 }
 
-template <typename Self_T, decays_to_resource_injection_c Injection_T>
-auto Builder::inject_resource(this Self_T&& self, Injection_T&& injection) -> Self_T&&
+template <typename Self_T, decays_to_context_variable_injection_c Injection_T>
+auto Builder::inject_context_variable(this Self_T&& self, Injection_T&& injection)
+    -> Self_T&&
 {
-    self.Builder::m_resource_injection_stack.inject_resource(
-        std::forward<Injection_T>(injection)
-    );
+    self.Builder::m_context_builder.inject(std::forward<Injection_T>(injection));
     return std::forward<Self_T>(self);
 }
 
@@ -152,7 +154,7 @@ inline auto Builder::build() && -> App
     App result{ std::move(m_app_arena) };
 
     std::move(m_plugin_tree).invoke_plugins(result);
-    std::move(m_resource_injection_stack).merge_into(result.resources());
+    std::move(m_context_builder).merge_into(result.context());
 
     return result;
 }

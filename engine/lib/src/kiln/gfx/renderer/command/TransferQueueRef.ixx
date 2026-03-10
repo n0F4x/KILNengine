@@ -24,7 +24,7 @@ public:
 
     auto submit(
         const OneTimeTransferCommandBuffer& one_time_transfer_command_buffer,
-        const SubmitInfo&             info = {}
+        const SubmitInfo&                   info = {}
     ) const -> void;
 
 private:

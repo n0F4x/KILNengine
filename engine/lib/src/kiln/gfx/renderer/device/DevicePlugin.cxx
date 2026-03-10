@@ -45,7 +45,7 @@ auto DevicePlugin::request_debug_messenger() -> bool
 
 auto DevicePlugin::operator()(app::App& app) -> void
 {
-    const vk::raii::Instance& instance{ app.resources().at<vk::raii::Instance>() };
+    const vk::raii::Instance& instance{ app.context().at<vk::raii::Instance>() };
 
     constexpr static vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info{
         .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
@@ -67,7 +67,7 @@ auto DevicePlugin::operator()(app::App& app) -> void
 
     if (!m_headless)
     {
-        wsi::Context& wsi_context{ app.resources().at<wsi::Context>() };
+        wsi::Context& wsi_context{ app.context().at<wsi::Context>() };
 
         m_device_builder.enable_extension(vk::KHRSwapchainExtensionName);
         m_device_builder.ensure_queue(
@@ -94,7 +94,7 @@ auto DevicePlugin::operator()(app::App& app) -> void
             }
         );
 
-    app.resources().emplace<Device>(
+    app.context().emplace<Device>(
         std::move(debug_messenger),
         std::move(physical_device),
         std::move(logical_device),

@@ -12,7 +12,7 @@ struct GraphicsSystemIntegration {};
 struct GraphicsSystemIntegrationPlugin {
     static auto operator()(kiln::app::App& app) -> void
     {
-        app.resources().insert(GraphicsSystemIntegration{});
+        app.context().insert(GraphicsSystemIntegration{});
     }
 };
 
@@ -28,7 +28,7 @@ struct WindowPlugin {
     {
         if (supports_graphics && graphics_support_requested)
         {
-            app.resources().inject(
+            app.context().inject(
                 [](GraphicsSystemIntegration& graphics_system) -> WindowSystem
                 {
                     return WindowSystem{
@@ -39,7 +39,7 @@ struct WindowPlugin {
         }
         else
         {
-            app.resources().insert(WindowSystem{});
+            app.context().insert(WindowSystem{});
         }
     }
 };
@@ -64,10 +64,10 @@ struct RendererPlugin {
 
     auto operator()(kiln::app::App& app) const -> void
     {
-        app.resources().insert(
+        app.context().insert(
             RenderSystem{
-                .graphics_system = app.resources().at<GraphicsSystemIntegration>(),
-                .window_system = headless ? nullptr : &app.resources().at<WindowSystem>(),
+                .graphics_system = app.context().at<GraphicsSystemIntegration>(),
+                .window_system   = headless ? nullptr : &app.context().at<WindowSystem>(),
             }
         );
     }
@@ -103,7 +103,7 @@ auto main() -> int
     using Message = std::string_view;
 
     app::App app = app::create()
-                       .inject_resource(
+                       .inject_context_variable(
                            [](const RenderSystem& render_system) -> Message
                            {
                                return render_system.window_system == nullptr
@@ -117,5 +117,5 @@ auto main() -> int
                        .build();
 
     // Renderer is never headless when both window and graphics plugins are present
-    std::println("{}", app.resources().at<Message>());
+    std::println("{}", app.context().at<Message>());
 }

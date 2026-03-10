@@ -102,7 +102,7 @@ auto InstancePlugin::operator->(this Self_T& self)
 
 auto InstancePlugin::operator()(app::App& app) const -> void
 {
-    app.resources().insert(m_instance_builder.build());
+    app.context().insert(m_instance_builder.build());
 }
 
 }   // namespace kiln::gfx::vulkan

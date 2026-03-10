@@ -239,14 +239,14 @@ Demo::Demo(
 
 auto DemoPlugin::operator()(kiln::app::App& app) -> void
 {
-    app.resources().insert(
+    app.context().insert(
         Demo{
-            app.resources().at<kiln::config::Config>(),
-            app.resources().at<vk::raii::Instance>(),
-            app.resources().at<kiln::wsi::Context>(),
-            app.resources().at<kiln::gfx::renderer::Device>(),
-            app.resources().at<kiln::gfx::renderer::Allocator>(),
-            app.resources().at<kiln::gfx::renderer::CommandPool>(),
+            app.context().at<kiln::config::Config>(),
+            app.context().at<vk::raii::Instance>(),
+            app.context().at<kiln::wsi::Context>(),
+            app.context().at<kiln::gfx::renderer::Device>(),
+            app.context().at<kiln::gfx::renderer::Allocator>(),
+            app.context().at<kiln::gfx::renderer::CommandPool>(),
         }
     );
 }

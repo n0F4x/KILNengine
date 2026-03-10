@@ -17,8 +17,7 @@ auto main() -> int
             .build();
 
     std::println(
-        "Created renderer using {}",
-        app.resources().at<kiln::gfx::renderer::Device>().name()
+        "Created renderer using {}", app.context().at<kiln::gfx::renderer::Device>().name()
     );
 
     run(app);
@@ -26,8 +25,8 @@ auto main() -> int
 
 auto run(kiln::app::App& app) -> void
 {
-    const kiln::wsi::Context& wsi_context{ app.resources().at<kiln::wsi::Context>() };
-    Demo&                     demo{ app.resources().at<Demo>() };
+    const kiln::wsi::Context& wsi_context{ app.context().at<kiln::wsi::Context>() };
+    Demo&                     demo{ app.context().at<Demo>() };
 
     while (!demo.window.should_close())
     {
