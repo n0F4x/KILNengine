@@ -9,7 +9,7 @@ export class Plugin {
 public:
     static auto operator()(app::App& app) -> void
     {
-        app.resources().emplace<EventSystem>();
+        app.context().emplace<EventSystem>();
     }
 };
 

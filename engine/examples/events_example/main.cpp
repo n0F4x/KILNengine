@@ -24,7 +24,7 @@ auto main() -> int
 
     app::App app = app::create().insert_plugin(event::Plugin{}).build();
 
-    event::EventSystem& event_system = app.resources().at<event::EventSystem>();
+    event::EventSystem& event_system = app.context().at<event::EventSystem>();
 
     const auto id1 = event_system.subscribe<EventTest>(event_test);
     const auto id2 = event_system.subscribe<EventTest>(event_test2, 1);
