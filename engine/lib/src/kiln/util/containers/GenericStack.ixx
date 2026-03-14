@@ -186,7 +186,7 @@ auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
     // TODO: use `std::ranges::find` + projection with better MS STL compatibility
     const auto iter = std::ranges::find_if(
         self.BasicGenericStack::m_types_and_items,
-        [](const_like_t<std::pair<uint64_t, Any>, Self_T>& type_hash_and_item)
+        [](const_like_t<std::pair<uint64_t, Any>, Self_T>& type_hash_and_item) -> bool
         {
             return type_hash_and_item.first == hash_u64<Item_T>();   //
         }

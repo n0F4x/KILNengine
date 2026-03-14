@@ -188,14 +188,14 @@ auto Allocator::create_buffer(
     const VmaAllocationCreateInfo& allocation_create_info
 ) const -> std::tuple<Buffer, Allocation, VmaAllocationInfo>
 {
-    vk::Buffer        buffer;
+    VkBuffer          buffer;
     VmaAllocation     allocation{};
     VmaAllocationInfo allocation_info{};
     auto              result = ::vmaCreateBuffer(
         m_handle.get(),
         reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
         &allocation_create_info,
-        reinterpret_cast<VkBuffer*>(&buffer),
+        &buffer,
         &allocation,
         &allocation_info
     );

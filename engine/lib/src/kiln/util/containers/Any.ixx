@@ -320,7 +320,13 @@ private:
     const internal::VTable<Traits>* m_vtable{};
     Storage                         m_storage{ std::in_place_type<void*> };
 
+
     auto reset() -> void;
+
+    [[nodiscard]]
+    auto voidify() -> void*;
+    [[nodiscard]]
+    auto voidify() const -> const void*;
 };
 
 export using Any = BasicAny<>;
@@ -624,28 +630,17 @@ auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 #ifdef __clang__
   #pragma clang diagnostic pop
 #endif
-
     PRECOND(
         any.NakedAny::BasicAny::m_vtable != nullptr,
         "Don't use a 'moved-from' (or destroyed) Any!"
     );
 
-    if constexpr (!std::is_const_v<std::remove_reference_t<Any_T>>)
-    {
-        return std::forward_like<Any_T>(*reinterpret_cast<std::add_pointer_t<T>>(
-            any.NakedAny::BasicAny::m_vtable->voidify(any.NakedAny::BasicAny::m_storage)
-        ));
-    }
-    else
-    {
-        return std::forward_like<Any_T>(
-            *reinterpret_cast<std::add_pointer_t<std::add_const_t<T>>>(
-                any.NakedAny::BasicAny::m_vtable->voidify_const(
-                    any.NakedAny::BasicAny::m_storage
-                )
-            )
-        );
-    }
+    return std::forward_like<Any_T>(
+        *reinterpret_cast<
+            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Any_T>>>>(
+            any.NakedAny::BasicAny::voidify()
+        )
+    );
 }
 
 template <typename Traits_T>
@@ -856,6 +851,18 @@ auto BasicAny<Traits_T>::reset() -> void
         m_vtable->drop(m_allocator, m_storage);
         m_vtable = nullptr;
     }
+}
+
+template <typename Traits_T>
+auto BasicAny<Traits_T>::voidify() -> void*
+{
+    return m_vtable->voidify(m_storage);
+}
+
+template <typename Traits_T>
+auto BasicAny<Traits_T>::voidify() const -> const void*
+{
+    return m_vtable->voidify_const(m_storage);
 }
 
 }   // namespace kiln::util

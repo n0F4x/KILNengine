@@ -100,13 +100,9 @@ auto Allocation::memory_view() const noexcept -> MemoryView
 
 auto Allocation::memory_properties() const noexcept -> vk::MemoryPropertyFlags
 {
-    vk::MemoryPropertyFlags result;
-    vmaGetMemoryTypeProperties(
-        m_allocator,
-        m_memory_type_id.underlying(),
-        reinterpret_cast<VkMemoryPropertyFlags*>(&result)
-    );
-    return result;
+    VkMemoryPropertyFlags result;
+    vmaGetMemoryTypeProperties(m_allocator, m_memory_type_id.underlying(), &result);
+    return vk::MemoryPropertyFlags{ result };
 }
 
 auto Allocation::map() const noexcept -> std::span<std::byte>
