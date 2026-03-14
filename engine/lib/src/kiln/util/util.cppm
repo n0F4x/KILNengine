@@ -7,6 +7,7 @@ export import kiln.util.type_traits;
 export import kiln.util.contracts;
 export import kiln.util.Deleter;
 export import kiln.util.Dummy;
+export import kiln.util.EnumMask;
 export import kiln.util.for_each;
 export import kiln.util.containers.FunctionWrapper;
 export import kiln.util.Lazy;

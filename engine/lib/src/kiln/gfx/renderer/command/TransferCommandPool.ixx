@@ -1,0 +1,50 @@
+module;
+
+#include "kiln/util/lifetimebound.hpp"
+
+export module kiln.gfx.renderer.command.TransferCommandPool;
+
+import vulkan_hpp;
+
+import kiln.gfx.renderer.command.CommandPoolBase;
+import kiln.gfx.renderer.command.CommandPoolFlags;
+import kiln.gfx.renderer.command.TransferCommandBuffer;
+import kiln.gfx.renderer.device.Device;
+import kiln.gfx.vulkan.QueueFamilyIndex;
+import kiln.util.EnumMask;
+
+namespace kiln::gfx::renderer {
+
+export class TransferCommandPool : public CommandPoolBase {
+public:
+    TransferCommandPool(
+        [[kiln_lifetimebound]]
+        const Device&                    device,
+        vulkan::QueueFamilyIndex         queue_family_index,
+        util::EnumMask<CommandPoolFlags> flags = CommandPoolFlags::eNone
+    );
+
+    auto allocate_primary() -> TransferCommandBuffer;
+};
+
+}   // namespace kiln::gfx::renderer
+
+module :private;
+
+namespace kiln::gfx::renderer {
+
+TransferCommandPool::TransferCommandPool(
+    const Device&                          device,
+    const vulkan::QueueFamilyIndex         queue_family_index,
+    const util::EnumMask<CommandPoolFlags> flags
+)
+    : CommandPoolBase{ device, queue_family_index, flags }
+{
+}
+
+auto TransferCommandPool::allocate_primary() -> TransferCommandBuffer
+{
+    return TransferCommandBuffer{ CommandPoolBase::allocate_primary() };
+}
+
+}   // namespace kiln::gfx::renderer

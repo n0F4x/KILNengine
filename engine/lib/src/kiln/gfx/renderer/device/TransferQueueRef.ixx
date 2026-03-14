@@ -2,12 +2,12 @@ module;
 
 #include <functional>
 
-export module kiln.gfx.renderer.command.TransferQueueRef;
+export module kiln.gfx.renderer.device.TransferQueueRef;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.command.OneTimeTransferCommandBuffer;
-import kiln.gfx.renderer.command.SubmitInfo;
+import kiln.gfx.renderer.command.TransferCommandBuffer;
+import kiln.gfx.renderer.device.SubmitInfo;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 
 namespace kiln::gfx::renderer {
@@ -23,8 +23,8 @@ public:
     auto family_index() const noexcept -> vulkan::QueueFamilyIndex;
 
     auto submit(
-        const OneTimeTransferCommandBuffer& one_time_transfer_command_buffer,
-        const SubmitInfo&                   info = {}
+        const TransferCommandBuffer& one_time_transfer_command_buffer,
+        const SubmitInfo&            info = {}
     ) const -> void;
 
 private:

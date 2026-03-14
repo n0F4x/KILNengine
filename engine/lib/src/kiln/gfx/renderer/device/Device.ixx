@@ -8,8 +8,8 @@ export module kiln.gfx.renderer.device.Device;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.command.GraphicsQueueRef;
-import kiln.gfx.renderer.command.TransferQueueRef;
+import kiln.gfx.renderer.device.GraphicsQueueRef;
+import kiln.gfx.renderer.device.TransferQueueRef;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueGroup;

@@ -1,8 +1,8 @@
-export module kiln.gfx.renderer.command.GraphicsQueueRef;
+export module kiln.gfx.renderer.device.GraphicsQueueRef;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.command.TransferQueueRef;
+import kiln.gfx.renderer.device.TransferQueueRef;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 
 namespace kiln::gfx::renderer {

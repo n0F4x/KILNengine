@@ -1,6 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
-        OneTimeTransferCommandBuffer.cxx
-        TransferQueueRef.cxx
+        TransferCommandBuffer.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -8,12 +7,10 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         command.cppm
-        CommandPool.ixx
-        CommandPoolPlugin.ixx
-        CommandPoolPluginInjection.ixx
+        CommandPoolBase.ixx
+        CommandPoolFlags.ixx
         GraphicsCommandBuffer.ixx
-        GraphicsQueueRef.ixx
-        OneTimeTransferCommandBuffer.ixx
-        SubmitInfo.ixx
-        TransferQueueRef.ixx
+        GraphicsCommandPool.ixx
+        TransferCommandBuffer.ixx
+        TransferCommandPool.ixx
 )

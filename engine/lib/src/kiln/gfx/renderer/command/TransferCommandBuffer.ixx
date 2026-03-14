@@ -1,4 +1,4 @@
-export module kiln.gfx.renderer.command.OneTimeTransferCommandBuffer;
+export module kiln.gfx.renderer.command.TransferCommandBuffer;
 
 import vulkan_hpp;
 
@@ -7,9 +7,9 @@ import kiln.util.Strong;
 
 namespace kiln::gfx::renderer {
 
-export class OneTimeTransferCommandBuffer {
+export class TransferCommandBuffer {
 public:
-    explicit OneTimeTransferCommandBuffer(vk::raii::CommandBuffer&& command_buffer);
+    explicit TransferCommandBuffer(vk::raii::CommandBuffer&& command_buffer);
 
     [[nodiscard]]
     auto get() const noexcept -> const vk::raii::CommandBuffer&;

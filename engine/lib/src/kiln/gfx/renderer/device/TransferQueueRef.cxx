@@ -1,4 +1,4 @@
-module kiln.gfx.renderer.command.TransferQueueRef;
+module kiln.gfx.renderer.device.TransferQueueRef;
 
 namespace kiln::gfx::renderer {
 
@@ -17,8 +17,8 @@ auto TransferQueueRef::family_index() const noexcept -> vulkan::QueueFamilyIndex
 }
 
 auto TransferQueueRef::submit(
-    const OneTimeTransferCommandBuffer& one_time_transfer_command_buffer,
-    const SubmitInfo&                   info
+    const TransferCommandBuffer& one_time_transfer_command_buffer,
+    const SubmitInfo&            info
 ) const -> void
 {
     const vk::CommandBufferSubmitInfo command_buffer_submit_info{

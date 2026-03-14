@@ -1,6 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Device.cxx
         DevicePlugin.cxx
+        TransferQueueRef.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -12,4 +13,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         DevicePlugin.ixx
         DevicePluginFailedError.ixx
         DevicePluginInjection.ixx
+        GraphicsQueueRef.ixx
+        SubmitInfo.ixx
+        TransferQueueRef.ixx
 )

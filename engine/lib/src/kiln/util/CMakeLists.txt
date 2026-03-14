@@ -23,6 +23,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         contracts.ixx
         Deleter.ixx
         Dummy.ixx
+        EnumMask.ixx
         for_each.ixx
         FunctionWrapper.ixx
         Lazy.ixx

@@ -4,26 +4,26 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module kiln.gfx.renderer.command.OneTimeTransferCommandBuffer;
+module kiln.gfx.renderer.command.TransferCommandBuffer;
 
 import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-OneTimeTransferCommandBuffer::OneTimeTransferCommandBuffer(
+TransferCommandBuffer::TransferCommandBuffer(
     vk::raii::CommandBuffer&& command_buffer
 )
     : m_command_buffer{ std::move(command_buffer) }
 {
 }
 
-auto OneTimeTransferCommandBuffer::get() const noexcept -> const vk::raii::CommandBuffer&
+auto TransferCommandBuffer::get() const noexcept -> const vk::raii::CommandBuffer&
 {
     return m_command_buffer;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto OneTimeTransferCommandBuffer::begin() -> void
+auto TransferCommandBuffer::begin() -> void
 {
     m_command_buffer.begin(
         vk::CommandBufferBeginInfo{
@@ -33,13 +33,13 @@ auto OneTimeTransferCommandBuffer::begin() -> void
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto OneTimeTransferCommandBuffer::end() -> void
+auto TransferCommandBuffer::end() -> void
 {
     m_command_buffer.end();
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto OneTimeTransferCommandBuffer::enqueue_buffer_copy(
+auto TransferCommandBuffer::enqueue_buffer_copy(
     const Buffer& source,
     const Buffer& destination
 ) -> void
