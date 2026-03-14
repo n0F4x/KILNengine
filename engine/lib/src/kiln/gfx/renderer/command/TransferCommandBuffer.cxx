@@ -11,9 +11,11 @@ import kiln.util.contracts;
 namespace kiln::gfx::renderer {
 
 TransferCommandBuffer::TransferCommandBuffer(
-    vk::raii::CommandBuffer&& command_buffer
+    vk::raii::CommandBuffer&&                     command_buffer,
+    const util::EnumMask<CommandBufferUsageFlags> usage_flags
 )
-    : m_command_buffer{ std::move(command_buffer) }
+    : m_command_buffer{ std::move(command_buffer) },
+      m_usage_flags{ usage_flags }
 {
 }
 
@@ -25,9 +27,15 @@ auto TransferCommandBuffer::get() const noexcept -> const vk::raii::CommandBuffe
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto TransferCommandBuffer::begin() -> void
 {
+    vk::CommandBufferUsageFlags flags;
+    if (!(m_usage_flags & CommandBufferUsageFlags::eResettable))
+    {
+        flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+    }
+
     m_command_buffer.begin(
         vk::CommandBufferBeginInfo{
-            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit,
+            .flags = flags,
         }
     );
 }

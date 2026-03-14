@@ -33,13 +33,19 @@ public:
     [[nodiscard]]
     constexpr auto operator|(const EnumMask other) const noexcept -> EnumMask
     {
-        return EnumMask{ m_mask | other.underlying() };
+        return static_cast<Enum_T>(m_mask | other.underlying());
     }
 
     [[nodiscard]]
     constexpr auto operator&(const EnumMask other) const noexcept -> EnumMask
     {
-        return EnumMask{ m_mask & other.underlying() };
+        return static_cast<Enum_T>(m_mask & other.underlying());
+    }
+
+    [[nodiscard]]
+    constexpr explicit operator bool() const noexcept
+    {
+        return underlying() == std::underlying_type_t<Enum_T>{ 0 };
     }
 
     [[nodiscard]]

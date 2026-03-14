@@ -6,6 +6,7 @@ export module kiln.gfx.renderer.command.GraphicsCommandPool;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.command.CommandBufferUsageFlags;
 import kiln.gfx.renderer.command.CommandPoolBase;
 import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.renderer.command.GraphicsCommandBuffer;
@@ -24,7 +25,9 @@ public:
         util::EnumMask<CommandPoolFlags> flags = CommandPoolFlags::eNone
     );
 
-    auto allocate_primary() -> GraphicsCommandBuffer;
+    auto allocate_primary(
+        util::EnumMask<CommandBufferUsageFlags> usage_flags = CommandBufferUsageFlags::eNone
+    ) -> GraphicsCommandBuffer;
 };
 
 }   // namespace kiln::gfx::renderer
@@ -42,9 +45,11 @@ GraphicsCommandPool::GraphicsCommandPool(
 {
 }
 
-auto GraphicsCommandPool::allocate_primary() -> GraphicsCommandBuffer
+auto GraphicsCommandPool::allocate_primary(
+    const util::EnumMask<CommandBufferUsageFlags> usage_flags
+) -> GraphicsCommandBuffer
 {
-    return GraphicsCommandBuffer{ CommandPoolBase::allocate_primary() };
+    return GraphicsCommandBuffer{ CommandPoolBase::allocate_primary(), usage_flags };
 }
 
 }   // namespace kiln::gfx::renderer
