@@ -22,7 +22,7 @@ public:
         bool headless{};
     };
 
-    explicit DevicePlugin(vulkan::InstancePlugin& instance_plugin, bool headless = false);
+    explicit DevicePlugin(bool headless = false);
 
     template <typename Self_T>
     [[nodiscard]]
@@ -34,12 +34,9 @@ public:
     auto operator->(this Self_T& self)
         -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*;
 
-    auto request_debug_messenger() -> bool;
-
     auto operator()(app::App& app) -> void;
 
 private:
-    std::reference_wrapper<vulkan::InstancePlugin> m_instance_plugin_ref;
     bool                                           m_request_debug_messenger{};
     bool                                           m_headless{};
     vulkan::DeviceBuilder                          m_device_builder;

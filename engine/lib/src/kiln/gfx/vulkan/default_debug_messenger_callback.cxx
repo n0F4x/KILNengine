@@ -20,10 +20,26 @@ const auto logger{
             spdlog::stdout_color_mt(std::format("{}:Vulkan", config::engine_name()))
         };
         result->set_level(spdlog::level::level_enum::debug);
-        result->set_pattern("%^[%n](%r) %l:%$\n- %v");
+        result->set_pattern("%^[%n](%r) %l:\n- %v%$");
         return result;
     }()   //
 };
+
+[[nodiscard]]
+// ReSharper disable once CppNotAllPathsReturnValue
+constexpr auto log_level_of(const vk::DebugUtilsMessageSeverityFlagBitsEXT severity)
+    -> spdlog::level::level_enum
+{
+    switch (severity)
+    {
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
+            return spdlog::level::debug;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo: return spdlog::level::info;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
+            return spdlog::level::warn;
+        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError: return spdlog::level::err;
+    }
+}
 
 auto default_debug_messenger_callback(
     const vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -65,7 +81,7 @@ auto default_debug_messenger_callback(
              std::span{ pCallbackData->pObjects, pCallbackData->objectCount })
         {
             const char* const object_name{
-                object_info.pObjectName ? object_info.pObjectName : ""   //
+                object_info.pObjectName != nullptr ? object_info.pObjectName : ""   //
             };
             message << std::format(
                 "\t- {} ({}) {}\n",
@@ -76,22 +92,7 @@ auto default_debug_messenger_callback(
         }
     }
 
-    switch (severity)
-    {
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose:
-            logger->debug(message.str());
-            break;
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo:
-            logger->info(message.str());
-            break;
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
-            logger->warn(message.str());
-            break;
-        case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
-            logger->error(message.str());
-            break;
-        default: break;
-    }
+    logger->log(log_level_of(severity), message.str());
 
     return vk::False;
 }

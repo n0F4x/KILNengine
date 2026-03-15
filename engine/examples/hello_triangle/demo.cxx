@@ -164,7 +164,7 @@ auto demo_plugin_injection(
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin
 {
-    instance_plugin->request_api_version(vk::ApiVersion13);
+    instance_plugin->target_api_version(vk::ApiVersion13);
     device_plugin->require_minimum_version(vk::ApiVersion13);
     device_plugin->request_graphics_queue();
     device_plugin->request_host_to_device_transfer_queue();

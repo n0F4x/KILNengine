@@ -15,55 +15,11 @@ import kiln.wsi.vulkan_queue_family_supports_presenting;
 
 namespace kiln::gfx::renderer {
 
-DevicePlugin::DevicePlugin(vulkan::InstancePlugin& instance_plugin, bool headless)
-    : m_instance_plugin_ref{ instance_plugin },
-      m_headless{ headless }
-{
-#ifdef KILN_DEBUG
-    request_debug_messenger();
-#endif
-}
-
-auto DevicePlugin::request_debug_messenger() -> bool
-{
-    if (m_request_debug_messenger)
-    {
-        return true;
-    }
-
-    if (!m_instance_plugin_ref.get()->enable_extension_if_available(
-            vk::EXTDebugUtilsExtensionName
-        ))
-    {
-        return false;
-    }
-
-    m_request_debug_messenger = true;
-
-    return true;
-}
+DevicePlugin::DevicePlugin(bool headless) : m_headless{ headless } {}
 
 auto DevicePlugin::operator()(app::App& app) -> void
 {
     const vk::raii::Instance& instance{ app.context().at<vk::raii::Instance>() };
-
-    constexpr static vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info{
-        .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
-                         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
-        .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
-                     | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-                     | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
-                     | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
-        .pfnUserCallback = vulkan::default_debug_messenger_callback,
-    };
-
-    vk::raii::DebugUtilsMessengerEXT debug_messenger{
-        m_request_debug_messenger
-            ? vulkan::check_result(
-                  instance.createDebugUtilsMessengerEXT(debug_messenger_create_info)
-              )
-            : vk::raii::DebugUtilsMessengerEXT{ nullptr }
-    };
 
     if (!m_headless)
     {
@@ -95,7 +51,6 @@ auto DevicePlugin::operator()(app::App& app) -> void
         );
 
     app.context().emplace<Device>(
-        std::move(debug_messenger),
         std::move(physical_device),
         std::move(logical_device),
         std::move(queues),

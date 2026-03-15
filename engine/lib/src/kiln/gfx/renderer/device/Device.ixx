@@ -22,7 +22,6 @@ namespace kiln::gfx::renderer {
 export class Device {
 public:
     Device(
-        vk::DebugUtilsMessengerEXT         debug_messenger,
         vk::raii::PhysicalDevice           physical_device,
         vk::raii::Device                   logical_device,
         vulkan::QueueGroup                 queues,
@@ -50,7 +49,6 @@ public:
     ) const -> wsi::VulkanWindow;
 
 private:
-    vk::DebugUtilsMessengerEXT         m_debug_messenger;
     vk::raii::PhysicalDevice           m_physical_device;
     vk::raii::Device                   m_logical_device;
     vulkan::QueueGroup                 m_queues;

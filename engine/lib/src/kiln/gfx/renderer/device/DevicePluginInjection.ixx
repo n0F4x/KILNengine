@@ -62,7 +62,7 @@ public:
             }
         }
 
-        return DevicePlugin{ instance_plugin, m_headless };
+        return DevicePlugin{ m_headless };
     }
 
 private:

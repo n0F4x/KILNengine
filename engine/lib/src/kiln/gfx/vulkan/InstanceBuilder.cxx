@@ -1,7 +1,6 @@
 module;
 
 #include <algorithm>
-#include <print>
 #include <ranges>
 #include <vector>
 
@@ -49,48 +48,36 @@ InstanceBuilder::InstanceBuilder(
 {
 }
 
-auto InstanceBuilder::request_api_version(const uint32_t api_version) -> void
+auto InstanceBuilder::target_api_version(const uint32_t api_version) -> void
 {
     m_api_version = std::max(api_version, m_api_version);
 }
 
-auto InstanceBuilder::require_minimum_version(const uint32_t version) -> bool
+auto InstanceBuilder::require_minimum_version(const uint32_t version) -> void
 {
     if (m_minimum_version >= version)
     {
-        return true;
+        return;
     }
 
-    if (version > m_context.get().enumerateInstanceVersion())
-    {
-        return false;
-    }
+    PRECOND(version <= m_context.get().enumerateInstanceVersion());
 
     m_minimum_version = version;
-
-    return true;
 }
 
-auto InstanceBuilder::enable_vulkan_layer_if_available(
-    const util::StringLiteral layer_name
-) -> bool
+auto InstanceBuilder::enable_layer(const util::StringLiteral layer_name) -> void
 {
-    const std::vector<vk::LayerProperties> layer_properties{
-        m_context.get().enumerateInstanceLayerProperties()
-    };
-
-    if (std::ranges::none_of(
-            layer_properties,
+    PRECOND(
+        std::ranges::any_of(
+            m_context.get().enumerateInstanceLayerProperties(),
             [layer_name](const char* const present_layer_name) -> bool
             {
                 return layer_name
                     == util::StringLiteral::unsafe_create(present_layer_name);   //
             },
             &vk::LayerProperties::layerName
-        ))
-    {
-        return false;
-    }
+        )
+    );
 
     if (std::ranges::none_of(
             m_layer_names,
@@ -102,19 +89,41 @@ auto InstanceBuilder::enable_vulkan_layer_if_available(
     {
         m_layer_names.push_back(layer_name);
     }
+}
 
-    return true;
+auto InstanceBuilder::enable_extension(util::StringLiteral extension_name) -> void
+{
+    PRECOND(
+        std::ranges::any_of(
+            m_context.get().enumerateInstanceExtensionProperties(),
+            [extension_name](const char* const supported_extension) -> bool
+            {
+                return extension_name
+                    == util::StringLiteral::unsafe_create(supported_extension);   //
+            },
+            &vk::ExtensionProperties::extensionName
+        )
+    );
+
+    if (std::ranges::none_of(
+            m_extension_names,
+            [extension_name](const util::StringLiteral enabled_extension) -> bool
+            {
+                return extension_name == enabled_extension;   //
+            }
+        ))
+    {
+        m_extension_names.push_back(extension_name);
+    }
 }
 
 auto InstanceBuilder::enable_extension_if_available(
     const util::StringLiteral extension_name
 ) -> bool
 {
-    const std::vector<vk::ExtensionProperties> extension_properties{
-        m_context.get().enumerateInstanceExtensionProperties()
-    };
-
-    if (std::ranges::none_of(
+    if (const std::vector<vk::ExtensionProperties> extension_properties{
+            m_context.get().enumerateInstanceExtensionProperties() };
+        std::ranges::none_of(
             extension_properties,
             [extension_name](const char* const supported_extension) -> bool
             {

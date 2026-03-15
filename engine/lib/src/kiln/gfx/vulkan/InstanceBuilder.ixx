@@ -48,10 +48,10 @@ public:
         const vk::raii::Context& context
     );
 
-    auto request_api_version(uint32_t api_version) -> void;
-    [[nodiscard]]
-    auto require_minimum_version(uint32_t version) -> bool;
-    auto enable_vulkan_layer_if_available(util::StringLiteral layer_name) -> bool;
+    auto target_api_version(uint32_t api_version) -> void;
+    auto require_minimum_version(uint32_t version) -> void;
+    auto enable_layer(util::StringLiteral layer_name) -> void;
+    auto enable_extension(util::StringLiteral extension_name) -> void;
     auto enable_extension_if_available(util::StringLiteral extension_name) -> bool;
 
     [[nodiscard]]
