@@ -8,9 +8,9 @@ module;
 #include <span>
 #include <vector>
 
-export module kiln.gfx.vulkan.pipeline.ShaderModule;
+export module kiln.gfx.renderer.pipeline.ShaderModule;
 
-namespace kiln::gfx::vulkan {
+namespace kiln::gfx::renderer {
 
 export class ShaderModule {
 public:
@@ -27,11 +27,11 @@ private:
     ShaderModule() = default;
 };
 
-}   // namespace kiln::gfx::vulkan
+}   // namespace kiln::gfx::renderer
 
 module :private;
 
-namespace kiln::gfx::vulkan {
+namespace kiln::gfx::renderer {
 
 auto ShaderModule::load_from_file(const std::filesystem::path& filepath)
     -> std::optional<ShaderModule>
@@ -46,7 +46,7 @@ auto ShaderModule::load_from_file(const std::filesystem::path& filepath)
 
     static_assert(sizeof(std::byte) == sizeof(std::ifstream::char_type));
 
-    std::optional<ShaderModule> result{ ShaderModule{} };
+    std::optional result{ ShaderModule{} };
     result->m_code.resize(static_cast<std::size_t>(file_size));
 
     file.seekg(0, std::ios::beg);
@@ -65,4 +65,4 @@ auto ShaderModule::code() const noexcept -> std::span<const uint32_t>
     };
 }
 
-}   // namespace kiln::gfx::vulkan
+}   // namespace kiln::gfx::renderer

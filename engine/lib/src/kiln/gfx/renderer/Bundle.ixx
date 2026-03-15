@@ -3,6 +3,7 @@ export module kiln.gfx.renderer.Bundle;
 import kiln.app.Builder;
 import kiln.gfx.renderer.device.DevicePluginInjection;
 import kiln.gfx.renderer.memory.AllocatorPluginInjection;
+import kiln.gfx.renderer.pipeline.PipelinePluginInjection;
 
 namespace kiln::gfx::renderer {
 
@@ -31,6 +32,7 @@ auto Bundle::operator()(app::Builder& builder) const -> void
 {
     builder.inject_plugin(DevicePluginInjection{ m_headless });
     builder.inject_plugin(AllocatorPluginInjection{});
+    builder.inject_plugin(PipelinePluginInjection{});
 }
 
 }   // namespace kiln::gfx::renderer

@@ -8,8 +8,8 @@ export struct Demo {
     kiln::gfx::renderer::TransferCommandPool immediate_transfer_command_pool;
     kiln::wsi::VulkanWindow                  window;
     vk::raii::PipelineLayout                 pipeline_layout;
-    kiln::gfx::vulkan::ShaderModule          shader_module;
-    vk::raii::Pipeline                       pipeline;
+    kiln::gfx::renderer::ShaderModule        shader_module;
+    kiln::gfx::renderer::GraphicsPipeline    pipeline;
     kiln::gfx::renderer::Buffer              index_buffer;
 
     Demo(
@@ -31,5 +31,6 @@ auto demo_plugin_injection(
     kiln::gfx::vulkan::InstancePlugin&,
     const kiln::wsi::Plugin&,
     kiln::gfx::renderer::DevicePlugin& device_plugin,
-    kiln::gfx::renderer::AllocatorPlugin&
+    const kiln::gfx::renderer::AllocatorPlugin&,
+    const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin;

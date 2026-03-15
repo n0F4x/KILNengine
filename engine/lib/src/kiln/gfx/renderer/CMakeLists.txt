@@ -2,6 +2,7 @@ add_subdirectory(command)
 add_subdirectory(descriptor)
 add_subdirectory(device)
 add_subdirectory(memory)
+add_subdirectory(pipeline)
 
 target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES

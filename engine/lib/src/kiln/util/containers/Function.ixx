@@ -97,24 +97,12 @@ struct FunctionTraits<
                 FArgs_T... args
             ) noexcept(is_noexcept()) -> Result
             {
-                if constexpr (std::is_void_v<Result>)
-                {
-                    std::invoke(
-                        any_cast<std::decay_t<F>>(
-                            std::forward<invoke_qualified_self_t<Any_T>>(that)
-                        ),
-                        std::forward<FArgs_T>(args)...
-                    );
-                }
-                else
-                {
-                    return std::invoke(
-                        any_cast<std::decay_t<F>>(
-                            std::forward<invoke_qualified_self_t<Any_T>>(that)
-                        ),
-                        std::forward<FArgs_T>(args)...
-                    );
-                }
+                return std::invoke(
+                    any_cast<std::decay_t<F>>(
+                        std::forward<invoke_qualified_self_t<Any_T>>(that)
+                    ),
+                    std::forward<FArgs_T>(args)...
+                );
             }
 
             constexpr static VTable vtable{
