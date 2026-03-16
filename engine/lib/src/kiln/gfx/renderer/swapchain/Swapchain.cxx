@@ -6,18 +6,17 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module kiln.gfx.vulkan.Swapchain;
+module kiln.gfx.renderer.swapchain.Swapchain;
 
-import kiln.util.contracts;
 import kiln.gfx.vulkan.result.check_result;
+import kiln.util.contracts;
 
-namespace kiln::gfx::vulkan {
-
-namespace internal {
+namespace kiln::gfx::renderer {
 
 [[nodiscard]]
-auto pick_surface_format(const std::span<const vk::SurfaceFormatKHR> surface_formats)
-    -> vk::SurfaceFormatKHR
+constexpr auto pick_surface_format(
+    const std::span<const vk::SurfaceFormatKHR> surface_formats
+) -> vk::SurfaceFormatKHR
 {
     for (const vk::SurfaceFormatKHR& surface_format : surface_formats)
     {
@@ -30,20 +29,22 @@ auto pick_surface_format(const std::span<const vk::SurfaceFormatKHR> surface_for
     return surface_formats.front();
 }
 
-}   // namespace internal
-
-constexpr auto Swapchain::pick_present_mode(
-    const std::span<const vk::PresentModeKHR> present_modes
+constexpr auto pick_present_mode(
+    const std::span<const vk::PresentModeKHR> present_modes,
+    const bool                                vsync
 ) -> vk::PresentModeKHR
 {
+    if (vsync && std::ranges::contains(present_modes, vk::PresentModeKHR::eImmediate))
+    {
+        return vk::PresentModeKHR::eImmediate;
+    }
+
     return std::ranges::contains(present_modes, vk::PresentModeKHR::eMailbox)
              ? vk::PresentModeKHR::eMailbox
          : std::ranges::contains(present_modes, vk::PresentModeKHR::eFifoRelaxed)
              ? vk::PresentModeKHR::eFifoRelaxed
              : vk::PresentModeKHR::eFifo;
 }
-
-namespace internal {
 
 [[nodiscard]]
 auto pick_swap_extent(
@@ -70,30 +71,29 @@ auto pick_swap_extent(
     };
 }
 
-template <present_mode_picker_c PickPresentMode_T>
 [[nodiscard]]
 auto create_swapchain(
-    const vk::Extent2D&             framebuffer_size,
-    const vk::raii::SurfaceKHR&     surface,
-    const vk::raii::PhysicalDevice& physical_device,
-    const vk::raii::Device&         logical_device,
-    const vk::SurfaceFormatKHR&     surface_format,
-    PickPresentMode_T&&             pick_present_mode,
-    const uint32_t                  number_of_frames
+    const Device&               device,
+    const vk::raii::SurfaceKHR& surface,
+    const vk::Extent2D&         framebuffer_size,
+    const uint32_t              number_of_frames,
+    const bool                  vsync,
+    const vk::SurfaceFormatKHR& surface_format
 ) -> vk::raii::SwapchainKHR
 {
+    // TODO: remove this PRECOND after
+    // https://github.com/KhronosGroup/Vulkan-Hpp/issues/2410
     PRECOND(
-        logical_device.getDispatcher()->vkCreateSwapchainKHR != nullptr,
+        device.logical_device().getDispatcher()->vkCreateSwapchainKHR != nullptr,
         "VK_KHR_SWAPCHAIN_EXTENSION_NAME was not enabled"
     );
 
     const vk::SurfaceCapabilitiesKHR surface_capabilities{
-        physical_device.getSurfaceCapabilitiesKHR(surface)
+        device.physical_device().getSurfaceCapabilitiesKHR(surface)
     };
     const vk::PresentModeKHR present_mode{
-        std::invoke(
-            std::forward<PickPresentMode_T>(pick_present_mode),
-            physical_device.getSurfacePresentModesKHR(surface)
+        pick_present_mode(
+            device.physical_device().getSurfacePresentModesKHR(surface), vsync
         )   //
     };
     const uint32_t image_count{
@@ -120,7 +120,7 @@ auto create_swapchain(
         .clipped          = vk::True,
     };
 
-    return check_result(logical_device.createSwapchainKHR(create_info));
+    return vulkan::check_result(device.logical_device().createSwapchainKHR(create_info));
 }
 
 [[nodiscard]]
@@ -149,59 +149,36 @@ auto create_swapchain_image_views(
     for (const vk::Image swapchain_image : swapchain_images)
     {
         create_info.image = swapchain_image;
-        result.push_back(check_result(device.createImageView(create_info)));
+        result.push_back(vulkan::check_result(device.createImageView(create_info)));
     }
 
     return result;
 }
 
-}   // namespace internal
-
 Swapchain::Swapchain(
-    const vk::raii::SurfaceKHR&     surface,
-    const vk::raii::PhysicalDevice& physical_device,
-    const vk::raii::Device&         logical_device,
-    const vk::Extent2D              framebuffer_size,
-    const uint32_t                  number_of_frames
-)
-    : Swapchain{
-          surface,            //
-          physical_device,    //
-          logical_device,     //
-          framebuffer_size,   //
-          number_of_frames,   //
-          pick_present_mode   //
-      }
-{
-}
-
-template <present_mode_picker_c PickPresentMode_T>
-Swapchain::Swapchain(
-    const vk::raii::SurfaceKHR&     surface,
-    const vk::raii::PhysicalDevice& physical_device,
-    const vk::raii::Device&         logical_device,
-    vk::Extent2D                    framebuffer_size,
-    uint32_t                        number_of_frames,
-    PickPresentMode_T&&             pick_present_mode
+    const Device&               device,
+    const vk::raii::SurfaceKHR& surface,
+    const vk::Extent2D          framebuffer_size,
+    const uint32_t              number_of_frames,
+    const bool                  enable_vsync
 )
     : m_surface_format{
-          internal::pick_surface_format(physical_device.getSurfaceFormatsKHR(surface))   //
+          pick_surface_format(device.physical_device().getSurfaceFormatsKHR(surface))
       },
       m_swapchain{
-          internal::create_swapchain(
-              framebuffer_size,
+          create_swapchain(
+              device,
               surface,
-              physical_device,
-              logical_device,
-              m_surface_format,
-              std::forward<PickPresentMode_T>(pick_present_mode),
-              number_of_frames
+              framebuffer_size,
+              number_of_frames,
+              enable_vsync,
+              m_surface_format
           )   //
       },
       m_swapchain_images{ m_swapchain.getImages() },
       m_swapchain_image_views{
-          internal::create_swapchain_image_views(
-              logical_device,
+          create_swapchain_image_views(
+              device.logical_device(),
               m_surface_format.format,
               m_swapchain_images
           )   //
@@ -209,15 +186,9 @@ Swapchain::Swapchain(
 {
 }
 
-auto Swapchain::surface_format() const noexcept -> vk::SurfaceFormatKHR
+auto Swapchain::surface_format() const noexcept -> const vk::SurfaceFormatKHR&
 {
     return m_surface_format;
 }
 
-auto Swapchain::swapchain_image_views() const noexcept
-    -> std::span<const vk::raii::ImageView>
-{
-    return m_swapchain_image_views;
-}
-
-}   // namespace kiln::gfx::vulkan
+}   // namespace kiln::gfx::renderer

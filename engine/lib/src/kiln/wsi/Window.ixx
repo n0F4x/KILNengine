@@ -1,5 +1,6 @@
 module;
 
+#include <expected>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -10,6 +11,8 @@ module;
 #include "kiln/util/lifetimebound.hpp"
 
 export module kiln.wsi.Window;
+
+import vulkan_hpp;
 
 import kiln.wsi.Context;
 import kiln.wsi.event.Key;
@@ -43,6 +46,10 @@ public:
     auto key_pressed(Key key) const noexcept -> bool;
 
     auto request_close() noexcept -> void;
+
+    [[nodiscard]]
+    auto create_vulkan_surface(const vk::raii::Instance& instance)
+        -> std::expected<vk::raii::SurfaceKHR, vk::Result>;
 
 protected:
     [[nodiscard]]

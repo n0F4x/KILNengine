@@ -13,9 +13,6 @@ import kiln.gfx.renderer.device.TransferQueueRef;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueGroup;
-import kiln.wsi.Context;
-import kiln.wsi.VulkanWindow;
-import kiln.wsi.Window;
 
 namespace kiln::gfx::renderer {
 
@@ -41,19 +38,11 @@ public:
     [[nodiscard]]
     auto capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&;
 
-    [[nodiscard]]
-    auto create_window(
-        const vk::raii::Instance&      vulkan_instance,
-        const wsi::Context&            wsi_context,
-        const wsi::Window::CreateInfo& create_info
-    ) const -> wsi::VulkanWindow;
-
 private:
     vk::raii::PhysicalDevice           m_physical_device;
     vk::raii::Device                   m_logical_device;
     vulkan::QueueGroup                 m_queues;
     vulkan::PhysicalDeviceCapabilities m_capabilities;
-    uint32_t                           m_number_of_frames{ 2 };
 };
 
 }   // namespace kiln::gfx::renderer

@@ -11,11 +11,9 @@ import kiln;
 
 [[nodiscard]]
 auto create_window(
-    const kiln::config::Config&        config,
-    const vk::raii::Instance&          vulkan_instance,
-    const kiln::wsi::Context&          wsi_context,
-    const kiln::gfx::renderer::Device& render_device
-) -> kiln::wsi::VulkanWindow
+    const kiln::config::Config& config,
+    const kiln::wsi::Context&   wsi_context
+) -> kiln::wsi::Window
 {
     constexpr static kiln::wsi::WindowedWindowSettings screen_settings{
         .content_size{ .width = 640, .height = 480 }
@@ -25,7 +23,7 @@ auto create_window(
         .settings = screen_settings,
     };
 
-    return render_device.create_window(vulkan_instance, wsi_context, window_info);
+    return kiln::wsi::Window{ wsi_context, window_info };
 }
 
 Demo::Demo(
@@ -38,7 +36,11 @@ Demo::Demo(
           render_device,
           render_device.host_to_device_transfer_queue().family_index()
       },
-      window{ create_window(config, vulkan_instance, wsi_context, render_device) },
+      window{ create_window(config, wsi_context) },
+      surface{
+          kiln::gfx::vulkan::check_result(window.create_vulkan_surface(vulkan_instance))
+      },
+      swapchain{ render_device, surface, window.resolution(), 2, true },
       pipeline_layout{
           kiln::gfx::vulkan::check_result(
               render_device.logical_device().createPipelineLayout({})
@@ -56,7 +58,7 @@ Demo::Demo(
           pipeline_layout,
           shader_module,
           shader_module,
-          std::array{ window.swapchain().surface_format().format },
+          std::array{ swapchain.surface_format().format },
       },
       graphics_command_pool{
           render_device,
@@ -76,10 +78,7 @@ auto Demo::render() -> void
     graphics_command_buffer.begin();
 
     const vk::Rect2D render_area{
-        .extent{
-                .width  = window.resolution().width,
-                .height = window.resolution().height,
-                },
+        .extent = window.resolution(),
     };
     const vk::RenderingAttachmentInfo color_attachment{
         // .imageView   = window.swapchain().swapchain_image_views()[image_index],

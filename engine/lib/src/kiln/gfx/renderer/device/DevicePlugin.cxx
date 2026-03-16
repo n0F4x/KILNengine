@@ -25,7 +25,6 @@ auto DevicePlugin::operator()(app::App& app) -> void
     {
         wsi::Context& wsi_context{ app.context().at<wsi::Context>() };
 
-        m_device_builder.enable_extension(vk::KHRSwapchainExtensionName);
         m_device_builder.ensure_queue(
             [&wsi_context, &instance](
                 const vk::raii::PhysicalDevice& physical_device,

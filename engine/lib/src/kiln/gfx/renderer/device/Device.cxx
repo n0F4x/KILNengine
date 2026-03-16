@@ -56,19 +56,4 @@ auto Device::capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabi
     return m_capabilities;
 }
 
-auto Device::create_window(
-    const vk::raii::Instance&      vulkan_instance,
-    const wsi::Context&            wsi_context,
-    const wsi::Window::CreateInfo& create_info
-) const -> wsi::VulkanWindow
-{
-    return wsi::VulkanWindow{
-        wsi::Window{ wsi_context, create_info },
-        vulkan_instance,
-        m_physical_device,
-        m_logical_device,
-        m_number_of_frames
-    };
-}
-
 }   // namespace kiln::gfx::renderer

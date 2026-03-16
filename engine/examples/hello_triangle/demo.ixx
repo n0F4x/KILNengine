@@ -6,7 +6,9 @@ import kiln;
 
 export struct Demo {
     kiln::gfx::renderer::TransferCommandPool   immediate_transfer_command_pool;
-    kiln::wsi::VulkanWindow                    window;
+    kiln::wsi::Window                          window;
+    vk::raii::SurfaceKHR                       surface;
+    kiln::gfx::renderer::Swapchain             swapchain;
     vk::raii::PipelineLayout                   pipeline_layout;
     kiln::gfx::renderer::ShaderModule          shader_module;
     kiln::gfx::renderer::GraphicsPipeline      pipeline;

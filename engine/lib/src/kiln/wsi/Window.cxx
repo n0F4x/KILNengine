@@ -2,6 +2,7 @@ module;
 
 #include <cassert>
 #include <cstdint>
+#include <expected>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -189,6 +190,36 @@ auto Window::key_pressed(const Key key) const noexcept -> bool
 auto Window::request_close() noexcept -> void
 {
     glfwSetWindowShouldClose(m_handle.get(), GLFW_TRUE);
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Window::create_vulkan_surface(const vk::raii::Instance& instance)
+    -> std::expected<vk::raii::SurfaceKHR, vk::Result>
+{
+    VkSurfaceKHR   surface{};
+    const VkResult result =
+        glfwCreateWindowSurface(*instance, m_handle.get(), nullptr, &surface);
+
+    [[maybe_unused]]
+    const int error_code = glfwGetError(nullptr);
+    assert(
+        (error_code != GLFW_API_UNAVAILABLE && error_code != GLFW_INVALID_VALUE
+         && error_code != GLFW_PLATFORM_ERROR)
+        && "A precondition should have already been violated"
+    );
+    assert(error_code == GLFW_NO_ERROR);
+
+    if (result != VK_SUCCESS)
+    {
+        return std::expected<vk::raii::SurfaceKHR, vk::Result>{
+            std::unexpect,
+            vk::Result{ result },
+        };
+    }
+
+    return std::expected<vk::raii::SurfaceKHR, vk::Result>{
+        vk::raii::SurfaceKHR{ instance, surface }
+    };
 }
 
 auto Window::context() const noexcept -> const Context&

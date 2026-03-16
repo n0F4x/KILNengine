@@ -5,6 +5,7 @@ import kiln.gfx.renderer.debug_messenger.DebugMessengerPluginInjection;
 import kiln.gfx.renderer.device.DevicePluginInjection;
 import kiln.gfx.renderer.memory.AllocatorPluginInjection;
 import kiln.gfx.renderer.pipeline.PipelinePluginInjection;
+import kiln.gfx.renderer.swapchain.SwapchainPluginInjection;
 
 namespace kiln::gfx::renderer {
 
@@ -37,6 +38,10 @@ auto Bundle::operator()(app::Builder& builder) const -> void
 
     builder.inject_plugin(DevicePluginInjection{ m_headless });
     builder.inject_plugin(AllocatorPluginInjection{});
+    if (!m_headless)
+    {
+        builder.inject_plugin(SwapchainPluginInjection{});
+    }
     builder.inject_plugin(PipelinePluginInjection{});
 }
 

@@ -8,7 +8,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         DeviceBuilder.cxx
         global_definitions.cpp
         InstanceBuilder.cxx
-        Swapchain.cxx
         vma_global_definitions.cxx
 )
 
@@ -31,5 +30,4 @@ target_sources(${PROJECT_NAME} PUBLIC
         QueueFamilyIndex.ixx
         QueueGroup.ixx
         QueuePack.ixx
-        Swapchain.ixx
 )

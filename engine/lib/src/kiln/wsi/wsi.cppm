@@ -10,7 +10,6 @@ export import kiln.wsi.Plugin;
 export import kiln.wsi.Size;
 export import kiln.wsi.vulkan_instance_extensions;
 export import kiln.wsi.vulkan_queue_family_supports_presenting;
-export import kiln.wsi.VulkanWindow;
 export import kiln.wsi.Window;
 export import kiln.wsi.WindowedWindowSettings;
 export import kiln.wsi.WindowSettings;

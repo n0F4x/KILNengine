@@ -5,6 +5,8 @@ module;
 
 export module kiln.wsi.Size;
 
+import vulkan_hpp;
+
 namespace kiln::wsi {
 
 export struct Size2i {
@@ -19,6 +21,11 @@ export struct Size2u {
 
     uint32_t width;
     uint32_t height;
+
+    constexpr explicit(false) operator vk::Extent2D() const noexcept
+    {
+        return vk::Extent2D{ .width = width, .height = height };
+    }
 };
 
 }   // namespace kiln::wsi

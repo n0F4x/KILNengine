@@ -4,6 +4,7 @@ add_subdirectory(descriptor)
 add_subdirectory(device)
 add_subdirectory(memory)
 add_subdirectory(pipeline)
+add_subdirectory(swapchain)
 
 target_sources(${PROJECT_NAME} PUBLIC
         FILE_SET CXX_MODULES
