@@ -27,6 +27,10 @@ public:
         const SubmitInfo&            info = {}
     ) const -> void;
 
+protected:
+    [[nodiscard]]
+    auto get() const noexcept -> const vk::raii::Queue&;
+
 private:
     std::reference_wrapper<const vk::raii::Queue> m_queue_ref;
     vulkan::QueueFamilyIndex                      m_family_index;

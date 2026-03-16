@@ -11,11 +11,8 @@ export class GraphicsQueueRef : public TransferQueueRef {
 public:
     explicit GraphicsQueueRef(
         const vk::raii::Queue&         queue_ref,
-        const vulkan::QueueFamilyIndex family_index
-    )
-        : TransferQueueRef{ queue_ref, family_index }
-    {
-    }
+        vulkan::QueueFamilyIndex family_index
+    );
 };
 
 }   // namespace kiln::gfx::renderer

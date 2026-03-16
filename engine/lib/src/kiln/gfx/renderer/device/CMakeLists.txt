@@ -1,6 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Device.cxx
         DevicePlugin.cxx
+        GraphicsQueueRef.cxx
         TransferQueueRef.cxx
 )
 

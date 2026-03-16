@@ -1,5 +1,6 @@
 module;
 
+#include <cstdint>
 #include <span>
 
 export module kiln.gfx.renderer.pipeline.RenderPass;

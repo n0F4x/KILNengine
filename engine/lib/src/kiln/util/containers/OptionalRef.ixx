@@ -172,7 +172,7 @@ constexpr auto OptionalRef<T>::value_or(U&& other) const noexcept -> T&
     {
         return *m_handle;
     }
-    return static_cast<T&>(std::forward<U>(other));
+    return std::forward<U>(other);
 }
 
 template <typename T>
@@ -182,7 +182,7 @@ constexpr auto OptionalRef<T>::and_then(F&& func) const -> std::invoke_result_t<
 {
     if (has_value())
     {
-        return std::invoke(std::forward<F>(func), static_cast<T&>(*m_handle));
+        return std::invoke(std::forward<F>(func), *m_handle);
     }
     return std::nullopt;
 }
@@ -196,7 +196,7 @@ constexpr auto OptionalRef<T>::transform(F&& func) const
     if (has_value())
     {
         return internal::transform_result_t<F&&, T&>{
-            std::invoke(std::forward<F>(func), static_cast<T&>(*m_handle))
+            std::invoke(std::forward<F>(func), *m_handle)
         };
     }
     return std::nullopt;

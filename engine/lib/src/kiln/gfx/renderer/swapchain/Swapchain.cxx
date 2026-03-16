@@ -1,7 +1,10 @@
 module;
 
 #include <algorithm>
+#include <limits>
+#include <optional>
 #include <span>
+#include <variant>
 #include <vector>
 
 #include "kiln/util/contract_macros.hpp"
@@ -9,7 +12,10 @@ module;
 module kiln.gfx.renderer.swapchain.Swapchain;
 
 import kiln.gfx.vulkan.result.check_result;
+import kiln.gfx.vulkan.result.Result;
+import kiln.gfx.vulkan.result.TypedResultCode;
 import kiln.util.contracts;
+import kiln.util.containers.OptionalRef;
 
 namespace kiln::gfx::renderer {
 
@@ -34,15 +40,20 @@ constexpr auto pick_present_mode(
     const bool                                vsync
 ) -> vk::PresentModeKHR
 {
-    if (vsync && std::ranges::contains(present_modes, vk::PresentModeKHR::eImmediate))
+    if (vsync)
     {
-        return vk::PresentModeKHR::eImmediate;
+        if (std::ranges::contains(present_modes, vk::PresentModeKHR::eImmediate))
+        {
+            return vk::PresentModeKHR::eImmediate;
+        }
+        if (std::ranges::contains(present_modes, vk::PresentModeKHR::eFifoRelaxed))
+        {
+            return vk::PresentModeKHR::eFifoRelaxed;
+        }
     }
 
     return std::ranges::contains(present_modes, vk::PresentModeKHR::eMailbox)
              ? vk::PresentModeKHR::eMailbox
-         : std::ranges::contains(present_modes, vk::PresentModeKHR::eFifoRelaxed)
-             ? vk::PresentModeKHR::eFifoRelaxed
              : vk::PresentModeKHR::eFifo;
 }
 
@@ -189,6 +200,66 @@ Swapchain::Swapchain(
 auto Swapchain::surface_format() const noexcept -> const vk::SurfaceFormatKHR&
 {
     return m_surface_format;
+}
+
+auto Swapchain::get() const noexcept -> const vk::raii::SwapchainKHR&
+{
+    return m_swapchain;
+}
+
+auto Swapchain::current_image_index() const noexcept -> std::optional<uint32_t>
+{
+    return m_current_image_index;
+}
+
+auto Swapchain::current_image_view() const noexcept
+    -> util::OptionalRef<const vk::raii::ImageView>
+{
+    if (!m_current_image_index)
+    {
+        return std::nullopt;
+    }
+
+    return m_swapchain_image_views[*m_current_image_index];
+}
+
+auto Swapchain::acquire_next_image_index(
+    const vk::raii::Semaphore&                     semaphore,
+    const util::OptionalRef<const vk::raii::Fence> fence
+) -> bool
+{
+    m_current_image_index.reset();
+
+    if (m_out_dated)
+    {
+        return false;
+    }
+
+    const vk::Fence null_fence{};
+    const vulkan::Result<
+        uint32_t,
+        vk::Result::eSuccess,
+        vk::Result::eSuboptimalKHR,
+        vk::Result::eErrorOutOfDateKHR>
+        result = vulkan::
+            check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
+                m_swapchain.acquireNextImage(
+                    std::numeric_limits<uint64_t>::max(),
+                    semaphore,
+                    fence.transform(&vk::raii::Fence::operator*).value_or(null_fence)
+                )
+            );
+
+    if (std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(
+            result.result_code()
+        ))
+    {
+        m_out_dated = true;
+        return false;
+    }
+
+    m_current_image_index = result.value();
+    return true;
 }
 
 }   // namespace kiln::gfx::renderer

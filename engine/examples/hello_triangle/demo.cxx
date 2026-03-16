@@ -81,7 +81,7 @@ auto Demo::render() -> void
         .extent = window.resolution(),
     };
     const vk::RenderingAttachmentInfo color_attachment{
-        // .imageView   = window.swapchain().swapchain_image_views()[image_index],
+        // .imageView   = *swapchain.current_image_view(),
         .imageLayout = vk::ImageLayout::eAttachmentOptimal,
         .loadOp      = vk::AttachmentLoadOp::eClear,
         .storeOp     = vk::AttachmentStoreOp::eStore,

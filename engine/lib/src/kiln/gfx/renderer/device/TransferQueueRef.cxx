@@ -33,4 +33,9 @@ auto TransferQueueRef::submit(
     m_queue_ref.get().submit2(submit_info, *info.fence);
 }
 
+auto TransferQueueRef::get() const noexcept -> const vk::raii::Queue&
+{
+    return m_queue_ref;
+}
+
 }   // namespace kiln::gfx::renderer
