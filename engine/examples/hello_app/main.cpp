@@ -67,7 +67,7 @@ struct RendererPlugin {
         app.context().insert(
             RenderSystem{
                 .graphics_system = app.context().at<GraphicsSystemIntegration>(),
-                .window_system = headless ? nullptr : &app.context().at<WindowSystem>(),
+                .window_system   = headless ? nullptr : &app.context().at<WindowSystem>(),
             }
         );
     }
@@ -100,22 +100,17 @@ auto main() -> int
 {
     using namespace kiln;
 
-    using Message = std::string_view;
-
     app::App app = app::create()
-                       .inject_context_variable(
-                           [](const RenderSystem& render_system) -> Message
-                           {
-                               return render_system.window_system == nullptr
-                                        ? "Renderer is headless"
-                                        : "Renderer is not headless";
-                           }
-                       )
                        .insert_plugin(GraphicsSystemIntegrationPlugin{})
                        .inject_plugin(RendererPluginInjection{})
                        .inject_plugin(window_plugin_injection)
                        .build();
 
     // Renderer is never headless when both window and graphics plugins are present
-    std::println("{}", app.context().at<Message>());
+    std::println(
+        "{}",
+        app.context().at<RenderSystem>().window_system == nullptr
+            ? "Renderer is headless"
+            : "Renderer is not headless"
+    );
 }

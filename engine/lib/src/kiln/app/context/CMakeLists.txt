@@ -6,7 +6,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         Context.ixx
         context_variable_c.ixx
         context_variable_injection_c.ixx
-        ContextBuilder.ixx
         decays_to_context_variable_c.ixx
         decays_to_context_variable_injection_c.ixx
 )
