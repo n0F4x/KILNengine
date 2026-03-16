@@ -11,9 +11,10 @@ export module kiln.app.Builder;
 import kiln.app.App;
 import kiln.app.memory.Arena;
 import kiln.app.memory.MemoryPluginInjection;
+import kiln.app.plugin.plugin_c;
+import kiln.app.plugin.plugin_injection_c;
 import kiln.app.plugin.PluginTree;
 import kiln.app.context.context_variable_c;
-import kiln.app.context.ContextBuilder;
 import kiln.app.context.decays_to_context_variable_c;
 import kiln.app.context.decays_to_context_variable_injection_c;
 import kiln.util.Deleter;
@@ -22,17 +23,7 @@ namespace kiln::app {
 
 export class Builder {
 public:
-    template <typename Self_T, decays_to_context_variable_c ContextVariable_T>
-    auto insert_context_variable(this Self_T&&, ContextVariable_T&& context_variable)
-        -> Self_T&&;
-
-    template <context_variable_c ContextVariable_T, typename Self_T, typename... Args_T>
-        requires std::constructible_from<ContextVariable_T, Args_T&&...>
-    auto emplace_context_variable(this Self_T&&, Args_T&&... args) -> Self_T&&;
-
-    template <typename Self_T, decays_to_context_variable_injection_c Injection_T>
-    auto inject_context_variable(this Self_T&&, Injection_T&& injection) -> Self_T&&;
-
+    Builder();
 
     template <typename Self_T, decays_to_plugin_c Plugin_T>
     auto insert_plugin(this Self_T&&, Plugin_T&& plugin) -> Self_T&&;
@@ -56,55 +47,12 @@ private:
     Arena m_app_arena;
     Arena m_builder_arena;
 
-    PluginTree m_plugin_tree{
-        &m_builder_arena.pool_resource(),
-        MemoryPluginInjection{ m_app_arena, m_builder_arena }
-    };
-    std::unique_ptr<std::pmr::memory_resource, util::Deleter>
-        m_context_builder_memory_resource{
-            std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() }
-                .new_object<std::pmr::monotonic_buffer_resource>(
-                    &m_builder_arena.pool_resource()
-                ),
-            util::Deleter{
-                std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() } }
-        };
-    ContextBuilder m_context_builder{ m_context_builder_memory_resource.get() };
+    PluginTree m_plugin_tree{ &m_builder_arena.pool_resource() };
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
-
-template <typename Self_T, decays_to_context_variable_c ContextVariable_T>
-auto Builder::insert_context_variable(
-    this Self_T&&       self,
-    ContextVariable_T&& context_variable
-) -> Self_T&&
-{
-    self.Builder::m_context_builder.insert(
-        std::forward<ContextVariable_T>(context_variable)
-    );
-    return std::forward<Self_T>(self);
-}
-
-template <context_variable_c ContextVariable_T, typename Self_T, typename... Args_T>
-    requires std::constructible_from<ContextVariable_T, Args_T&&...>
-auto Builder::emplace_context_variable(this Self_T&& self, Args_T&&... args) -> Self_T&&
-{
-    self.Builder::m_context_builder.template emplace<ContextVariable_T>(
-        std::forward<Args_T>(args)...
-    );
-    return std::forward<Self_T>(self);
-}
-
-template <typename Self_T, decays_to_context_variable_injection_c Injection_T>
-auto Builder::inject_context_variable(this Self_T&& self, Injection_T&& injection)
-    -> Self_T&&
-{
-    self.Builder::m_context_builder.inject(std::forward<Injection_T>(injection));
-    return std::forward<Self_T>(self);
-}
 
 template <typename Self_T, decays_to_plugin_c Plugin_T>
 auto Builder::insert_plugin(this Self_T&& self, Plugin_T&& plugin) -> Self_T&&
@@ -146,12 +94,16 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
     return std::forward<Self_T>(self);
 }
 
+inline Builder::Builder()
+{
+    m_plugin_tree.plug_in_meta(MemoryPluginInjection{ m_app_arena, m_builder_arena });
+}
+
 inline auto Builder::build() && -> App
 {
     App result{ std::move(m_app_arena) };
 
     std::move(m_plugin_tree).invoke_plugins(result);
-    std::move(m_context_builder).merge_into(result.context());
 
     return result;
 }

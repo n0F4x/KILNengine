@@ -1,15 +1,15 @@
 export module kiln.event.Plugin;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 import kiln.event.EventSystem;
 
 namespace kiln::event {
 
-export class Plugin {
+export class Plugin : public app::PluginInterface {
 public:
-    static auto operator()(app::App& app) -> void
+    static auto build() -> EventSystem
     {
-        app.context().emplace<EventSystem>();
+        return EventSystem{};
     }
 };
 

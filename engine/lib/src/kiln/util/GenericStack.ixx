@@ -102,15 +102,13 @@ public:
 
     template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
     [[nodiscard]]
-    auto at(this Self_T&&) -> forward_like_t<Item_T, Self_T>;
+    auto at(this Self_T&) -> const_like_t<Item_T, Self_T>&;
 
 
     template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
     auto insert(Item_T&& item) -> Item_T&;
     template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
     auto emplace(Args_T&&... args) -> Item_T&;
-    template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
-    auto inject(Injection_T&& injection) -> result_of_t<Injection_T>&;
 
 
     template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
@@ -198,16 +196,16 @@ auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
 template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
-auto BasicGenericStack<Any_T>::at(this Self_T&& self) -> forward_like_t<Item_T, Self_T>
+auto BasicGenericStack<Any_T>::at(this Self_T& self) -> const_like_t<Item_T, Self_T>&
 {
-    const OptionalRef found_item{ std::forward<Self_T>(self).template find<Item_T>() };
+    const OptionalRef found_item{ self.BasicGenericStack::template find<Item_T>() };
 
     PRECOND(
         found_item.has_value(),
         std::format("Item of type `{}` not found", name_of<Item_T>())
     );
 
-    return std::forward_like<Self_T>(*found_item);
+    return *found_item;
 }
 
 template <move_only_any_c Any_T>
@@ -265,27 +263,6 @@ auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Item_T&
                 )
             )
             .second   //
-    );
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
-auto BasicGenericStack<Any_T>::inject(Injection_T&& injection)
-    -> result_of_t<Injection_T>&
-{
-    PRECOND(
-        (!contains<result_of_t<Injection_T>>()),
-        std::format(
-            "Attempt to inject item of type `{}`, but it has already been injected",
-            name_of<result_of_t<Injection_T>>()
-        )
-    );
-
-    return insert(
-        std::apply(
-            std::forward<Injection_T>(injection), resolve_dependencies<Injection_T>()
-        )
     );
 }
 
