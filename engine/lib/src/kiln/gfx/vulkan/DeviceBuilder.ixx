@@ -3,7 +3,6 @@ module;
 #include <algorithm>
 #include <cstdint>
 #include <optional>
-#include <ranges>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -14,7 +13,7 @@ import vulkan_hpp;
 
 import kiln.gfx.vulkan.Device;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
-import kiln.gfx.vulkan.PhysicalDeviceSelector;
+import kiln.gfx.vulkan.PhysicalDeviceFilter;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
 import kiln.gfx.vulkan.queue_properties;
 import kiln.gfx.vulkan.QueueFamilyIndex;
@@ -33,7 +32,7 @@ public:
         const vk::QueueFamilyProperties2&
     ) const>;
 
-    explicit DeviceBuilder(PhysicalDeviceSelector&& physical_device_selector = {});
+    explicit DeviceBuilder(PhysicalDeviceFilter&& physical_device_selector = {});
 
     template <typename Self_T>
     auto require_minimum_version(this Self_T&&, uint32_t version) -> Self_T&&;
@@ -83,7 +82,7 @@ private:
         QueueGroup::CreateInfo&& create_info
     ) -> QueueGroup;
 
-    PhysicalDeviceSelector        m_physical_device_selector;
+    PhysicalDeviceFilter        m_physical_device_filter;
     PhysicalDeviceCapabilities    m_optional_capabilities;
     util::Bool                    m_request_graphics_queue;
     util::Bool                    m_request_compute_queue;
@@ -114,7 +113,7 @@ template <typename Self_T>
 auto DeviceBuilder::require_minimum_version(this Self_T&& self, const uint32_t version)
     -> Self_T&&
 {
-    self.m_physical_device_selector.require_minimum_version(version);
+    self.m_physical_device_filter.require_minimum_version(version);
     self.m_optional_capabilities.upgrade_version(version);
     return std::forward<Self_T>(self);
 }
@@ -126,7 +125,7 @@ auto DeviceBuilder::enable_extension(
 ) -> Self_T&&
 {
     self.m_optional_capabilities.erase_extension(extension_name);
-    self.m_physical_device_selector.require_extension(extension_name);
+    self.m_physical_device_filter.require_extension(extension_name);
     return std::forward<Self_T>(self);
 }
 
@@ -137,7 +136,7 @@ auto DeviceBuilder::enable_extension_if_available(
 ) -> Self_T&&
 {
     if (!std::ranges::contains(
-            self.m_physical_device_selector.required_capabilities().extensions(),
+            self.m_physical_device_filter.required_capabilities().extensions(),
             extension_name
         ))
     {
@@ -152,7 +151,7 @@ auto DeviceBuilder::enable_features(this Self_T&& self, const FeaturesStruct_T& 
     -> Self_T&&
 {
     self.m_optional_capabilities.erase_features(features);
-    self.m_physical_device_selector.require_features(features);
+    self.m_physical_device_filter.require_features(features);
     return std::forward<Self_T>(self);
 }
 
@@ -163,7 +162,7 @@ auto DeviceBuilder::enable_features_if_available(
 ) -> Self_T&&
 {
     FeaturesStruct_T copy{ features };
-    self.m_physical_device_selector.required_capabilities().filter_uncontained_features(
+    self.m_physical_device_filter.required_capabilities().filter_uncontained_features(
         copy
     );
     self.m_optional_capabilities.insert_features(copy);
@@ -173,7 +172,7 @@ auto DeviceBuilder::enable_features_if_available(
 template <typename Self_T>
 auto DeviceBuilder::request_graphics_queue(this Self_T&& self) -> Self_T&&
 {
-    self.m_physical_device_selector.require_queue_flag(vk::QueueFlagBits::eGraphics);
+    self.m_physical_device_filter.require_queue_flag(vk::QueueFlagBits::eGraphics);
     self.m_request_graphics_queue = true;
     return std::forward<Self_T>(self);
 }
@@ -181,7 +180,7 @@ auto DeviceBuilder::request_graphics_queue(this Self_T&& self) -> Self_T&&
 template <typename Self_T>
 auto DeviceBuilder::request_compute_queue(this Self_T&& self) -> Self_T&&
 {
-    self.m_physical_device_selector.require_queue_flag(vk::QueueFlagBits::eCompute);
+    self.m_physical_device_filter.require_queue_flag(vk::QueueFlagBits::eCompute);
     self.m_request_compute_queue = true;
     return std::forward<Self_T>(self);
 }
@@ -189,7 +188,7 @@ auto DeviceBuilder::request_compute_queue(this Self_T&& self) -> Self_T&&
 template <typename Self_T>
 auto DeviceBuilder::request_host_to_device_transfer_queue(this Self_T&& self) -> Self_T&&
 {
-    self.m_physical_device_selector.require_queue_flag(vk::QueueFlagBits::eTransfer);
+    self.m_physical_device_filter.require_queue_flag(vk::QueueFlagBits::eTransfer);
     self.m_request_host_to_device_transfer_queue = true;
     return std::forward<Self_T>(self);
 }
@@ -197,7 +196,7 @@ auto DeviceBuilder::request_host_to_device_transfer_queue(this Self_T&& self) ->
 template <typename Self_T>
 auto DeviceBuilder::request_device_to_host_transfer_queue(this Self_T&& self) -> Self_T&&
 {
-    self.m_physical_device_selector.require_queue_flag(vk::QueueFlagBits::eTransfer);
+    self.m_physical_device_filter.require_queue_flag(vk::QueueFlagBits::eTransfer);
     self.m_request_device_to_host_transfer_queue = true;
     return std::forward<Self_T>(self);
 }
@@ -218,7 +217,9 @@ auto DeviceBuilder::ensure_queue(this Self_T&& self, Args_T&&... args) -> Self_T
 
     self.add_custom_requirement(
         [queue_requirement](const vk::raii::PhysicalDevice& physical_device) -> bool
-        { return has_matching_queue_family_index(physical_device, queue_requirement); }
+        {
+            return has_matching_queue_family_index(physical_device, queue_requirement);   //
+        }
     );
 
     return std::forward<Self_T>(self);
@@ -230,7 +231,7 @@ auto DeviceBuilder::require_and_enable_capabilities(
     const PhysicalDeviceCapabilities& capabilities
 ) -> Self_T&&
 {
-    self.m_physical_device_selector.require_capabilities(capabilities);
+    self.m_physical_device_filter.require_capabilities(capabilities);
     self.m_optional_capabilities.upgrade_version(capabilities.version());
     self.m_optional_capabilities.erase(capabilities);
     return std::forward<Self_T>(self);
@@ -240,7 +241,7 @@ template <typename Self_T, typename... Args_T>
 auto DeviceBuilder::add_custom_requirement(this Self_T&& self, Args_T&&... args)
     -> Self_T&&
 {
-    self.m_physical_device_selector.add_custom_requirement(std::forward<Args_T>(args)...);
+    self.m_physical_device_filter.add_custom_requirement(std::forward<Args_T>(args)...);
     return std::forward<Self_T>(self);
 }
 

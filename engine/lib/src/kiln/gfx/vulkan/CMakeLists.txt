@@ -8,6 +8,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         DeviceBuilder.cxx
         global_definitions.cpp
         InstanceBuilder.cxx
+        PhysicalDeviceFilter.cxx
         vma_global_definitions.cxx
 )
 
@@ -24,7 +25,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         Device.ixx
         DeviceBuilder.ixx
         PhysicalDeviceCapabilities.ixx
-        PhysicalDeviceSelector.ixx
+        PhysicalDeviceFilter.ixx
         Profile.ixx
         queue_properties.ixx
         QueueFamilyIndex.ixx

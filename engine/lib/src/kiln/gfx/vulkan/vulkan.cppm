@@ -13,7 +13,7 @@ export import kiln.gfx.vulkan.InstanceBuilder;
 export import kiln.gfx.vulkan.InstancePlugin;
 export import kiln.gfx.vulkan.InstancePluginInjection;
 export import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
-export import kiln.gfx.vulkan.PhysicalDeviceSelector;
+export import kiln.gfx.vulkan.PhysicalDeviceFilter;
 export import kiln.gfx.vulkan.Profile;
 export import kiln.gfx.vulkan.queue_properties;
 export import kiln.gfx.vulkan.QueueFamilyIndex;

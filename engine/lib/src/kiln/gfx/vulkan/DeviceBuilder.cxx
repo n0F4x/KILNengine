@@ -5,6 +5,7 @@ module;
 #include <functional>
 #include <optional>
 #include <ranges>
+#include <vector>
 
 module kiln.gfx.vulkan.DeviceBuilder;
 
@@ -15,8 +16,8 @@ import kiln.gfx.vulkan.QueuePack;
 
 namespace kiln::gfx::vulkan {
 
-DeviceBuilder::DeviceBuilder(PhysicalDeviceSelector&& physical_device_selector)
-    : m_physical_device_selector{ std::move(physical_device_selector) }
+DeviceBuilder::DeviceBuilder(PhysicalDeviceFilter&& physical_device_selector)
+    : m_physical_device_filter{ std::move(physical_device_selector) }
 {
 }
 
@@ -24,8 +25,15 @@ auto DeviceBuilder::build(const vk::raii::Instance& instance) const
     -> std::optional<Device>
 {
     std::vector<vk::raii::PhysicalDevice> supported_devices{
-        m_physical_device_selector.select_devices(instance)
+        check_result(instance.enumeratePhysicalDevices())
     };
+    std::erase_if(
+        supported_devices,
+        [this](const vk::raii::PhysicalDevice& physical_device) -> bool
+        {
+            return !m_physical_device_filter.is_adequate(physical_device);   //
+        }
+    );
 
     if (supported_devices.empty())
     {
@@ -37,7 +45,7 @@ auto DeviceBuilder::build(const vk::raii::Instance& instance) const
     };
 
     PhysicalDeviceCapabilities capabilities{
-        m_physical_device_selector.required_capabilities()
+        m_physical_device_filter.required_capabilities()
     };
 
     for (const std::vector<vk::ExtensionProperties> supported_extension_properties{

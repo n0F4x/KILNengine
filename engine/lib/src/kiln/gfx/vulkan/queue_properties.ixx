@@ -210,9 +210,8 @@ auto first_matching_queue_family_index(
              std::views::iota(uint32_t{}), physical_device.getQueueFamilyProperties2()
          ))
     {
-        const QueueFamilyIndex queue_family_index{ index };
-
-        if (match(physical_device, queue_family_index, queue_family_properties))
+        if (const QueueFamilyIndex queue_family_index{ index };
+            match(physical_device, queue_family_index, queue_family_properties))
         {
             return queue_family_index;
         }
