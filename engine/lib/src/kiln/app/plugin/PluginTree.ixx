@@ -20,6 +20,12 @@ export module kiln.app.plugin.PluginTree;
 
 import kiln.app.App;
 import kiln.app.memory.Arena;
+import kiln.app.plugin.ErasedPlugin;
+import kiln.app.plugin.meta_plugin_c;
+import kiln.app.plugin.meta_plugin_injection_c;
+import kiln.app.plugin.plugin_c;
+import kiln.app.plugin.plugin_injection_c;
+import kiln.app.plugin.strip_plugin_dependency_t;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.contracts;
@@ -38,44 +44,12 @@ namespace kiln::app {
 
 namespace internal {
 
-using ErasedPlugin = util::MoveOnlyFunction<void(App&) &&, 0>;
-
-template <typename T>
-concept plugin_c = util::basic_generic_stack_item_c<T, ErasedPlugin>;
-
 using PluginStack = util::BasicGenericStack<ErasedPlugin>;
-
-template <typename>
-struct StripPluginDependency;
-
-template <util::specialization_of_c<util::OptionalRef> T>
-struct StripPluginDependency<T> {
-    using type = std::remove_const_t<typename T::ValueType>;
-};
-
-template <typename T>
-    requires(!util::specialization_of_c<T, util::OptionalRef>)
-struct StripPluginDependency<T> {
-    using type = std::remove_cvref_t<T>;
-};
-
-template <typename T>
-using strip_plugin_dependency_t = StripPluginDependency<T>::type;
 
 template <typename T>
 concept represents_optional_dependency_c = requires {
     requires util::specialization_of_c<T, util::OptionalRef>;
 };
-
-template <typename T>
-struct RepresentsPluginDependency {
-    constexpr static bool value = plugin_c<strip_plugin_dependency_t<T>>;
-};
-
-template <typename T>
-concept plugin_injection_c =
-    plugin_c<util::result_of_t<T&&>>
-    && util::type_list_all_of_c<util::arguments_of_t<T>, RepresentsPluginDependency>;
 
 class ErasedPluginInjection {
 public:
@@ -135,19 +109,10 @@ private:
     std::size_t                m_unresolved_dependency_hash_count;
 };
 
+template <typename T>
+concept maybe_meta_plugin_c = plugin_c<T> || meta_plugin_c<T>;
+
 }   // namespace internal
-
-export template <typename T>
-concept plugin_c = internal::plugin_c<T>;
-
-export template <typename T>
-concept decays_to_plugin_c = plugin_c<std::decay_t<T>>;
-
-export template <typename T>
-concept plugin_injection_c = internal::plugin_injection_c<T>;
-
-export template <typename T>
-concept decays_to_plugin_injection_c = plugin_injection_c<std::decay_t<T>>;
 
 export class PluginTree {
 public:
@@ -155,18 +120,21 @@ public:
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
-    template <decays_to_plugin_injection_c... PluginInjections_T>
-    explicit PluginTree(
-        allocator_type allocator,
-        PluginInjections_T&&... plugin_injections
-    );
+    explicit PluginTree(allocator_type allocator);
 
-    template <plugin_c Plugin_T>
+    template <internal::maybe_meta_plugin_c Plugin_T>
     [[nodiscard]]
     auto contains() const noexcept -> bool;
 
     template <decays_to_plugin_injection_c PluginInjection_T>
     auto plug_in(
+        PluginInjection_T&&        plugin_injection,
+        std::pmr::memory_resource& transitive_memory_resource =
+            *std::pmr::get_default_resource()
+    ) -> std::decay_t<PluginInjection_T>&;
+
+    template <decays_to_meta_plugin_injection_c PluginInjection_T>
+    auto plug_in_meta(
         PluginInjection_T&&        plugin_injection,
         std::pmr::memory_resource& transitive_memory_resource =
             *std::pmr::get_default_resource()
@@ -191,6 +159,13 @@ private:
     std::unique_ptr<std::pmr::memory_resource, util::Deleter>
                              m_unresolved_plugin_hashes_resource;
     std::pmr::list<uint64_t> m_unresolved_optional_dependency_plugin_hashes;
+
+
+    template <typename PluginInjection_T>
+    auto plug_in_maybe_meta(
+        PluginInjection_T&&        plugin_injection,
+        std::pmr::memory_resource& transitive_memory_resource
+    ) -> std::decay_t<PluginInjection_T>&;
 
     template <typename Plugin_T>
     auto check_for_duplicated_plugin() const -> void;
@@ -226,7 +201,7 @@ private:
     ) const -> void;
 
 
-    template <decays_to_plugin_injection_c PluginInjection_T>
+    template <typename PluginInjection_T>
     auto push_back(PluginInjection_T&& plugin_injection)
         -> std::decay_t<PluginInjection_T>&;
     auto reestablish_internal_ordering_of_plugins(
@@ -334,27 +309,7 @@ auto ErasedPluginInjection::underlying_function(this Self_T&& self)
 
 }   // namespace internal
 
-template <decays_to_plugin_injection_c... PluginInjections_T>
-PluginTree::PluginTree(allocator_type allocator, PluginInjections_T&&... plugin_injections)
-    : m_injections_resource{
-          allocator.new_object<std::pmr::monotonic_buffer_resource>(allocator.resource()),
-          util::Deleter{ allocator }
-      },
-      m_plugin_injections{ m_injections_resource.get() },
-      m_unresolved_plugin_hashes_resource{
-          allocator.new_object<std::pmr::unsynchronized_pool_resource>(
-              allocator.resource()
-          ),
-          util::Deleter{ allocator }
-      },
-      m_unresolved_optional_dependency_plugin_hashes{
-          m_unresolved_plugin_hashes_resource.get()
-      }
-{
-    (plug_in(std::forward<PluginInjections_T>(plugin_injections)), ...);
-}
-
-template <plugin_c Plugin_T>
+template <internal::maybe_meta_plugin_c Plugin_T>
 auto PluginTree::contains() const noexcept -> bool
 {
     return std::ranges::contains(
@@ -366,6 +321,28 @@ auto PluginTree::contains() const noexcept -> bool
 
 template <decays_to_plugin_injection_c PluginInjection_T>
 auto PluginTree::plug_in(
+    PluginInjection_T&&        plugin_injection,
+    std::pmr::memory_resource& transitive_memory_resource
+) -> std::decay_t<PluginInjection_T>&
+{
+    return plug_in_maybe_meta(
+        std::forward<PluginInjection_T>(plugin_injection), transitive_memory_resource
+    );
+}
+
+template <decays_to_meta_plugin_injection_c PluginInjection_T>
+auto PluginTree::plug_in_meta(
+    PluginInjection_T&&        plugin_injection,
+    std::pmr::memory_resource& transitive_memory_resource
+) -> std::decay_t<PluginInjection_T>&
+{
+    return plug_in_maybe_meta(
+        std::forward<PluginInjection_T>(plugin_injection), transitive_memory_resource
+    );
+}
+
+template <typename PluginInjection_T>
+auto PluginTree::plug_in_maybe_meta(
     PluginInjection_T&&        plugin_injection,
     std::pmr::memory_resource& transitive_memory_resource
 ) -> std::decay_t<PluginInjection_T>&
@@ -446,8 +423,7 @@ auto PluginTree::check_for_cyclic_dependencies() const -> void
             check_for_new_cyclic_dependency(
                 util::hash_u64<Plugin>(),
                 util::name_of<Plugin>(),
-                util::hash_u64<
-                    typename internal::StripPluginDependency<Dependency_T>::type>(),
+                util::hash_u64<strip_plugin_dependency_t<Dependency_T>>(),
                 plugin_name_chain_node
             );
         }
@@ -485,7 +461,7 @@ auto PluginTree::collect_unresolved_dependency_plugin_hashes(
         {
             if constexpr (internal::represents_optional_dependency_c<Dependency_T>)
             {
-                using PluginDependency = internal::strip_plugin_dependency_t<Dependency_T>;
+                using PluginDependency = strip_plugin_dependency_t<Dependency_T>;
 
                 constexpr static uint64_t dependency_hash{
                     util::hash_u64<PluginDependency>()
@@ -534,7 +510,7 @@ auto PluginTree::collect_resolved_plugin_dependency_hashes(
     );
 }
 
-template <decays_to_plugin_injection_c PluginInjection_T>
+template <typename PluginInjection_T>
 auto PluginTree::push_back(PluginInjection_T&& plugin_injection)
     -> std::decay_t<PluginInjection_T>&
 {

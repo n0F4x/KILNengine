@@ -1,13 +1,17 @@
+module;
+
+#include <utility>
+
 export module kiln.config.Plugin;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 import kiln.config.Config;
 import kiln.config.Version;
 import kiln.util.StringLiteral;
 
 namespace kiln::config {
 
-export class Plugin {
+export class Plugin : public app::PluginInterface {
 public:
     constexpr explicit Plugin(
         const util::StringLiteral app_name,
@@ -23,9 +27,9 @@ public:
         return m_config;
     }
 
-    constexpr auto operator()(app::App& app) const -> void
+    constexpr auto build() && noexcept -> Config
     {
-        app.context().insert(m_config);
+        return std::move(m_config);
     }
 
 private:

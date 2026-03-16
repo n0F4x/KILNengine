@@ -11,6 +11,8 @@ export module kiln.app.Builder;
 import kiln.app.App;
 import kiln.app.memory.Arena;
 import kiln.app.memory.MemoryPluginInjection;
+import kiln.app.plugin.plugin_c;
+import kiln.app.plugin.plugin_injection_c;
 import kiln.app.plugin.PluginTree;
 import kiln.app.context.context_variable_c;
 import kiln.app.context.decays_to_context_variable_c;
@@ -21,6 +23,8 @@ namespace kiln::app {
 
 export class Builder {
 public:
+    Builder();
+
     template <typename Self_T, decays_to_plugin_c Plugin_T>
     auto insert_plugin(this Self_T&&, Plugin_T&& plugin) -> Self_T&&;
 
@@ -43,10 +47,7 @@ private:
     Arena m_app_arena;
     Arena m_builder_arena;
 
-    PluginTree m_plugin_tree{
-        &m_builder_arena.pool_resource(),
-        MemoryPluginInjection{ m_app_arena, m_builder_arena }
-    };
+    PluginTree m_plugin_tree{ &m_builder_arena.pool_resource() };
 };
 
 }   // namespace kiln::app
@@ -91,6 +92,11 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
 {
     std::invoke(std::forward<Bundle_T>(bundle), self);
     return std::forward<Self_T>(self);
+}
+
+inline Builder::Builder()
+{
+    m_plugin_tree.plug_in_meta(MemoryPluginInjection{ m_app_arena, m_builder_arena });
 }
 
 inline auto Builder::build() && -> App

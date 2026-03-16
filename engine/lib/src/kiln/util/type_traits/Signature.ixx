@@ -219,6 +219,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...)> {
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
+    template <typename T>
+    constexpr static bool mimics_qualifiers = true;
+    template <naked_c T>
+    using mimic_t = T;
+
     using without_class_t = Result_T(Args_T...);
 };
 
@@ -232,6 +237,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) noexcept> {
     constexpr static std::integral_constant<bool, false> has_const;
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
+
+    template <typename T>
+    constexpr static bool mimics_qualifiers = true;
+    template <naked_c T>
+    using mimic_t = T;
 
     using without_class_t = Result_T(Args_T...) noexcept;
 };
@@ -247,6 +257,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) &> {
     constexpr static std::integral_constant<bool, true>  has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_lvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = T&;
+
     using without_class_t = Result_T(Args_T...) &;
 };
 
@@ -260,6 +275,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) & noexcept> {
     constexpr static std::integral_constant<bool, false> has_const;
     constexpr static std::integral_constant<bool, true>  has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
+
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_lvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = T&;
 
     using without_class_t = Result_T(Args_T...) & noexcept;
 };
@@ -275,6 +295,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) &&> {
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
 
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_rvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = T&&;
+
     using without_class_t = Result_T(Args_T...) &&;
 };
 
@@ -288,6 +313,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) && noexcept> {
     constexpr static std::integral_constant<bool, false> has_const;
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
+
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_rvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = T&&;
 
     using without_class_t = Result_T(Args_T...) && noexcept;
 };
@@ -303,6 +333,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const> {
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>;
+    template <naked_c T>
+    using mimic_t = const T;
+
     using without_class_t = Result_T(Args_T...) const;
 };
 
@@ -316,6 +351,11 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const noexcept> {
     constexpr static std::integral_constant<bool, true>  has_const;
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
+
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>;
+    template <naked_c T>
+    using mimic_t = const T;
 
     using without_class_t = Result_T(Args_T...) const noexcept;
 };
@@ -331,6 +371,12 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const&> {
     constexpr static std::integral_constant<bool, true>  has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
+                                           && std::is_lvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = const T&;
+
     using without_class_t = Result_T(Args_T...) const&;
 };
 
@@ -344,6 +390,12 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const & noexcept> {
     constexpr static std::integral_constant<bool, true>  has_const;
     constexpr static std::integral_constant<bool, true>  has_lvalue_ref;
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
+
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
+                                           && std::is_lvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = const T&;
 
     using without_class_t = Result_T(Args_T...) const& noexcept;
 };
@@ -359,6 +411,12 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const&&> {
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
 
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
+                                           && std::is_rvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = const T&&;
+
     using without_class_t = Result_T(Args_T...) const&&;
 };
 
@@ -372,6 +430,12 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const && noexcept> {
     constexpr static std::integral_constant<bool, true>  has_const;
     constexpr static std::integral_constant<bool, false> has_lvalue_ref;
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
+
+    template <typename T>
+    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
+                                           && std::is_rvalue_reference_v<T>;
+    template <naked_c T>
+    using mimic_t = const T&&;
 
     using without_class_t = Result_T(Args_T...) const&& noexcept;
 };
