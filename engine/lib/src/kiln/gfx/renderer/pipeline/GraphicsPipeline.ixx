@@ -22,6 +22,9 @@ public:
         vk::Format                      depth_format  = vk::Format::eUndefined
     );
 
+    [[nodiscard]]
+    auto get() const noexcept -> const vk::raii::Pipeline&;
+
 private:
     vk::raii::Pipeline m_pipeline;
 };

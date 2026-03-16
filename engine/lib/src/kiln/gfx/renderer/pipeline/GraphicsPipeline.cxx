@@ -150,4 +150,9 @@ GraphicsPipeline::GraphicsPipeline(
 {
 }
 
+auto GraphicsPipeline::get() const noexcept -> const vk::raii::Pipeline&
+{
+    return m_pipeline;
+}
+
 }   // namespace kiln::gfx::renderer

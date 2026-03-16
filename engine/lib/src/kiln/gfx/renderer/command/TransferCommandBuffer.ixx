@@ -5,7 +5,6 @@ import vulkan_hpp;
 import kiln.gfx.renderer.command.CommandBufferUsageFlags;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.util.EnumMask;
-import kiln.util.Strong;
 
 namespace kiln::gfx::renderer {
 

@@ -1,12 +1,9 @@
 module;
 
 #include <array>
-#include <cstdint>
 #include <filesystem>
 #include <source_location>
 #include <span>
-
-#include <vk_mem_alloc.h>
 
 module demo;
 
@@ -31,82 +28,11 @@ auto create_window(
     return render_device.create_window(vulkan_instance, wsi_context, window_info);
 }
 
-[[nodiscard]]
-auto create_index_buffer(
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::Allocator&     render_allocator,
-    kiln::gfx::renderer::TransferCommandPool& transfer_command_pool
-) -> kiln::gfx::renderer::Buffer
-{
-    constexpr static std::array<uint16_t, 3> indices{ 0, 1, 2 };
-    constexpr static uint32_t buffer_size{ (std::span{ indices }.size_bytes()) };
-
-    constexpr static vk::BufferCreateInfo staging_buffer_create_info{
-        .size  = buffer_size,
-        .usage = vk::BufferUsageFlagBits::eTransferSrc,
-    };
-
-    auto [staging_buffer, staging_allocation, _]{
-        render_allocator.create_buffer(
-            staging_buffer_create_info,
-            VmaAllocationCreateInfo{
-                .flags = VMA_ALLOCATION_CREATE_MAPPED_BIT
-                       | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-                .usage = VMA_MEMORY_USAGE_AUTO,
-            }
-        )   //
-    };
-
-    std::memcpy(staging_allocation.map().data(), indices.data(), buffer_size);
-    if (!(staging_allocation.memory_properties()
-          & vk::MemoryPropertyFlagBits::eHostCoherent))
-    {
-        staging_allocation.flush(0, buffer_size);
-    }
-    staging_allocation.unmap();
-
-    constexpr static vk::BufferCreateInfo buffer_create_info = {
-        .size  = buffer_size,
-        .usage = vk::BufferUsageFlagBits::eIndexBuffer
-               | vk::BufferUsageFlagBits::eTransferDst
-    };
-    auto [buffer, allocation, _]{
-        render_allocator.create_buffer(
-            buffer_create_info,
-            VmaAllocationCreateInfo{
-                .usage = VMA_MEMORY_USAGE_AUTO,
-            }
-        )   //
-    };
-
-    kiln::gfx::renderer::TransferCommandBuffer command_buffer{
-        transfer_command_pool.allocate_primary()
-    };
-    command_buffer.begin();
-    command_buffer.enqueue_buffer_copy(staging_buffer, buffer);
-    command_buffer.end();
-
-    const vk::raii::Fence fence{
-        kiln::gfx::vulkan::check_result(
-            render_device.logical_device().createFence(vk::FenceCreateInfo{})
-        )   //
-    };
-    render_device.host_to_device_transfer_queue().submit(
-        command_buffer, kiln::gfx::renderer::SubmitInfo{ .fence = fence }
-    );
-    kiln::gfx::vulkan::check_result(render_device.logical_device().waitForFences(
-        std::array{ *fence }, vk::True, 100'000'000'000
-    ));
-
-    return std::move(buffer);
-}
-
 Demo::Demo(
-    const kiln::config::Config&           config,
-    const vk::raii::Instance&             vulkan_instance,
-    const kiln::wsi::Context&             wsi_context,
-    const kiln::gfx::renderer::Device&    render_device,
-    const kiln::gfx::renderer::Allocator& render_allocator
+    const kiln::config::Config&        config,
+    const vk::raii::Instance&          vulkan_instance,
+    const kiln::wsi::Context&          wsi_context,
+    const kiln::gfx::renderer::Device& render_device
 )
     : immediate_transfer_command_pool{
           render_device,
@@ -130,16 +56,47 @@ Demo::Demo(
           pipeline_layout,
           shader_module,
           shader_module,
-          std::array{ window.surface_format().format },
+          std::array{ window.swapchain().surface_format().format },
       },
-      index_buffer{
-          create_index_buffer(
-              render_device,
-              render_allocator,
-              immediate_transfer_command_pool
+      graphics_command_pool{
+          render_device,
+          render_device.graphics_queue().family_index(),
+          kiln::gfx::renderer::CommandPoolFlags::eResettable,
+      },
+      graphics_command_buffer{
+          graphics_command_pool.allocate_primary(
+              kiln::gfx::renderer::CommandBufferUsageFlags::eResettable
           )   //
       }
 {
+}
+
+auto Demo::render() -> void
+{
+    graphics_command_buffer.begin();
+
+    const vk::Rect2D render_area{
+        .extent{
+                .width  = window.resolution().width,
+                .height = window.resolution().height,
+                },
+    };
+    const vk::RenderingAttachmentInfo color_attachment{
+        // .imageView   = window.swapchain().swapchain_image_views()[image_index],
+        .imageLayout = vk::ImageLayout::eAttachmentOptimal,
+        .loadOp      = vk::AttachmentLoadOp::eClear,
+        .storeOp     = vk::AttachmentStoreOp::eStore,
+        .clearValue{ .color{ std::array{ 0.f, 0.f, 0.2f, 1.f } } },
+    };
+    const kiln::gfx::renderer::RenderPass render_pass{
+        render_area, std::span{ &color_attachment, 1 }
+    };
+    graphics_command_buffer.begin_rendering(render_pass);
+
+    graphics_command_buffer.bind_pipeline(pipeline);
+    graphics_command_buffer.draw(3);
+    graphics_command_buffer.end_rendering();
+    graphics_command_buffer.end();
 }
 
 auto DemoPlugin::operator()(kiln::app::App& app) -> void
@@ -150,7 +107,6 @@ auto DemoPlugin::operator()(kiln::app::App& app) -> void
             app.context().at<vk::raii::Instance>(),
             app.context().at<kiln::wsi::Context>(),
             app.context().at<kiln::gfx::renderer::Device>(),
-            app.context().at<kiln::gfx::renderer::Allocator>(),
         }
     );
 }
@@ -160,7 +116,6 @@ auto demo_plugin_injection(
     kiln::gfx::vulkan::InstancePlugin& instance_plugin,
     const kiln::wsi::Plugin&,
     kiln::gfx::renderer::DevicePlugin& device_plugin,
-    const kiln::gfx::renderer::AllocatorPlugin&,
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin
 {

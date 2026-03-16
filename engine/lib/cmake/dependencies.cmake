@@ -37,9 +37,9 @@ target_compile_definitions(VulkanCppModule PUBLIC
         VK_NO_PROTOTYPES
         VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
         VULKAN_HPP_NO_EXCEPTIONS
+        VULKAN_HPP_NO_CONSTRUCTORS
         VULKAN_HPP_NO_SETTERS
         VULKAN_HPP_NO_SPACESHIP_OPERATOR
-        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 )
 target_link_libraries(VulkanCppModule PUBLIC Vulkan::Headers)
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Headers)

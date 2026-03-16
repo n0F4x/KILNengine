@@ -39,7 +39,7 @@ public:
     );
 
     [[nodiscard]]
-    auto surface_format() const noexcept -> vk::SurfaceFormatKHR;
+    auto swapchain() const noexcept -> const gfx::vulkan::Swapchain&;
 
 private:
     vk::raii::SurfaceKHR   m_surface;
@@ -111,8 +111,8 @@ VulkanWindow::VulkanWindow(
           physical_device,
           logical_device,
           vk::Extent2D{
-              .width  = static_cast<uint32_t>(resolution().width),
-              .height = static_cast<uint32_t>(resolution().height),
+              .width  = resolution().width,
+              .height = resolution().height,
           },
           number_of_frames,
           pick_present_mode,
@@ -120,9 +120,9 @@ VulkanWindow::VulkanWindow(
 {
 }
 
-auto VulkanWindow::surface_format() const noexcept -> vk::SurfaceFormatKHR
+auto VulkanWindow::swapchain() const noexcept -> const gfx::vulkan::Swapchain&
 {
-    return m_swapchain.surface_format();
+    return m_swapchain;
 }
 
 }   // namespace kiln::wsi

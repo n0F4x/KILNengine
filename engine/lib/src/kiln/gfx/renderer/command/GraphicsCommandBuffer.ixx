@@ -1,6 +1,6 @@
 module;
 
-#include <vector>
+#include <cstdint>
 
 export module kiln.gfx.renderer.command.GraphicsCommandBuffer;
 
@@ -8,8 +8,9 @@ import vulkan_hpp;
 
 import kiln.gfx.renderer.command.CommandBufferUsageFlags;
 import kiln.gfx.renderer.command.TransferCommandBuffer;
+import kiln.gfx.renderer.pipeline.GraphicsPipeline;
+import kiln.gfx.renderer.pipeline.RenderPass;
 import kiln.util.EnumMask;
-import kiln.util.Strong;
 
 namespace kiln::gfx::renderer {
 
@@ -19,18 +20,13 @@ public:
         vk::raii::CommandBuffer&&               command_buffer,
         util::EnumMask<CommandBufferUsageFlags> usage_flags
     );
+
+    auto begin_rendering(const RenderPass& render_pass) -> void;
+    auto end_rendering() -> void;
+
+    auto bind_pipeline(const GraphicsPipeline& pipeline) -> void;
+
+    auto draw(uint32_t vertex_count) -> void;
 };
-
-}   // namespace kiln::gfx::renderer
-
-namespace kiln::gfx::renderer {
-
-GraphicsCommandBuffer::GraphicsCommandBuffer(
-    vk::raii::CommandBuffer&&                     command_buffer,
-    const util::EnumMask<CommandBufferUsageFlags> usage_flags
-)
-    : TransferCommandBuffer{ std::move(command_buffer), usage_flags }
-{
-}
 
 }   // namespace kiln::gfx::renderer

@@ -36,5 +36,7 @@ auto run(kiln::app::App& app) -> void
         {
             demo.window.request_close();
         }
+
+        demo.render();
     }
 }
