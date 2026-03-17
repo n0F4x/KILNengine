@@ -14,7 +14,7 @@ namespace kiln::app {
 export template <typename T>
 concept meta_plugin_c = util::naked_c<T>                        //
                      && std::derived_from<T, PluginInterface>   //
-                     && !plugin_c<T>;
+                     && not requires { &T::build; };
 
 export template <typename T>
 concept decays_to_meta_plugin_c = meta_plugin_c<std::remove_cvref_t<T>>;
