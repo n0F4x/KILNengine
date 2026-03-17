@@ -5,7 +5,4 @@ target_sources(${PROJECT_NAME} PUBLIC
         context.cppm
         Context.ixx
         context_variable_c.ixx
-        context_variable_injection_c.ixx
-        decays_to_context_variable_c.ixx
-        decays_to_context_variable_injection_c.ixx
 )
