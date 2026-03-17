@@ -12,6 +12,7 @@ import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.OptionalRef;
 import kiln.util.type_traits.arguments_of;
+import kiln.util.type_traits.result_of;
 import kiln.util.type_traits.Signature;
 
 namespace kiln::app {
@@ -33,9 +34,10 @@ export template <typename T>
 concept plugin_c = util::naked_c<T>                        //
                 && std::derived_from<T, PluginInterface>   //
                 && requires {
-                       requires util::type_list_all_of_c<
-                           util::arguments_of_t<decltype(&T::build)>,
-                           IsPotentiallyOptionalContextVariableRef>;
+                       requires context_variable_c<util::result_of_t<decltype(&T::build)>>
+                                    && util::type_list_all_of_c<
+                                        util::arguments_of_t<decltype(&T::build)>,
+                                        IsPotentiallyOptionalContextVariableRef>;
                    };
 
 export template <typename T>
