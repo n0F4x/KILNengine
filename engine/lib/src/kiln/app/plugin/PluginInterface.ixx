@@ -1,21 +1,41 @@
 module;
 
 #include <concepts>
+#include <functional>
 #include <vector>
 
 export module kiln.app.plugin.PluginInterface;
 
 import kiln.app.App;
+import kiln.app.context.context_variable_c;
 import kiln.util.Function;
+import kiln.util.concepts.naked;
+import kiln.util.concepts.type_list_all_of;
+import kiln.util.type_traits.arguments_of;
+import kiln.util.type_traits.type_list_drop_front;
+import kiln.util.type_traits.type_list_front;
+import kiln.util.TypeList;
 
 namespace kiln::app {
+
+template <typename T>
+struct IsContextVariable {
+    constexpr static bool value{ context_variable_c<T> };
+};
+
+template <typename T, typename Plugin_T>
+concept configures_c = util::naked_c<Plugin_T> && requires {
+    requires std::same_as<util::type_list_front_t<util::arguments_of_t<T>>, Plugin_T&>;
+    requires util::type_list_all_of_c<
+        util::type_list_drop_front_t<util::arguments_of_t<T>>,
+        IsContextVariable>;
+};
 
 export class PluginInterface {
     using Configurator = util::MoveOnlyFunction<auto(PluginInterface&, App&) &&->void>;
 
 public:
-    template <typename Self_T, typename Configurator_T>
-        requires std::invocable<std::decay_t<Configurator_T>&&, Self_T&, App&>
+    template <util::naked_c Self_T, configures_c<Self_T> Configurator_T>
     auto register_configuration(this Self_T& self, Configurator_T&& configurator) -> void;
 
     template <typename Self_T>
@@ -29,14 +49,29 @@ private:
 
 namespace kiln::app {
 
-template <typename Self_T, typename Configurator_T>
-    requires std::invocable<std::decay_t<Configurator_T>&&, Self_T&, App&>
+template <util::naked_c Self_T, configures_c<Self_T> Configurator_T>
 auto PluginInterface::register_configuration(
     this Self_T&     self,
     Configurator_T&& configurator
 ) -> void
 {
-    self.PluginInterface::m_configurators.push_back(configurator);
+    self.PluginInterface::m_configurators.emplace_back(
+        [x_configurator = std::forward<Configurator_T>(configurator)](
+            PluginInterface& future_self, App& app
+        ) mutable -> void
+        {
+            [&x_configurator, &future_self, &app]<typename... ContextVariableRefs_T>(
+                util::TypeList<ContextVariableRefs_T...>
+            ) -> void
+            {
+                std::invoke(
+                    std::move(x_configurator),
+                    static_cast<Self_T&>(future_self),
+                    app.context().at<std::remove_cvref_t<ContextVariableRefs_T>>()...
+                );
+            }(util::type_list_drop_front_t<util::arguments_of_t<Configurator_T>>{});
+        }
+    );
 }
 
 template <typename Self_T>
