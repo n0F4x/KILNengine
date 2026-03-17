@@ -61,27 +61,19 @@ auto ErasedPluginInjection::plugin_dependency_hashes() const noexcept
 auto ErasedPluginInjection::resolved_plugin_dependency_hashes() const noexcept
     -> std::span<const uint64_t>
 {
-    return std::span{
-        std::next(
-            m_unresolved_and_resolved_plugin_dependency_hashes.cbegin(),
-            static_cast<decltype(m_unresolved_and_resolved_plugin_dependency_hashes)::
-                            difference_type>(m_unresolved_dependency_hash_count)
-        ),
-        m_unresolved_and_resolved_plugin_dependency_hashes.cend()
-    };
+    return std::views::drop(
+        m_unresolved_and_resolved_plugin_dependency_hashes,
+        m_unresolved_dependency_hash_count
+    );
 }
 
 auto ErasedPluginInjection::unresolved_plugin_dependency_hashes() const noexcept
     -> std::span<const uint64_t>
 {
-    return std::span{
-        m_unresolved_and_resolved_plugin_dependency_hashes.cbegin(),
-        std::next(
-            m_unresolved_and_resolved_plugin_dependency_hashes.cbegin(),
-            static_cast<decltype(m_unresolved_and_resolved_plugin_dependency_hashes)::
-                            difference_type>(m_unresolved_dependency_hash_count)
-        )
-    };
+    return std::views::take(
+        m_unresolved_and_resolved_plugin_dependency_hashes,
+        m_unresolved_dependency_hash_count
+    );
 }
 
 auto ErasedPluginInjection::resolve_dependency(const uint64_t new_plugin_hash) -> void
@@ -91,25 +83,25 @@ auto ErasedPluginInjection::resolve_dependency(const uint64_t new_plugin_hash) -
         return;
     }
 
-    const auto iter = std::ranges::find(
-        m_unresolved_and_resolved_plugin_dependency_hashes, new_plugin_hash
-    );
-    if (iter == m_unresolved_and_resolved_plugin_dependency_hashes.cend())
+    const auto unresolved_hashes_view{
+        std::views::take(
+            m_unresolved_and_resolved_plugin_dependency_hashes,
+            m_unresolved_dependency_hash_count
+        )   //
+    };
+
+    const auto iter = std::ranges::find(unresolved_hashes_view, new_plugin_hash);
+    if (iter == std::ranges::cend(unresolved_hashes_view))
     {
         return;
     }
 
-    std::swap(
-        *iter,
-        m_unresolved_and_resolved_plugin_dependency_hashes
-            [m_unresolved_dependency_hash_count - 1]
-    );
-    if (std::distance(m_unresolved_and_resolved_plugin_dependency_hashes.begin(), iter)
-        < static_cast<decltype(m_unresolved_and_resolved_plugin_dependency_hashes)::
-                          difference_type>(m_unresolved_dependency_hash_count))
+    if (std::ranges::distance(iter, unresolved_hashes_view.end()) > 1)
     {
-        m_unresolved_dependency_hash_count--;
+        // TODO: use std::ranges::rotate when libc++ supports it
+        std::rotate(iter, std::next(iter), unresolved_hashes_view.end());
     }
+    --m_unresolved_dependency_hash_count;
 }
 
 auto ErasedPluginInjection::operator()(PluginStack& plugin_stack) && -> void
@@ -275,7 +267,7 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(
         m_plugin_injections,
         [new_plugin_hash](const internal::ErasedPluginInjection& injection) -> bool
         {
-            return std::ranges::contains(
+            return std::ranges::binary_search(
                 injection.unresolved_plugin_dependency_hashes(), new_plugin_hash
             );
         }
@@ -325,7 +317,14 @@ auto PluginTree::resolve(const uint64_t new_plugin_hash) -> void
         plugin_injection.resolve_dependency(new_plugin_hash);
     }
 
-    m_unresolved_optional_dependency_plugin_hashes.remove(new_plugin_hash);
+    if (const auto iter = std::ranges::lower_bound(
+            m_unresolved_optional_dependency_plugin_hashes, new_plugin_hash
+        );
+        iter != std::ranges::cend(m_unresolved_optional_dependency_plugin_hashes)
+        && *iter == new_plugin_hash)
+    {
+        m_unresolved_optional_dependency_plugin_hashes.erase(iter);
+    }
 }
 
 }   // namespace kiln::app

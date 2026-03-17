@@ -7,6 +7,7 @@ module;
 #include <list>
 #include <memory>
 #include <memory_resource>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <tuple>
@@ -83,7 +84,7 @@ public:
     template <typename PluginInjection_T>
     explicit ErasedPluginInjection(
         PluginInjection_T&& plugin_injection,
-        std::pair<std::pmr::vector<uint64_t>, std::size_t>
+        std::pair<std::pmr::vector<uint64_t>, uint32_t>
             unresolved_and_resolved_plugin_dependency_hashes
     );
     template <typename PluginInjection_T>
@@ -91,7 +92,7 @@ public:
         std::allocator_arg_t,
         const allocator_type&,
         PluginInjection_T&& plugin_injection,
-        std::pair<std::pmr::vector<uint64_t>, std::size_t>
+        std::pair<std::pmr::vector<uint64_t>, uint32_t>
             unresolved_and_resolved_plugin_dependency_hashes
     );
     ErasedPluginInjection(ErasedPluginInjection&&, const allocator_type&);
@@ -126,7 +127,7 @@ private:
     uint64_t                   m_plugin_type_hash;
     std::string_view           m_plugin_name;
     std::pmr::vector<uint64_t> m_unresolved_and_resolved_plugin_dependency_hashes;
-    std::size_t                m_unresolved_dependency_hash_count;
+    uint32_t                   m_unresolved_dependency_hash_count;
 };
 
 }   // namespace internal
@@ -173,8 +174,8 @@ private:
     std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_injections_resource;
     std::pmr::deque<internal::ErasedPluginInjection>          m_plugin_injections;
     std::unique_ptr<std::pmr::memory_resource, util::Deleter>
-                             m_unresolved_plugin_hashes_resource;
-    std::pmr::list<uint64_t> m_unresolved_optional_dependency_plugin_hashes;
+                              m_unresolved_plugin_hashes_resource;
+    std::pmr::deque<uint64_t> m_unresolved_optional_dependency_plugin_hashes;
 
 
     template <typename PluginInjection_T>
@@ -207,7 +208,7 @@ private:
     [[nodiscard]]
     auto collect_unresolved_and_resolved_dependency_plugin_hashes(
         const std::pmr::polymorphic_allocator<>& allocator
-    ) const -> std::pair<std::pmr::vector<uint64_t>, std::size_t>;
+    ) const -> std::pair<std::pmr::vector<uint64_t>, uint32_t>;
     template <typename PluginInjection_T>
     auto collect_unresolved_dependency_plugin_hashes(std::pmr::vector<uint64_t>& out) const
         -> void;
@@ -279,7 +280,7 @@ struct PluginInjectionLambda {
 template <typename PluginInjection_T>
 ErasedPluginInjection::ErasedPluginInjection(
     PluginInjection_T&& plugin_injection,
-    std::pair<std::pmr::vector<uint64_t>, std::size_t>
+    std::pair<std::pmr::vector<uint64_t>, uint32_t>
         unresolved_and_resolved_plugin_dependency_hashes
 )
     : m_function{
@@ -305,7 +306,7 @@ ErasedPluginInjection::ErasedPluginInjection(
     std::allocator_arg_t,
     const allocator_type& allocator,
     PluginInjection_T&&   plugin_injection,
-    std::pair<std::pmr::vector<uint64_t>, std::size_t>
+    std::pair<std::pmr::vector<uint64_t>, uint32_t>
         unresolved_and_resolved_plugin_dependency_hashes
 )
     : ErasedPluginInjection{
@@ -313,9 +314,9 @@ ErasedPluginInjection::ErasedPluginInjection(
           std::pair{
                     std::pmr::vector<uint64_t>{
                   std::move(unresolved_and_resolved_plugin_dependency_hashes.first),
-                  allocator                                             //
-              },                                                        //
-              unresolved_and_resolved_plugin_dependency_hashes.second   //
+                  allocator,
+              },                                                         //
+              unresolved_and_resolved_plugin_dependency_hashes.second,   //
           }
 }
 {
@@ -519,7 +520,7 @@ auto PluginTree::check_for_cyclic_dependencies(
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
 
-    if (!std::ranges::contains(
+    if (!std::ranges::binary_search(
             m_unresolved_optional_dependency_plugin_hashes, internal::hash_plugin<Plugin>()
         ))
     {
@@ -547,9 +548,9 @@ auto PluginTree::check_for_cyclic_dependencies(
 template <typename PluginInjection_T>
 auto PluginTree::collect_unresolved_and_resolved_dependency_plugin_hashes(
     const std::pmr::polymorphic_allocator<>& allocator
-) const -> std::pair<std::pmr::vector<uint64_t>, std::size_t>
+) const -> std::pair<std::pmr::vector<uint64_t>, uint32_t>
 {
-    std::pair<std::pmr::vector<uint64_t>, std::size_t> result{
+    std::pair<std::pmr::vector<uint64_t>, uint32_t> result{
         std::piecewise_construct,
         std::tuple{ allocator },
         std::tuple{ 0uz },
@@ -557,9 +558,11 @@ auto PluginTree::collect_unresolved_and_resolved_dependency_plugin_hashes(
     result.first.reserve(util::arguments_of_t<PluginInjection_T>::size());
 
     collect_unresolved_dependency_plugin_hashes<PluginInjection_T>(result.first);
-    result.second = result.first.size();
+    std::ranges::sort(result.first);
+    result.second = static_cast<uint32_t>(result.first.size());
 
     collect_rest_of_plugin_dependency_hashes<PluginInjection_T>(result.first);
+    std::ranges::sort(std::views::drop(result.first, result.second));
 
     return result;
 }
@@ -678,6 +681,7 @@ auto PluginTree::push_back(PluginInjection_T&& plugin_injection)
     m_unresolved_optional_dependency_plugin_hashes.append_range(
         erased_plugin_injection.unresolved_plugin_dependency_hashes()
     );
+    std::ranges::sort(m_unresolved_optional_dependency_plugin_hashes);
 
     return util::any_cast<internal::PluginInjectionLambda<std::decay_t<PluginInjection_T>>>(
                erased_plugin_injection.underlying_function()
