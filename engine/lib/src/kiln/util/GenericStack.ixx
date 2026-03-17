@@ -74,10 +74,10 @@ public:
 
 
     BasicGenericStack() = default;
-    explicit BasicGenericStack(const allocator_type&);
+    explicit BasicGenericStack(const allocator_type& allocator);
     BasicGenericStack(const BasicGenericStack&)     = delete;
     BasicGenericStack(BasicGenericStack&&) noexcept = default;
-    BasicGenericStack(BasicGenericStack&&, const allocator_type&);
+    BasicGenericStack(BasicGenericStack&&, const allocator_type& allocator);
     ~BasicGenericStack();
 
     auto operator=(const BasicGenericStack&) -> BasicGenericStack&     = delete;
@@ -110,15 +110,8 @@ public:
     template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
     auto emplace(Args_T&&... args) -> Item_T&;
 
-
-    template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
-        requires(
-            std::is_const_v<std::remove_reference_t<Self_T>>
-            || std::is_rvalue_reference_v<Self_T &&>
-        )
-    auto for_each(this Self_T&&, F&& func) -> F;
-
 private:
+    // TODO: Use different containers for types and items
     std::pmr::deque<std::pair<uint64_t, Any_T>> m_types_and_items;
 
     template <typename Injection_T>
@@ -176,6 +169,35 @@ BasicGenericStack<Any_T>::~BasicGenericStack()
 
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
+auto BasicGenericStack<Any_T>::get_allocator() const -> allocator_type
+{
+    return m_types_and_items.get_allocator();
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+auto BasicGenericStack<Any_T>::empty() const -> bool
+{
+    return m_types_and_items.empty();
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+template <basic_generic_stack_item_c<Any_T> Item_T>
+auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
+{
+    // TODO: use std::ranges::contains once it compiler with MS STL
+    return std::ranges::any_of(
+        m_types_and_items,
+        [](const std::pair<uint64_t, Any>& hash_and_item) static -> bool
+        {
+            return hash_and_item.first == hash_u64<Item_T>();   //
+        }
+    );
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
 template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
 auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
     -> OptionalRef<const_like_t<Item_T, Self_T>>
@@ -210,35 +232,6 @@ auto BasicGenericStack<Any_T>::at(this Self_T& self) -> const_like_t<Item_T, Sel
 
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
-auto BasicGenericStack<Any_T>::get_allocator() const -> allocator_type
-{
-    return m_types_and_items.get_allocator();
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-auto BasicGenericStack<Any_T>::empty() const -> bool
-{
-    return m_types_and_items.empty();
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-template <basic_generic_stack_item_c<Any_T> Item_T>
-auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
-{
-    // TODO: use std::ranges::contains once it compiler with MS STL
-    return std::ranges::any_of(
-        m_types_and_items,
-        [](const std::pair<uint64_t, Any>& hash_and_item) static -> bool
-        {
-            return hash_and_item.first == hash_u64<Item_T>();   //
-        }
-    );
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
 template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
 auto BasicGenericStack<Any_T>::insert(Item_T&& item) -> Item_T&
 {
@@ -264,24 +257,6 @@ auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Item_T&
             )
             .second   //
     );
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
-    requires(
-        std::is_const_v<std::remove_reference_t<Self_T>>
-        || std::is_rvalue_reference_v<Self_T &&>
-    )
-auto BasicGenericStack<Any_T>::for_each(this Self_T&& self, F&& func) -> F
-{
-    for (auto&& [type, item] :
-         std::forward_like<Self_T>(self.BasicGenericStack::m_types_and_items))
-    {
-        std::invoke(func, std::forward_like<Self_T>(item));
-    }
-
-    return std::forward<F>(func);
 }
 
 template <move_only_any_c Any_T>

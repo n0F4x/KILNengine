@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         GenericStack.ixx
         OptionalRef.ixx
         reflection.ixx
+        ScopeFail.ixx
         StringLiteral.ixx
         Strong.ixx
         transform.ixx

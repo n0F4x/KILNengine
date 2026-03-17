@@ -22,10 +22,12 @@ export module kiln.app.plugin.PluginTree;
 import kiln.app.App;
 import kiln.app.memory.Arena;
 import kiln.app.plugin.ErasedPlugin;
+import kiln.app.plugin.hash_plugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.meta_plugin_injection_c;
 import kiln.app.plugin.plugin_c;
 import kiln.app.plugin.plugin_injection_c;
+import kiln.app.plugin.PluginStack;
 import kiln.app.plugin.strip_plugin_dependency_t;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
@@ -45,32 +47,10 @@ namespace kiln::app {
 
 namespace internal {
 
-using PluginStack = util::BasicGenericStack<ErasedPlugin>;
-
 template <typename T>
 concept represents_optional_dependency_c = requires {
     requires util::specialization_of_c<T, util::OptionalRef>;
 };
-
-template <typename T>
-concept maybe_meta_plugin_c = plugin_c<T> || meta_plugin_c<T>;
-
-template <typename MetaPlugin_T>
-struct MetaWrap {};
-
-template <maybe_meta_plugin_c MaybeMetaPlugin_T>
-[[nodiscard]]
-consteval auto hash_plugin() -> uint64_t
-{
-    if constexpr (plugin_c<MaybeMetaPlugin_T>)
-    {
-        return util::hash_u64<util::result_of_t<decltype(&MaybeMetaPlugin_T::build)>>();
-    }
-    else if (meta_plugin_c<MaybeMetaPlugin_T>)
-    {
-        return util::hash_u64<MetaWrap<MaybeMetaPlugin_T>>();
-    }
-}
 
 class ErasedPluginInjection {
 public:
@@ -369,7 +349,7 @@ auto PluginTree::plug_in_maybe_meta(
 ) -> std::decay_t<PluginInjection_T>&
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
-    constexpr static uint64_t plugin_hash{ internal::hash_plugin<Plugin>() };
+    constexpr static uint64_t plugin_hash{ hash_plugin<Plugin>() };
 
     check_for_duplicated_plugin<Plugin>();
     check_required_dependencies<PluginInjection_T>();
@@ -389,7 +369,7 @@ template <typename Plugin_T>
 auto PluginTree::check_for_duplicated_plugin() const -> void
 {
     PRECOND(
-        (!contains(internal::hash_plugin<Plugin_T>())),
+        (!contains(hash_plugin<Plugin_T>())),
         std::format(
             "Attempt to inject plugin of type `{}`, but it has already been injected",
             util::name_of<Plugin_T>()
@@ -409,7 +389,7 @@ auto PluginTree::check_required_injection_dependencies() const -> void
             if constexpr (!internal::represents_optional_dependency_c<Dependency_T>)
             {
                 PRECOND(
-                    (contains(internal::hash_plugin<std::remove_cvref_t<Dependency_T>>())),
+                    (contains(hash_plugin<std::remove_cvref_t<Dependency_T>>())),
                     std::format(
                         "Dependent plugin of type `{}` must be injected before `{}`",
                         util::name_of<std::remove_cvref_t<Dependency_T>>(),
@@ -489,7 +469,7 @@ auto collect_direct_dependency_hashes(
         [&result]<typename InjectionDependency_T> -> void
         {
             result.push_back(
-                internal::hash_plugin<strip_plugin_dependency_t<InjectionDependency_T>>()
+                hash_plugin<strip_plugin_dependency_t<InjectionDependency_T>>()
             );
         }
     );
@@ -521,7 +501,7 @@ auto PluginTree::check_for_cyclic_dependencies(
     using Plugin = util::result_of_t<PluginInjection_T>;
 
     if (!std::ranges::binary_search(
-            m_unresolved_optional_dependency_plugin_hashes, internal::hash_plugin<Plugin>()
+            m_unresolved_optional_dependency_plugin_hashes, hash_plugin<Plugin>()
         ))
     {
         return;
@@ -537,7 +517,7 @@ auto PluginTree::check_for_cyclic_dependencies(
     for (const uint64_t dependency_hash : dependency_hashes)
     {
         check_for_new_cyclic_dependency(
-            internal::hash_plugin<Plugin>(),
+            hash_plugin<Plugin>(),
             util::name_of<Plugin>(),
             dependency_hash,
             plugin_name_chain_node
@@ -600,7 +580,7 @@ auto PluginTree::collect_unresolved_dependency_plugin_hashes(
                 using Dependency = strip_plugin_dependency_t<Dependency_T>;
 
                 collect_unresolved_dependency_plugin_hash(
-                    out, m_plugin_injections, internal::hash_plugin<Dependency>()
+                    out, m_plugin_injections, hash_plugin<Dependency>()
                 );
             }
         }
@@ -648,7 +628,7 @@ auto PluginTree::collect_rest_of_plugin_dependency_hashes(std::pmr::vector<uint6
         {
             using Dependency = strip_plugin_dependency_t<Dependency_T>;
 
-            collect_dependency_plugin_hash(out, internal::hash_plugin<Dependency>());
+            collect_dependency_plugin_hash(out, hash_plugin<Dependency>());
         }
     );
 

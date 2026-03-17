@@ -131,20 +131,14 @@ PluginTree::PluginTree(allocator_type allocator)
 
 auto PluginTree::invoke_plugins(App& app) && -> void
 {
-    internal::PluginStack plugin_stack;
+    PluginStack plugin_stack;
 
     for (internal::ErasedPluginInjection& plugin_injection : m_plugin_injections)
     {
         std::move(plugin_injection)(plugin_stack);
     }
 
-    std::move(plugin_stack)
-        .for_each(
-            [&app](ErasedPlugin&& erased_plugin) -> void
-            {
-                std::move(erased_plugin).configure_and_build(app);   //
-            }
-        );
+    std::move(plugin_stack).build(app);
 }
 
 auto PluginTree::PluginNameChainNode::format() const -> std::string
