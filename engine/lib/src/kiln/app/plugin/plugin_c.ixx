@@ -39,6 +39,6 @@ concept plugin_c = util::naked_c<T>                        //
                    };
 
 export template <typename T>
-concept decays_to_plugin_c = plugin_c<std::decay_t<T>>;
+concept decays_to_plugin_c = plugin_c<std::remove_cvref_t<T>>;
 
 }   // namespace kiln::app
