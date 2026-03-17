@@ -70,10 +70,8 @@ struct RendererPlugin : kiln::app::PluginInterface {
 struct RendererPluginInjection {
     bool presentation_support_requested = true;
 
-    auto operator()(
-        const GraphicsSystemIntegrationPlugin&,
-        const kiln::util::OptionalRef<WindowPlugin> window_plugin
-    ) const -> RendererPlugin
+    auto operator()(const kiln::util::OptionalRef<WindowPlugin> window_plugin) const
+        -> RendererPlugin
     {
         if (presentation_support_requested)
         {
