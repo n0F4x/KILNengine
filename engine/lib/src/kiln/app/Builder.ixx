@@ -155,7 +155,8 @@ inline auto Builder::build() && -> App
 {
     App result{ std::move(m_app_arena) };
 
-    std::move(m_plugin_tree).invoke_plugins(result);
+    std::move(m_plugin_tree)
+        .build_plugins(result, result.context().at<Arena>().transitive_resource());
 
     return result;
 }

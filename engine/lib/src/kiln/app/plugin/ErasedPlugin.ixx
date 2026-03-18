@@ -1,15 +1,19 @@
 module;
 
 #include <functional>
+#include <span>
+#include <string_view>
 
 export module kiln.app.plugin.ErasedPlugin;
 
 import kiln.app.App;
+import kiln.app.plugin.hash_plugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.plugin_c;
 import kiln.util.Any;
 import kiln.util.concepts.specialization_of;
 import kiln.util.OptionalRef;
+import kiln.util.reflection;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.TypeList;
 
@@ -30,6 +34,32 @@ public:
     {
     }
 
+    [[nodiscard]]
+    auto name() const -> std::string_view
+    {
+        return m_extra_vtable(static_cast<const ErasedPlugin_T&>(*this)).name();
+    }
+
+    [[nodiscard]]
+    auto hash() const -> uint64_t
+    {
+        return m_extra_vtable(static_cast<const ErasedPlugin_T&>(*this)).hash();
+    }
+
+    [[nodiscard]]
+    auto configuration_dependency_hash_set() const -> std::span<const uint64_t>
+    {
+        return m_extra_vtable(static_cast<const ErasedPlugin_T&>(*this))
+            .configuration_dependency_hash_set(static_cast<const ErasedPlugin_T&>(*this));
+    }
+
+    [[nodiscard]]
+    auto dependency_hash_set() const -> std::span<const uint64_t>
+    {
+        return m_extra_vtable(static_cast<const ErasedPlugin_T&>(*this))
+            .dependency_hash_set(static_cast<const ErasedPlugin_T&>(*this));
+    }
+
     auto configure_and_build(App& app) && -> void
     {
         m_extra_vtable(static_cast<ErasedPlugin_T&>(*this))
@@ -42,12 +72,46 @@ private:
 
 template <typename ErasedPlugin_T>
 struct ErasedPluginExtraVTable {
-    using BuildFunc = auto(ErasedPlugin_T&&, App& app) -> void;
+    using NameFunc                           = auto() -> std::string_view;
+    using HashFunc                           = auto() -> uint64_t;
+    using ConfigurationDependencyHashSetFunc = auto(const ErasedPlugin_T&)
+        -> std::span<const uint64_t>;
+    using DependencyHashSetFunc = auto(const ErasedPlugin_T&)
+        -> std::span<const uint64_t>;
+    using ConfigureAndBuildFunc = auto(ErasedPlugin_T&&, App& app) -> void;
 
-    std::reference_wrapper<BuildFunc> configure_and_build;
+    std::reference_wrapper<NameFunc> name;
+    std::reference_wrapper<HashFunc> hash;
+    std::reference_wrapper<ConfigurationDependencyHashSetFunc>
+                                                  configuration_dependency_hash_set;
+    std::reference_wrapper<DependencyHashSetFunc> dependency_hash_set;
+    std::reference_wrapper<ConfigureAndBuildFunc> configure_and_build;
 
     template <typename Plugin_T>
     struct Operations {
+        constexpr static auto name() -> std::string_view
+        {
+            return util::name_of<Plugin_T>();
+        }
+
+        constexpr static auto hash() -> uint64_t
+        {
+            return hash_plugin<Plugin_T>();
+        }
+
+        static auto configuration_dependency_hash_set(const ErasedPlugin_T& erased_plugin)
+            -> std::span<const uint64_t>
+        {
+            return util::any_cast<Plugin_T>(erased_plugin)
+                .configuration_dependency_hash_set();
+        }
+
+        static auto dependency_hash_set(const ErasedPlugin_T& erased_plugin)
+            -> std::span<const uint64_t>
+        {
+            return util::any_cast<Plugin_T>(erased_plugin).dependency_hash_set();
+        }
+
         template <util::specialization_of_c<util::OptionalRef>
                       PotentiallyOptionalContextVariableRef_T>
         static auto fetch_dependency(App& app) -> PotentiallyOptionalContextVariableRef_T
@@ -92,7 +156,11 @@ struct ErasedPluginExtraVTable {
         }
 
         constexpr static ErasedPluginExtraVTable vtable{
-            .configure_and_build = configure_and_build,
+            .name                              = name,
+            .hash                              = hash,
+            .configuration_dependency_hash_set = configuration_dependency_hash_set,
+            .dependency_hash_set               = dependency_hash_set,
+            .configure_and_build               = configure_and_build,
         };
     };
 };

@@ -1,4 +1,4 @@
-#include <print>
+#include <cstdio>
 #include <string_view>
 
 #include <kiln/util/contract_macros.hpp>
@@ -99,8 +99,7 @@ auto main() -> int
                        .build();
 
     // Renderer is never headless when both window and graphics plugins are present
-    std::println(
-        "{}",
+    std::puts(
         app.context().at<RenderSystem>().window_system == nullptr
             ? "Renderer is headless"
             : "Renderer is not headless"

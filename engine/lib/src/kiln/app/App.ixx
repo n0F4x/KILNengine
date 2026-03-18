@@ -24,6 +24,7 @@ public:
 private:
     Arena m_arena;
 
+    std::pmr::polymorphic_allocator<> m_context_memory_resource_allocator;
     std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_context_memory_resource;
     Context                                                   m_context;
 };
@@ -34,10 +35,11 @@ namespace kiln::app {
 
 inline App::App(Arena&& arena)
     : m_arena{ std::move(arena) },
+      m_context_memory_resource_allocator{ &m_arena.pool_resource() },
       m_context_memory_resource{
-          std::pmr::polymorphic_allocator{ &m_arena.pool_resource() }
+          m_context_memory_resource_allocator
               .new_object<std::pmr::monotonic_buffer_resource>(&m_arena.pool_resource()),
-          util::Deleter{ std::pmr::polymorphic_allocator{ &m_arena.pool_resource() } }
+          util::Deleter{ m_context_memory_resource_allocator }
       },
       m_context{ std::allocator_arg, m_context_memory_resource.get(), m_arena }
 {
