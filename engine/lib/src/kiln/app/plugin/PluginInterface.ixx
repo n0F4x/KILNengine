@@ -42,32 +42,52 @@ concept configures_c = util::naked_c<Plugin_T> && requires {
         IsContextVariableDependencyRef<Plugin_T>::template type>;
 };
 
+
+export class PluginInterface;
+
+using Configuration = util::MoveOnlyFunction<auto(PluginInterface&, App&) &&->void>;
+
+export [[nodiscard]]
+auto configuration_dependency_hash_set(const PluginInterface& plugin) noexcept
+    -> std::span<const uint64_t>;
+
+export [[nodiscard]]
+auto dependency_hash_set(const PluginInterface& plugin) noexcept
+    -> std::span<const uint64_t>;
+
+export auto set_resolved_dependency_hash_set(
+    PluginInterface&          plugin,
+    std::span<const uint64_t> dependency_hash_set
+) -> void;
+
+export template <util::naked_c Plugin_T>
+auto configure(Plugin_T&&, App& app) -> Plugin_T&&;
+
 export class PluginInterface {
-    using Configuration = util::MoveOnlyFunction<auto(PluginInterface&, App&) &&->void>;
-
 public:
-    [[nodiscard]]
-    auto configuration_dependency_hash_set() const noexcept -> std::span<const uint64_t>;
-    [[nodiscard]]
-    auto dependency_hash_set() const noexcept -> std::span<const uint64_t>;
-
-
-    auto set_resolved_dependency_hash_set(std::span<const uint64_t> dependency_hash_set)
-        -> void;
-
-
     template <util::naked_c Self_T, configures_c<Self_T> Configuration_T>
     auto register_configuration(this Self_T& self, Configuration_T&& configuration)
         -> void;
 
-
-    template <typename Self_T>
-    auto configure(this Self_T&&, App& app) -> Self_T&&;
-
 private:
+    friend auto configuration_dependency_hash_set(const PluginInterface& plugin) noexcept
+        -> std::span<const uint64_t>;
+    friend auto dependency_hash_set(const PluginInterface& plugin) noexcept
+        -> std::span<const uint64_t>;
+
+    friend auto set_resolved_dependency_hash_set(
+        PluginInterface&          plugin,
+        std::span<const uint64_t> dependency_hash_set
+    ) -> void;
+
+    template <util::naked_c Self_T>
+    friend auto configure(Self_T&&, App& app) -> Self_T&&;
+
+
     std::pmr::vector<uint64_t>      m_configuration_dependency_hash_set;
     std::pmr::vector<uint64_t>      m_dependency_hash_set;
     std::pmr::vector<Configuration> m_configurators;
+
 
     auto insert_configuration_dependency_hash(uint64_t dependency_hash) -> void;
 };
@@ -75,6 +95,17 @@ private:
 }   // namespace kiln::app
 
 namespace kiln::app {
+
+template <util::naked_c Plugin_T>
+auto configure(Plugin_T&& plugin, App& app) -> Plugin_T&&
+{
+    for (Configuration& configurator : plugin.PluginInterface::m_configurators)
+    {
+        std::move(configurator)(plugin, app);
+    }
+
+    return std::move(plugin);   // NOLINT(*-move-forwarding-reference)
+}
 
 template <util::naked_c Self_T, configures_c<Self_T> Configuration_T>
 auto PluginInterface::register_configuration(
@@ -104,17 +135,6 @@ auto PluginInterface::register_configuration(
             }
         );
     }(util::type_list_drop_front_t<util::arguments_of_t<Configuration_T>>{});
-}
-
-template <typename Self_T>
-auto PluginInterface::configure(this Self_T&& self, App& app) -> Self_T&&
-{
-    for (Configuration& configurator : self.PluginInterface::m_configurators)
-    {
-        std::move(configurator)(self, app);
-    }
-
-    return std::move(self);
 }
 
 }   // namespace kiln::app

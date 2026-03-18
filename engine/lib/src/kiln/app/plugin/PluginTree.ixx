@@ -262,7 +262,7 @@ struct PluginInjectionLambda {
                 )
             )
         );
-        plugin.set_resolved_dependency_hash_set(resolved_dependency_hash_set);
+        set_resolved_dependency_hash_set(plugin, resolved_dependency_hash_set);
     }
 };
 
