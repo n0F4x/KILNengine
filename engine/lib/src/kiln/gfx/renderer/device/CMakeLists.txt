@@ -13,7 +13,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         Device.ixx
         DevicePlugin.ixx
         DevicePluginFailedError.ixx
-        DevicePluginInjection.ixx
         GraphicsQueueRef.ixx
         SubmitInfo.ixx
         TransferQueueRef.ixx

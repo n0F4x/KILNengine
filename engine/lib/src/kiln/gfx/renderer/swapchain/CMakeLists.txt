@@ -1,5 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Swapchain.cxx
+        SwapchainPluginInjection.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -9,5 +10,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         swapchain.cppm
         Swapchain.ixx
         SwapchainPlugin.ixx
+        SwapchainPluginFailedError.ixx
         SwapchainPluginInjection.ixx
 )

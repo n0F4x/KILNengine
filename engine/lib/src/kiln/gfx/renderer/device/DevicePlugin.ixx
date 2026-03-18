@@ -9,22 +9,13 @@ import vulkan_hpp;
 import kiln.app.plugin.PluginInterface;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.DeviceBuilder;
-import kiln.gfx.vulkan.InstancePlugin;
-import kiln.util.containers.OptionalRef;
 import kiln.util.type_traits.const_like;
 import kiln.util.type_traits.forward_like;
-import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
 export class DevicePlugin : public app::PluginInterface {
 public:
-    struct CreateInfo {
-        bool headless{};
-    };
-
-    explicit DevicePlugin(bool headless = false);
-
     template <typename Self_T>
     [[nodiscard]]
     auto operator*(this Self_T&& self)
@@ -35,14 +26,9 @@ public:
     auto operator->(this Self_T& self)
         -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*;
 
-    auto build(
-        const vk::raii::Instance&       instance,
-        util::OptionalRef<wsi::Context> wsi_context
-    ) -> Device;
+    auto build(const vk::raii::Instance& instance) const -> Device;
 
 private:
-    bool                  m_request_debug_messenger{};
-    bool                  m_headless{};
     vulkan::DeviceBuilder m_device_builder;
 };
 
