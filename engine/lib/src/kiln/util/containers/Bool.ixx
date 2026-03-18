@@ -6,8 +6,8 @@ module;
 
 export module kiln.util.containers.Bool;
 
-import kiln.util.containers.OptionalRef;
 import kiln.util.concepts.specialization_of;
+import kiln.util.containers.OptionalRef;
 
 namespace kiln::util {
 

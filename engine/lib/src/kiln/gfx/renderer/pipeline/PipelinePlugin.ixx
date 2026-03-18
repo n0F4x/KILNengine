@@ -1,14 +1,9 @@
 export module kiln.gfx.renderer.pipeline.PipelinePlugin;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 
 namespace kiln::gfx::renderer {
 
-export struct PipelinePlugin {
-    static auto operator()(app::App&) -> void
-    {
-        // meta plugin
-    }
-};
+export class PipelinePlugin : public app::PluginInterface {};
 
 }   // namespace kiln::gfx::renderer

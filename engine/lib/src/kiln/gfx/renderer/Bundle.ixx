@@ -40,9 +40,9 @@ auto Bundle::operator()(app::Builder& builder) const -> void
     builder.inject_plugin(AllocatorPluginInjection{});
     if (!m_headless)
     {
-        builder.inject_plugin(SwapchainPluginInjection{});
+        builder.inject_meta_plugin(SwapchainPluginInjection{});
     }
-    builder.inject_plugin(PipelinePluginInjection{});
+    builder.inject_meta_plugin(PipelinePluginInjection{});
 }
 
 }   // namespace kiln::gfx::renderer

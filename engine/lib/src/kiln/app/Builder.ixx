@@ -11,29 +11,18 @@ export module kiln.app.Builder;
 import kiln.app.App;
 import kiln.app.memory.Arena;
 import kiln.app.memory.MemoryPluginInjection;
+import kiln.app.plugin.meta_plugin_c;
+import kiln.app.plugin.meta_plugin_injection_c;
 import kiln.app.plugin.plugin_c;
 import kiln.app.plugin.plugin_injection_c;
 import kiln.app.plugin.PluginTree;
-import kiln.app.context.context_variable_c;
-import kiln.app.context.ContextBuilder;
-import kiln.app.context.decays_to_context_variable_c;
-import kiln.app.context.decays_to_context_variable_injection_c;
 import kiln.util.Deleter;
 
 namespace kiln::app {
 
 export class Builder {
 public:
-    template <typename Self_T, decays_to_context_variable_c ContextVariable_T>
-    auto insert_context_variable(this Self_T&&, ContextVariable_T&& context_variable)
-        -> Self_T&&;
-
-    template <context_variable_c ContextVariable_T, typename Self_T, typename... Args_T>
-        requires std::constructible_from<ContextVariable_T, Args_T&&...>
-    auto emplace_context_variable(this Self_T&&, Args_T&&... args) -> Self_T&&;
-
-    template <typename Self_T, decays_to_context_variable_injection_c Injection_T>
-    auto inject_context_variable(this Self_T&&, Injection_T&& injection) -> Self_T&&;
+    Builder();
 
 
     template <typename Self_T, decays_to_plugin_c Plugin_T>
@@ -45,6 +34,18 @@ public:
 
     template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
     auto inject_plugin(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T&&;
+
+
+    template <typename Self_T, decays_to_meta_plugin_c MetaPlugin_T>
+    auto insert_meta_plugin(this Self_T&&, MetaPlugin_T&& meta_plugin) -> Self_T&&;
+
+    template <meta_plugin_c MetaPlugin_T, typename Self_T, typename... Args_T>
+        requires std::constructible_from<MetaPlugin_T, Args_T&&...>
+    auto emplace_meta_plugin(this Self_T&&, Args_T&&... args) -> Self_T&&;
+
+    template <typename Self_T, decays_to_meta_plugin_injection_c MetaPluginInjection_T>
+    auto inject_meta_plugin(this Self_T&&, MetaPluginInjection_T&& meta_plugin_injection)
+        -> Self_T&&;
 
 
     template <typename Self_T, typename Bundle_T>
@@ -59,73 +60,32 @@ private:
     Arena m_app_arena;
     Arena m_builder_arena;
 
-    PluginTree m_plugin_tree{
-        &m_builder_arena.pool_resource(),
-        MemoryPluginInjection{ m_app_arena, m_builder_arena }
-    };
-    std::unique_ptr<std::pmr::memory_resource, util::Deleter>
-        m_context_builder_memory_resource{
-            std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() }
-                .new_object<std::pmr::monotonic_buffer_resource>(
-                    &m_builder_arena.pool_resource()
-                ),
-            util::Deleter{
-                std::pmr::polymorphic_allocator{ &m_builder_arena.pool_resource() } }
-        };
-    ContextBuilder m_context_builder{ m_context_builder_memory_resource.get() };
+    PluginTree m_plugin_tree{ &m_builder_arena.pool_resource() };
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
 
-template <typename Self_T, decays_to_context_variable_c ContextVariable_T>
-auto Builder::insert_context_variable(
-    this Self_T&&       self,
-    ContextVariable_T&& context_variable
-) -> Self_T&&
-{
-    self.Builder::m_context_builder.insert(
-        std::forward<ContextVariable_T>(context_variable)
-    );
-    return std::forward<Self_T>(self);
-}
-
-template <context_variable_c ContextVariable_T, typename Self_T, typename... Args_T>
-    requires std::constructible_from<ContextVariable_T, Args_T&&...>
-auto Builder::emplace_context_variable(this Self_T&& self, Args_T&&... args) -> Self_T&&
-{
-    self.Builder::m_context_builder.template emplace<ContextVariable_T>(
-        std::forward<Args_T>(args)...
-    );
-    return std::forward<Self_T>(self);
-}
-
-template <typename Self_T, decays_to_context_variable_injection_c Injection_T>
-auto Builder::inject_context_variable(this Self_T&& self, Injection_T&& injection)
-    -> Self_T&&
-{
-    self.Builder::m_context_builder.inject(std::forward<Injection_T>(injection));
-    return std::forward<Self_T>(self);
-}
-
 template <typename Self_T, decays_to_plugin_c Plugin_T>
 auto Builder::insert_plugin(this Self_T&& self, Plugin_T&& plugin) -> Self_T&&
 {
-    return std::forward<Self_T>(self).inject_plugin(
-        [x_plugin = std::forward<Plugin_T>(plugin)] mutable -> std::decay_t<Plugin_T>
-        {
-            return std::move(x_plugin);   //
-        }
-    );
+    return std::forward<Self_T>(self)
+        .template emplace_plugin<std::remove_cvref_t<Plugin_T>>(
+            std::forward<Plugin_T>(plugin)
+        );
 }
 
 template <plugin_c Plugin_T, typename Self_T, typename... Args_T>
     requires std::constructible_from<Plugin_T, Args_T&&...>
 auto Builder::emplace_plugin(this Self_T&& self, Args_T&&... args) -> Self_T&&
 {
-    return std::forward<Self_T>(self).insert_plugin(
-        Plugin_T(std::forward<Args_T>(args)...)
+    return std::forward<Self_T>(self).inject_plugin(
+        [x_plugin =
+             Plugin_T(std::forward<Args_T>(args)...)] mutable -> std::decay_t<Plugin_T>
+        {
+            return std::move(x_plugin);   //
+        }
     );
 }
 
@@ -141,6 +101,43 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
     return std::forward<Self_T>(self);
 }
 
+template <typename Self_T, decays_to_meta_plugin_c MetaPlugin_T>
+auto Builder::insert_meta_plugin(this Self_T&& self, MetaPlugin_T&& meta_plugin)
+    -> Self_T&&
+{
+    return std::forward<Self_T>(self)
+        .template emplace_meta_plugin<std::remove_cvref_t<MetaPlugin_T>>(
+            std::forward<MetaPlugin_T>(meta_plugin)
+        );
+}
+
+template <meta_plugin_c MetaPlugin_T, typename Self_T, typename... Args_T>
+    requires std::constructible_from<MetaPlugin_T, Args_T&&...>
+auto Builder::emplace_meta_plugin(this Self_T&& self, Args_T&&... args) -> Self_T&&
+{
+    return std::forward<Self_T>(self).inject_meta_plugin(
+        [x_meta_plugin = MetaPlugin_T(std::forward<Args_T>(args)...)] mutable
+            -> std::decay_t<MetaPlugin_T>
+        {
+            return std::move(x_meta_plugin);   //
+        }
+    );
+}
+
+template <typename Self_T, decays_to_meta_plugin_injection_c MetaPluginInjection_T>
+auto Builder::inject_meta_plugin(
+    this Self_T&&           self,
+    MetaPluginInjection_T&& meta_plugin_injection
+) -> Self_T&&
+{
+    self.Builder::m_plugin_tree.plug_in_meta(
+        std::forward_like<MetaPluginInjection_T>(meta_plugin_injection),
+        self.Builder::m_builder_arena.transitive_resource()
+    );
+
+    return std::forward<Self_T>(self);
+}
+
 template <typename Self_T, typename Bundle_T>
     requires std::invocable<Bundle_T&&, Builder&>
 auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
@@ -149,12 +146,17 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
     return std::forward<Self_T>(self);
 }
 
+inline Builder::Builder()
+{
+    m_plugin_tree.plug_in_meta(MemoryPluginInjection{ m_app_arena, m_builder_arena });
+}
+
 inline auto Builder::build() && -> App
 {
     App result{ std::move(m_app_arena) };
 
-    std::move(m_plugin_tree).invoke_plugins(result);
-    std::move(m_context_builder).merge_into(result.context());
+    std::move(m_plugin_tree)
+        .build_plugins(result, result.context().at<Arena>().transitive_resource());
 
     return result;
 }

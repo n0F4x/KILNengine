@@ -98,22 +98,23 @@ auto Demo::render() -> void
     graphics_command_buffer.end();
 }
 
-auto DemoPlugin::operator()(kiln::app::App& app) -> void
+auto DemoPlugin::build(
+    const kiln::config::Config&        config,
+    const vk::raii::Instance&          vulkan_instance,
+    const kiln::wsi::Context&          wsi_context,
+    const kiln::gfx::renderer::Device& render_device
+) -> Demo
 {
-    app.context().insert(
-        Demo{
-            app.context().at<kiln::config::Config>(),
-            app.context().at<vk::raii::Instance>(),
-            app.context().at<kiln::wsi::Context>(),
-            app.context().at<kiln::gfx::renderer::Device>(),
-        }
-    );
+    return Demo{
+        config,
+        vulkan_instance,
+        wsi_context,
+        render_device,
+    };
 }
 
 auto demo_plugin_injection(
-    const kiln::config::Plugin&,
     kiln::gfx::vulkan::InstancePlugin& instance_plugin,
-    const kiln::wsi::Plugin&,
     kiln::gfx::renderer::DevicePlugin& device_plugin,
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin

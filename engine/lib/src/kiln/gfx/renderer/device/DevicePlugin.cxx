@@ -2,6 +2,8 @@ module;
 
 #include <utility>
 
+#include "kiln/util/contract_macros.hpp"
+
 module kiln.gfx.renderer.device.DevicePlugin;
 
 import kiln.gfx.renderer.device.DevicePluginFailedError;
@@ -9,31 +11,34 @@ import kiln.gfx.vulkan.default_debug_messenger_callback;
 import kiln.gfx.vulkan.Device;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.result.check_result;
+import kiln.util.containers.OptionalRef;
+import kiln.util.contracts;
 import kiln.util.Lazy;
 import kiln.wsi.Context;
 import kiln.wsi.vulkan_queue_family_supports_presenting;
 
 namespace kiln::gfx::renderer {
 
-DevicePlugin::DevicePlugin(bool headless) : m_headless{ headless } {}
+DevicePlugin::DevicePlugin(const bool headless) : m_headless{ headless } {}
 
-auto DevicePlugin::operator()(app::App& app) -> void
+auto DevicePlugin::build(
+    const vk::raii::Instance&             instance,
+    const util::OptionalRef<wsi::Context> wsi_context
+) -> Device
 {
-    const vk::raii::Instance& instance{ app.context().at<vk::raii::Instance>() };
-
     if (!m_headless)
     {
-        wsi::Context& wsi_context{ app.context().at<wsi::Context>() };
+        PRECOND(wsi_context.has_value());
 
         m_device_builder.ensure_queue(
-            [&wsi_context, &instance](
+            [wsi_context, &instance](
                 const vk::raii::PhysicalDevice& physical_device,
                 const vulkan::QueueFamilyIndex  queue_family_index,
                 const vk::QueueFamilyProperties2&
             ) -> bool
             {
                 return wsi::vulkan_queue_family_supports_presenting(
-                    wsi_context, instance, physical_device, queue_family_index
+                    *wsi_context, instance, physical_device, queue_family_index
                 );
             }
         );
@@ -49,12 +54,12 @@ auto DevicePlugin::operator()(app::App& app) -> void
             }
         );
 
-    app.context().emplace<Device>(
+    return Device{
         std::move(physical_device),
         std::move(logical_device),
         std::move(queues),
-        std::move(enabled_capabilities)
-    );
+        std::move(enabled_capabilities),
+    };
 }
 
 }   // namespace kiln::gfx::renderer

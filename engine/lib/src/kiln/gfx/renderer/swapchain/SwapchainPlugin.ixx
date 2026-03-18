@@ -1,15 +1,9 @@
 export module kiln.gfx.renderer.swapchain.SwapchainPlugin;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 
 namespace kiln::gfx::renderer {
 
-export class SwapchainPlugin {
-public:
-    static auto operator()(app::App&) -> void
-    {
-        // meta plugin
-    }
-};
+export class SwapchainPlugin : public app::PluginInterface {};
 
 }   // namespace kiln::gfx::renderer

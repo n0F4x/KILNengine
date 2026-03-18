@@ -1,22 +1,23 @@
 module;
 
-#include <functional>
 #include <utility>
 
 export module kiln.gfx.renderer.device.DevicePlugin;
 
 import vulkan_hpp;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.DeviceBuilder;
 import kiln.gfx.vulkan.InstancePlugin;
+import kiln.util.containers.OptionalRef;
 import kiln.util.type_traits.const_like;
 import kiln.util.type_traits.forward_like;
+import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
-export class DevicePlugin {
+export class DevicePlugin : public app::PluginInterface {
 public:
     struct CreateInfo {
         bool headless{};
@@ -34,12 +35,15 @@ public:
     auto operator->(this Self_T& self)
         -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*;
 
-    auto operator()(app::App& app) -> void;
+    auto build(
+        const vk::raii::Instance&       instance,
+        util::OptionalRef<wsi::Context> wsi_context
+    ) -> Device;
 
 private:
-    bool                                           m_request_debug_messenger{};
-    bool                                           m_headless{};
-    vulkan::DeviceBuilder                          m_device_builder;
+    bool                  m_request_debug_messenger{};
+    bool                  m_headless{};
+    vulkan::DeviceBuilder m_device_builder;
 };
 
 }   // namespace kiln::gfx::renderer

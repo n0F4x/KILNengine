@@ -7,7 +7,6 @@ module;
 #include <format>
 #include <functional>
 #include <memory_resource>
-#include <ranges>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -16,10 +15,10 @@ module;
 
 export module kiln.util.containers.GenericStack;
 
-import kiln.util.containers.MoveOnlyAny;
 import kiln.util.concepts.type_list_all_of;
-import kiln.util.contracts;
+import kiln.util.containers.MoveOnlyAny;
 import kiln.util.containers.OptionalRef;
+import kiln.util.contracts;
 import kiln.util.reflection;
 import kiln.util.transform;
 import kiln.util.type_traits.arguments_of;
@@ -75,10 +74,10 @@ public:
 
 
     BasicGenericStack() = default;
-    explicit BasicGenericStack(const allocator_type&);
+    explicit BasicGenericStack(const allocator_type& allocator);
     BasicGenericStack(const BasicGenericStack&)     = delete;
     BasicGenericStack(BasicGenericStack&&) noexcept = default;
-    BasicGenericStack(BasicGenericStack&&, const allocator_type&);
+    BasicGenericStack(BasicGenericStack&&, const allocator_type& allocator);
     ~BasicGenericStack();
 
     auto operator=(const BasicGenericStack&) -> BasicGenericStack&     = delete;
@@ -103,25 +102,16 @@ public:
 
     template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
     [[nodiscard]]
-    auto at(this Self_T&&) -> forward_like_t<Item_T, Self_T>;
+    auto at(this Self_T&) -> const_like_t<Item_T, Self_T>&;
 
 
     template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
     auto insert(Item_T&& item) -> Item_T&;
     template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
     auto emplace(Args_T&&... args) -> Item_T&;
-    template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
-    auto inject(Injection_T&& injection) -> result_of_t<Injection_T>&;
-
-
-    template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
-        requires(
-            std::is_const_v<std::remove_reference_t<Self_T>>
-            || std::is_rvalue_reference_v<Self_T &&>
-        )
-    auto for_each(this Self_T&&, F&& func) -> F;
 
 private:
+    // TODO: Use different containers for types and items
     std::pmr::deque<std::pair<uint64_t, Any>> m_types_and_items;
 
     template <typename Injection_T>
@@ -179,43 +169,6 @@ BasicGenericStack<Any_T>::~BasicGenericStack()
 
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
-template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
-auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
-    -> OptionalRef<const_like_t<Item_T, Self_T>>
-{
-    // TODO: use `std::ranges::find` + projection with better MS STL compatibility
-    const auto iter = std::ranges::find_if(
-        self.BasicGenericStack::m_types_and_items,
-        [](const_like_t<std::pair<uint64_t, Any>, Self_T>& type_hash_and_item) -> bool
-        {
-            return type_hash_and_item.first == hash_u64<Item_T>();   //
-        }
-    );
-    if (iter == self.BasicGenericStack::m_types_and_items.cend())
-    {
-        return std::nullopt;
-    }
-
-    return OptionalRef<const_like_t<Item_T, Self_T>>{ any_cast<Item_T>(iter->second) };
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
-auto BasicGenericStack<Any_T>::at(this Self_T&& self) -> forward_like_t<Item_T, Self_T>
-{
-    const OptionalRef found_item{ std::forward<Self_T>(self).template find<Item_T>() };
-
-    PRECOND(
-        found_item.has_value(),
-        std::format("Item of type `{}` not found", name_of<Item_T>())
-    );
-
-    return std::forward_like<Self_T>(*found_item);
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
 auto BasicGenericStack<Any_T>::get_allocator() const -> allocator_type
 {
     return m_types_and_items.get_allocator();
@@ -245,6 +198,43 @@ auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
 
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
+template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
+auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
+    -> OptionalRef<const_like_t<Item_T, Self_T>>
+{
+    // TODO: use `std::ranges::find` + projection with better MS STL compatibility
+    const auto iter = std::ranges::find_if(
+        self.BasicGenericStack::m_types_and_items,
+        [](const_like_t<std::pair<uint64_t, Any>, Self_T>& type_hash_and_item) -> bool
+        {
+            return type_hash_and_item.first == hash_u64<Item_T>();   //
+        }
+    );
+    if (iter == self.BasicGenericStack::m_types_and_items.cend())
+    {
+        return std::nullopt;
+    }
+
+    return OptionalRef<const_like_t<Item_T, Self_T>>{ any_cast<Item_T>(iter->second) };
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
+auto BasicGenericStack<Any_T>::at(this Self_T& self) -> const_like_t<Item_T, Self_T>&
+{
+    const OptionalRef found_item{ self.BasicGenericStack::template find<Item_T>() };
+
+    PRECOND(
+        found_item.has_value(),
+        std::format("Item of type `{}` not found", name_of<Item_T>())
+    );
+
+    return *found_item;
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
 template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
 auto BasicGenericStack<Any_T>::insert(Item_T&& item) -> Item_T&
 {
@@ -270,45 +260,6 @@ auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Item_T&
             )
             .second   //
     );
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-template <decays_to_basic_generic_stack_item_injection_c<Any_T> Injection_T>
-auto BasicGenericStack<Any_T>::inject(Injection_T&& injection)
-    -> result_of_t<Injection_T>&
-{
-    PRECOND(
-        (!contains<result_of_t<Injection_T>>()),
-        std::format(
-            "Attempt to inject item of type `{}`, but it has already been injected",
-            name_of<result_of_t<Injection_T>>()
-        )
-    );
-
-    return insert(
-        std::apply(
-            std::forward<Injection_T>(injection), resolve_dependencies<Injection_T>()
-        )
-    );
-}
-
-template <move_only_any_c Any_T>
-    requires(Any_T::size() == 0)
-template <typename Self_T, std::invocable<forward_like_t<Any_T, Self_T>> F>
-    requires(
-        std::is_const_v<std::remove_reference_t<Self_T>>
-        || std::is_rvalue_reference_v<Self_T &&>
-    )
-auto BasicGenericStack<Any_T>::for_each(this Self_T&& self, F&& func) -> F
-{
-    for (auto&& [type, item] :
-         std::forward_like<Self_T>(self.BasicGenericStack::m_types_and_items))
-    {
-        std::invoke(func, std::forward_like<Self_T>(item));
-    }
-
-    return std::forward<F>(func);
 }
 
 template <move_only_any_c Any_T>

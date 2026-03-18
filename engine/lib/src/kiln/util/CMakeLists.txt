@@ -29,6 +29,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         Lazy.ixx
         Overloaded.ixx
         reflection.ixx
+        ScopeFail.ixx
         StringLiteral.ixx
         Strong.ixx
         transform.ixx

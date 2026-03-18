@@ -9,7 +9,7 @@ export module kiln.gfx.vulkan.InstancePlugin;
 
 import vulkan_hpp;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 import kiln.config.Config;
 import kiln.gfx.vulkan.context;
 import kiln.gfx.vulkan.InstanceBuilder;
@@ -19,7 +19,7 @@ import kiln.util.type_traits.forward_like;
 
 namespace kiln::gfx::vulkan {
 
-export class InstancePlugin {
+export class InstancePlugin : public app::PluginInterface {
 public:
     [[nodiscard]]
     consteval static auto minimum_version() noexcept -> uint32_t;
@@ -37,7 +37,7 @@ public:
     [[nodiscard]]
     auto operator->(this Self_T& self) -> util::const_like_t<InstanceBuilder, Self_T>*;
 
-    auto operator()(app::App& app) const -> void;
+    auto build() const -> vk::raii::Instance;
 
 private:
     InstanceBuilder m_instance_builder;
@@ -100,9 +100,9 @@ auto InstancePlugin::operator->(this Self_T& self)
     return &self.m_instance_builder;
 }
 
-auto InstancePlugin::operator()(app::App& app) const -> void
+auto InstancePlugin::build() const -> vk::raii::Instance
 {
-    app.context().insert(m_instance_builder.build());
+    return m_instance_builder.build();
 }
 
 }   // namespace kiln::gfx::vulkan

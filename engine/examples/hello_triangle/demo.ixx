@@ -25,15 +25,18 @@ export struct Demo {
     auto render() -> void;
 };
 
-export struct DemoPlugin {
-    static auto operator()(kiln::app::App& app) -> void;
+export struct DemoPlugin : kiln::app::PluginInterface {
+    static auto build(
+        const kiln::config::Config&        config,
+        const vk::raii::Instance&          vulkan_instance,
+        const kiln::wsi::Context&          wsi_context,
+        const kiln::gfx::renderer::Device& render_device
+    ) -> Demo;
 };
 
 export [[nodiscard]]
 auto demo_plugin_injection(
-    const kiln::config::Plugin&,
-    kiln::gfx::vulkan::InstancePlugin&,
-    const kiln::wsi::Plugin&,
+    kiln::gfx::vulkan::InstancePlugin& instance_plugin,
     kiln::gfx::renderer::DevicePlugin& device_plugin,
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin;

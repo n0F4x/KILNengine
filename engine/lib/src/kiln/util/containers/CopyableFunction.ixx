@@ -4,8 +4,8 @@ module;
 
 export module kiln.util.containers.CopyableFunction;
 
-import kiln.util.containers.Function;
 import kiln.util.concepts.function;
+import kiln.util.containers.Function;
 
 namespace kiln::util {
 

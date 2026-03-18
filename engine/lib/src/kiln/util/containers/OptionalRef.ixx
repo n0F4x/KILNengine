@@ -43,7 +43,7 @@ export template <typename T>
     requires(!std::is_reference_v<T>)
 class OptionalRef {
 public:
-    using ValueType = T;
+    using ValueType = T&;
 
     OptionalRef() = default;
     constexpr explicit(false) OptionalRef(std::nullopt_t) noexcept;

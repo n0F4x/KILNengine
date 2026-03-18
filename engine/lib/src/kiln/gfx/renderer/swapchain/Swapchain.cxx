@@ -14,8 +14,8 @@ module kiln.gfx.renderer.swapchain.Swapchain;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.result.Result;
 import kiln.gfx.vulkan.result.TypedResultCode;
-import kiln.util.contracts;
 import kiln.util.containers.OptionalRef;
+import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 

@@ -2,22 +2,18 @@ export module kiln.gfx.renderer.memory.AllocatorPlugin;
 
 import vulkan_hpp;
 
-import kiln.app.App;
+import kiln.app.plugin.PluginInterface;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.device.Device;
 
 namespace kiln::gfx::renderer {
 
-export class AllocatorPlugin {
+export class AllocatorPlugin : public app::PluginInterface {
 public:
-    static auto operator()(app::App& app) -> void
+    static auto build(const vk::raii::Instance& instance, const Device& device)
+        -> Allocator
     {
-        app.context().insert(
-            Allocator{
-                app.context().at<vk::raii::Instance>(),
-                app.context().at<Device>(),
-            }
-        );
+        return Allocator{ instance, device };
     }
 };
 

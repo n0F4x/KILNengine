@@ -9,9 +9,9 @@ module;
 
 export module kiln.util.containers.Function;
 
-import kiln.util.containers.Any;
 import kiln.util.concepts.function;
 import kiln.util.concepts.specialization_of;
+import kiln.util.containers.Any;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.is_noexcept;
 import kiln.util.type_traits.result_of;

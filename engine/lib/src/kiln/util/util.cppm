@@ -13,6 +13,7 @@ export import kiln.util.containers.FunctionWrapper;
 export import kiln.util.Lazy;
 export import kiln.util.Overloaded;
 export import kiln.util.reflection;
+export import kiln.util.ScopeFail;
 export import kiln.util.StringLiteral;
 export import kiln.util.Strong;
 export import kiln.util.transform;

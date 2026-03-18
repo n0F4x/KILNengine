@@ -14,7 +14,7 @@ struct StripPluginDependency;
 
 template <util::specialization_of_c<util::OptionalRef> T>
 struct StripPluginDependency<T> {
-    using type = std::remove_const_t<typename T::ValueType>;
+    using type = std::remove_cvref_t<typename T::ValueType>;
 };
 
 template <typename T>
