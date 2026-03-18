@@ -7,7 +7,7 @@ namespace kiln::event {
 
 export class Plugin : public app::PluginInterface {
 public:
-    static auto build() -> EventSystem
+    static auto operator()() -> EventSystem
     {
         return EventSystem{};
     }

@@ -34,9 +34,9 @@ export template <typename T>
 concept plugin_c = util::naked_c<T>                        //
                 && std::derived_from<T, PluginInterface>   //
                 && requires {
-                       requires context_variable_c<util::result_of_t<decltype(&T::build)>>
+                       requires context_variable_c<util::result_of_t<decltype(&T::operator())>>
                                     && util::type_list_all_of_c<
-                                        util::arguments_of_t<decltype(&T::build)>,
+                                        util::arguments_of_t<decltype(&T::operator())>,
                                         IsPotentiallyOptionalContextVariableRef>;
                    };
 

@@ -61,10 +61,10 @@ public:
             .dependency_hash_set(static_cast<const ErasedPlugin_T&>(*this));
     }
 
-    auto configure_and_build(App& app) && -> void
+    auto build(App& app) && -> void
     {
         m_extra_vtable(static_cast<ErasedPlugin_T&>(*this))
-            .configure_and_build(std::move(static_cast<ErasedPlugin_T&>(*this)), app);
+            .build(std::move(static_cast<ErasedPlugin_T&>(*this)), app);
     }
 
 private:
@@ -79,14 +79,14 @@ struct ErasedPluginExtraVTable {
         -> std::span<const uint64_t>;
     using DependencyHashSetFunc = auto(const ErasedPlugin_T&)
         -> std::span<const uint64_t>;
-    using ConfigureAndBuildFunc = auto(ErasedPlugin_T&&, App& app) -> void;
+    using BuildFunc = auto(ErasedPlugin_T&&, App& app) -> void;
 
     std::reference_wrapper<NameFunc> name;
     std::reference_wrapper<HashFunc> hash;
     std::reference_wrapper<ConfigurationDependencyHashSetFunc>
                                                   configuration_dependency_hash_set;
     std::reference_wrapper<DependencyHashSetFunc> dependency_hash_set;
-    std::reference_wrapper<ConfigureAndBuildFunc> configure_and_build;
+    std::reference_wrapper<BuildFunc>             build;
 
     template <typename Plugin_T>
     struct Operations {
@@ -131,21 +131,21 @@ struct ErasedPluginExtraVTable {
                 .at<std::remove_cvref_t<PotentiallyOptionalContextVariableRef_T>>();
         }
 
-        static auto build(Plugin_T&& plugin, App& app) -> void
+        static auto invoke(Plugin_T&& plugin, App& app) -> void
         {
             [&plugin, &app]<typename... PotentiallyOptionalContextVariableRefs_T>(
                 util::TypeList<PotentiallyOptionalContextVariableRefs_T...>
             ) -> void
             {
                 app.context().insert(
-                    std::move(plugin).build(
+                    std::move(plugin)(
                         fetch_dependency<PotentiallyOptionalContextVariableRefs_T>(app)...
                     )
                 );
-            }(util::arguments_of_t<decltype(&Plugin_T::build)>{});
+            }(util::arguments_of_t<decltype(&Plugin_T::operator())>{});
         }
 
-        static auto configure_and_build(ErasedPlugin_T&& erased_plugin, App& app) -> void
+        static auto build(ErasedPlugin_T&& erased_plugin, App& app) -> void
         {
             Plugin_T&& plugin{ util::any_cast<Plugin_T>(std::move(erased_plugin)) };
 
@@ -153,7 +153,7 @@ struct ErasedPluginExtraVTable {
 
             if constexpr (!meta_plugin_c<Plugin_T>)
             {
-                build(std::move(plugin), app);
+                invoke(std::move(plugin), app);
             }
         }
 
@@ -162,7 +162,7 @@ struct ErasedPluginExtraVTable {
             .hash                              = hash,
             .configuration_dependency_hash_set = configuration_dependency_hash_set,
             .dependency_hash_set               = dependency_hash_set,
-            .configure_and_build               = configure_and_build,
+            .build                             = build,
         };
     };
 };

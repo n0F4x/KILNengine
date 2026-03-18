@@ -414,7 +414,7 @@ template <typename Plugin_T>
 auto PluginTree::check_required_build_dependencies() const -> void
 {
     util::for_each(
-        util::arguments_of_t<decltype(&Plugin_T::build)>{},
+        util::arguments_of_t<decltype(&Plugin_T::operator())>{},
         [this]<typename Dependency_T> -> void
         {
             std::ignore = this;
@@ -451,7 +451,7 @@ constexpr auto count_build_dependencies() -> uint32_t
 {
     if constexpr (!meta_plugin_c<MaybeMetaPlugin_T>)
     {
-        return util::arguments_of_t<decltype(&MaybeMetaPlugin_T::build)>::size();
+        return util::arguments_of_t<decltype(&MaybeMetaPlugin_T::operator())>::size();
     }
     else
     {
@@ -485,7 +485,7 @@ auto collect_direct_dependency_hashes(
     if constexpr (!meta_plugin_c<Plugin>)
     {
         util::for_each(
-            util::arguments_of_t<decltype(&Plugin::build)>{},
+            util::arguments_of_t<decltype(&Plugin::operator())>{},
             [&result]<typename BuildDependency_T> -> void
             {
                 result.push_back(
@@ -596,7 +596,7 @@ auto PluginTree::collect_unresolved_dependency_hashes(
     if constexpr (!meta_plugin_c<Plugin>)
     {
         util::for_each(
-            util::arguments_of_t<decltype(&Plugin::build)>{},
+            util::arguments_of_t<decltype(&Plugin::operator())>{},
             [this, &out]<typename Dependency_T> -> void
             {
                 if constexpr (internal::represents_optional_dependency_c<Dependency_T>)
@@ -642,7 +642,7 @@ auto PluginTree::collect_rest_of_dependency_hashes(std::pmr::vector<uint64_t>& o
     if constexpr (!meta_plugin_c<Plugin>)
     {
         util::for_each(
-            util::arguments_of_t<decltype(&Plugin::build)>{},
+            util::arguments_of_t<decltype(&Plugin::operator())>{},
             [&out]<typename Dependency_T> -> void
             {
                 using Dependency = strip_plugin_dependency_t<Dependency_T>;

@@ -1,7 +1,4 @@
 #include <cstdio>
-#include <string_view>
-
-#include <kiln/util/contract_macros.hpp>
 
 import kiln;
 import kiln.app;
@@ -11,7 +8,7 @@ import kiln.util.OptionalRef;
 struct GraphicsSystemIntegration {};
 
 struct GraphicsSystemIntegrationPlugin : kiln::app::PluginInterface {
-    static auto build() -> GraphicsSystemIntegration
+    static auto operator()() -> GraphicsSystemIntegration
     {
         return GraphicsSystemIntegration{};
     }
@@ -25,7 +22,7 @@ struct WindowPlugin : kiln::app::PluginInterface {
     bool supports_graphics          = false;
     bool graphics_support_requested = false;
 
-    auto build(
+    auto operator()(
         const kiln::util::OptionalRef<GraphicsSystemIntegration> graphics_system_integration
     ) const -> WindowSystem
     {
@@ -55,7 +52,7 @@ struct RenderSystem {
 struct RendererPlugin : kiln::app::PluginInterface {
     bool headless = true;
 
-    auto build(
+    auto operator()(
         GraphicsSystemIntegration&                  graphics_system_integration,
         const kiln::util::OptionalRef<WindowSystem> window_system
     ) const -> RenderSystem
