@@ -42,26 +42,6 @@ auto SwapchainPluginInjection::operator()(
 
     device_plugin->enable_extension(vk::KHRSwapchainExtensionName);
 
-    device_plugin.register_configuration(
-        [](DevicePlugin&             u_device_plugin,
-           const vk::raii::Instance& instance,
-           const wsi::Context&       wsi_context) -> void
-        {
-            u_device_plugin->ensure_queue(
-                [wsi_context, &instance](
-                    const vk::raii::PhysicalDevice& physical_device,
-                    const vulkan::QueueFamilyIndex  queue_family_index,
-                    const vk::QueueFamilyProperties2&
-                ) -> bool
-                {
-                    return wsi::vulkan_queue_family_supports_presenting(
-                        wsi_context, instance, physical_device, queue_family_index
-                    );
-                }
-            );
-        }
-    );
-
     return SwapchainPlugin{};
 }
 

@@ -1,5 +1,6 @@
 module;
 
+#include <memory_resource>
 #include <utility>
 
 export module kiln.gfx.renderer.device.DevicePlugin;
@@ -16,6 +17,22 @@ namespace kiln::gfx::renderer {
 
 export class DevicePlugin : public app::PluginInterface {
 public:
+    // required for interfacing with the standard
+    using allocator_type =   // NOLINT(*-identifier-naming)
+        std::pmr::polymorphic_allocator<>;
+
+
+    DevicePlugin() = default;
+    explicit DevicePlugin(const allocator_type& allocator);
+    DevicePlugin(const DevicePlugin&, const allocator_type& allocator);
+    DevicePlugin(DevicePlugin&&, const allocator_type& allocator);
+
+
+    // required for interfacing with the standard
+    [[nodiscard]]
+    auto get_allocator() const -> allocator_type;
+
+
     template <typename Self_T>
     [[nodiscard]]
     auto operator*(this Self_T&& self)

@@ -1,13 +1,13 @@
-module kiln.gfx.renderer.device.TransferQueueRef;
+module kiln.gfx.renderer.command.TransferQueueRef;
 
 namespace kiln::gfx::renderer {
 
 TransferQueueRef::TransferQueueRef(
-    const vk::raii::Queue&         queue_ref,
-    const vulkan::QueueFamilyIndex queue_family_index
+    const vulkan::QueueFamilyIndex queue_family_index,
+    const vk::raii::Queue&         queue_ref
 )
-    : m_queue_ref{ queue_ref },
-      m_family_index{ queue_family_index }
+    : m_family_index{ queue_family_index },
+      m_queue_ref{ queue_ref }
 {
 }
 

@@ -50,6 +50,8 @@ using ErasedStruct = util::BasicAny<util::DefaultAnyTraits<
 export template <util::naked_c RootStruct_T>
 class StructureChain {
 public:
+    using NextPtr = decltype(RootStruct_T::pNext);
+
     StructureChain() = default;
     StructureChain(const StructureChain&);
     StructureChain(StructureChain&&) noexcept;
@@ -128,11 +130,12 @@ struct ErasedStructExtraVTable {
     template <typename Struct_T>
     struct Operations;
 
-    using AddressFunc     = auto(ErasedStruct&) -> void*;
-    using NextPointerFunc = auto(ErasedStruct&) -> void*&;
-    using EmptyFunc       = auto(const ErasedStruct&) -> bool;
-    using MatchesFunc     = auto(const ErasedStruct&, const vk::BaseInStructure&) -> bool;
-    using MergeFunc       = auto(ErasedStruct&, const vk::BaseInStructure&) -> void;
+    using AddressFunc          = auto(ErasedStruct&) -> void*;
+    using NextPointerFunc      = auto(ErasedStruct&) -> void*&;
+    using ConstNextPointerFunc = auto(ErasedStruct&) -> const void*&;
+    using EmptyFunc            = auto(const ErasedStruct&) -> bool;
+    using MatchesFunc = auto(const ErasedStruct&, const vk::BaseInStructure&) -> bool;
+    using MergeFunc   = auto(ErasedStruct&, const vk::BaseInStructure&) -> void;
     using MergeToVulkan11FeaturesFunc =
         auto(const ErasedStruct&, vk::PhysicalDeviceVulkan11Features&) -> void;
     using MergeToVulkan12FeaturesFunc =
@@ -145,7 +148,8 @@ struct ErasedStructExtraVTable {
     using RemoveFunc = auto(ErasedStruct&, const vk::BaseInStructure&) -> void;
 
     std::reference_wrapper<AddressFunc>             address_of;
-    std::reference_wrapper<NextPointerFunc>         next_pointer_of;
+    std::add_pointer_t<NextPointerFunc>             next_pointer_of;
+    std::add_pointer_t<ConstNextPointerFunc>        const_next_pointer_of;
     std::add_pointer_t<EmptyFunc>                   empty{};
     std::add_pointer_t<MatchesFunc>                 matches{};
     std::add_pointer_t<MergeFunc>                   merge{};
@@ -168,6 +172,14 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
 
     [[nodiscard]]
     constexpr static auto next_pointer_of(ErasedStruct& that) -> void*&
+        requires(!std::is_const_v<std::remove_pointer_t<decltype(Struct_T::pNext)>>)
+    {
+        return util::any_cast<Struct_T>(that).pNext;
+    }
+
+    [[nodiscard]]
+    constexpr static auto const_next_pointer_of(ErasedStruct& that) -> const void*&
+        requires(std::is_const_v<std::remove_pointer_t<decltype(Struct_T::pNext)>>)
     {
         return util::any_cast<Struct_T>(that).pNext;
     }
@@ -260,8 +272,31 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
     }
 
     constexpr static ErasedStructExtraVTable vtable{
-        .address_of      = address_of,
-        .next_pointer_of = next_pointer_of,
+        .address_of = address_of,
+        .next_pointer_of =
+            []
+        {
+            if constexpr (std::is_const_v<std::remove_pointer_t<decltype(Struct_T::pNext)>>)
+            {
+                return nullptr;
+            }
+            else
+            {
+                return next_pointer_of;
+            }
+        }(),
+        .const_next_pointer_of =
+            []
+        {
+            if constexpr (std::is_const_v<std::remove_pointer_t<decltype(Struct_T::pNext)>>)
+            {
+                return const_next_pointer_of;
+            }
+            else
+            {
+                return nullptr;
+            }
+        }(),
         .empty =
             []
         {
@@ -373,7 +408,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
     };
 };
 
-template <typename Any_T>
+template <typename ErasedStruct_T>
 class ErasedStructInterfaceMixin {
 public:
     explicit ErasedStructInterfaceMixin(
@@ -393,6 +428,12 @@ public:
     constexpr auto next_pointer(this ErasedStruct& self) -> void*&
     {
         return self.m_extra_vtable(self).next_pointer_of(self);
+    }
+
+    [[nodiscard]]
+    constexpr auto const_next_pointer(this ErasedStruct& self) -> const void*&
+    {
+        return self.m_extra_vtable(self).const_next_pointer_of(self);
     }
 
     [[nodiscard]]
@@ -822,11 +863,18 @@ constexpr auto StructureChain<RootStruct_T>::operator[](
 template <util::naked_c RootStruct_T>
 constexpr auto StructureChain<RootStruct_T>::connect() -> void
 {
-    std::reference_wrapper<void*> previous_pointer{ m_root_struct.pNext };
+    std::reference_wrapper<NextPtr> previous_pointer{ m_root_struct.pNext };
     for (internal::ErasedStruct& next_struct : m_chain | std::views::values)
     {
         previous_pointer.get() = next_struct.address();
-        previous_pointer       = next_struct.next_pointer();
+        if constexpr (std::is_const_v<std::remove_pointer_t<NextPtr>>)
+        {
+            previous_pointer = next_struct.const_next_pointer();
+        }
+        else
+        {
+            previous_pointer = next_struct.next_pointer();
+        }
     }
     previous_pointer.get() = nullptr;
 }

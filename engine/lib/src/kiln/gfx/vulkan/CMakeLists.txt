@@ -25,11 +25,11 @@ target_sources(${PROJECT_NAME} PUBLIC
         default_debug_messenger_callback.ixx
         Device.ixx
         DeviceBuilder.ixx
+        ErasedQueueRequest.ixx
         PhysicalDeviceCapabilities.ixx
         PhysicalDeviceFilter.ixx
         Profile.ixx
-        queue_properties.ixx
         QueueFamilyIndex.ixx
-        QueueGroup.ixx
-        QueuePack.ixx
+        QueueFamilyInfo.ixx
+        QueueRequestInterface.ixx
 )

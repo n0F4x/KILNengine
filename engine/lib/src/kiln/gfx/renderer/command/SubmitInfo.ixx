@@ -1,4 +1,4 @@
-export module kiln.gfx.renderer.device.SubmitInfo;
+export module kiln.gfx.renderer.command.SubmitInfo;
 
 import vulkan_hpp;
 

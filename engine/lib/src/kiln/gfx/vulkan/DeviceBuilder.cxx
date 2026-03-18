@@ -1,24 +1,78 @@
 module;
 
 #include <algorithm>
-#include <cassert>
-#include <functional>
+#include <memory_resource>
 #include <optional>
-#include <ranges>
+#include <utility>
 #include <vector>
+
+#include "kiln/util/lifetimebound.hpp"
 
 module kiln.gfx.vulkan.DeviceBuilder;
 
-import kiln.util.Lazy;
+import kiln.gfx.vulkan.ErasedQueueRequest;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.structure_chain.StructureChain;
-import kiln.gfx.vulkan.QueuePack;
+import kiln.gfx.vulkan.QueueFamilyInfo;
 
 namespace kiln::gfx::vulkan {
 
-DeviceBuilder::DeviceBuilder(PhysicalDeviceFilter&& physical_device_selector)
-    : m_physical_device_filter{ std::move(physical_device_selector) }
+DeviceBuilder::DeviceBuilder(const allocator_type& allocator)
+    : m_queue_requests{ allocator }
 {
+}
+
+DeviceBuilder::DeviceBuilder(const DeviceBuilder& other, const allocator_type& allocator)
+    : m_physical_device_filter{ other.m_physical_device_filter },
+      m_optional_capabilities{ other.m_optional_capabilities },
+      m_queue_requests{ other.m_queue_requests, allocator }
+{
+}
+
+DeviceBuilder::DeviceBuilder(DeviceBuilder&& other, const allocator_type& allocator)
+    : m_physical_device_filter{ std::move(other.m_physical_device_filter) },
+      m_optional_capabilities{ std::move(other.m_optional_capabilities) },
+      m_queue_requests{ std::move(other.m_queue_requests), allocator }
+{
+}
+
+DeviceBuilder::DeviceBuilder(PhysicalDeviceFilter&& physical_device_selector)
+    : DeviceBuilder{
+          std::allocator_arg,
+          std::pmr::get_default_resource(),
+          std::move(physical_device_selector),
+      }
+{
+}
+
+DeviceBuilder::DeviceBuilder(
+    std::allocator_arg_t,
+    const allocator_type&  allocator,
+    PhysicalDeviceFilter&& physical_device_selector
+)
+    : m_physical_device_filter{ std::move(physical_device_selector) },
+      m_queue_requests{ allocator }
+{
+}
+
+auto DeviceBuilder::get_allocator() const -> allocator_type
+{
+    return m_queue_requests.get_allocator();
+}
+
+auto create_device_queue_create_infos(
+    [[kiln_lifetimebound]] const std::vector<QueueFamilyInfo>& family_infos
+) -> std::vector<vk::DeviceQueueCreateInfo>
+{
+    std::vector<vk::DeviceQueueCreateInfo> result;
+    result.reserve(family_infos.size());
+
+    for (const QueueFamilyInfo& family_info : family_infos)
+    {
+        result.push_back(static_cast<const vk::DeviceQueueCreateInfo&>(family_info));
+    }
+
+    return result;
 }
 
 auto DeviceBuilder::build(const vk::raii::Instance& instance) const
@@ -40,9 +94,7 @@ auto DeviceBuilder::build(const vk::raii::Instance& instance) const
         return std::nullopt;
     }
 
-    vk::raii::PhysicalDevice physical_device{
-        *most_suitable(std::move(supported_devices))
-    };
+    vk::raii::PhysicalDevice physical_device{ std::move(supported_devices.front()) };
 
     PhysicalDeviceCapabilities capabilities{
         m_physical_device_filter.required_capabilities()
@@ -83,14 +135,11 @@ auto DeviceBuilder::build(const vk::raii::Instance& instance) const
     );
     capabilities.insert_features(supported_optional_features);
 
-    auto [per_family_queue_priorities, queue_create_infos, queue_group_create_info]{
-        create_device_queue_create_infos(physical_device)
+    // TODO: use std::inplace_vector
+    std::vector       queue_family_infos{ create_queue_family_infos(physical_device) };
+    const std::vector queue_create_infos{
+        create_device_queue_create_infos(queue_family_infos)
     };
-    for (auto&& [priorities, queue_create_info] :
-         std::views::zip(std::as_const(per_family_queue_priorities), queue_create_infos))
-    {
-        queue_create_info.pQueuePriorities = priorities.data();
-    }
 
     const vk::DeviceCreateInfo device_create_info{
         .pNext                 = &capabilities.features_chain().root(),
@@ -106,348 +155,23 @@ auto DeviceBuilder::build(const vk::raii::Instance& instance) const
         check_result(physical_device.createDevice(device_create_info))
     };
 
-    QueueGroup queue_group{ make_queue_group(device, std::move(queue_group_create_info)) };
-
     return Device{
         .physical_device{ std::move(physical_device) },
         .logical_device{ std::move(device) },
-        .queues{ std::move(queue_group) },
         .enabled_capabilities{ std::move(capabilities) },
+        .queue_families{ std::move(queue_family_infos) },
     };
 }
 
-auto DeviceBuilder::make_queue_group(
-    const vk::raii::Device&  device,
-    QueueGroup::CreateInfo&& create_info
-) -> QueueGroup
-{
-    for (auto& [family_index, queue_index, queue] : create_info.queue_packs)
-    {
-        const vk::DeviceQueueInfo2 queue_info{
-            .queueFamilyIndex = family_index.underlying(),
-            .queueIndex       = queue_index,
-        };
-        queue = check_result(device.getQueue2(queue_info));
-    }
-
-    return QueueGroup(std::move(create_info));
-}
-
-auto DeviceBuilder::most_suitable(
-    std::vector<vk::raii::PhysicalDevice>&& physical_devices
-) const -> std::optional<vk::raii::PhysicalDevice>
-{
-    if (physical_devices.empty())
-    {
-        return std::nullopt;
-    }
-
-    std::size_t highest_scoring_index{};
-    uint32_t    highest_score{};
-
-    // TODO: use std::views::enumerate
-    for (auto&& [index, physical_device] :
-         std::views::zip(std::views::iota(0uz), physical_devices))
-    {
-        uint32_t score{};
-
-        if (m_request_dedicated_sparse_binding_queue
-            && has_dedicated_sparse_binding_queue_family(physical_device))
-        {
-            score += 1 << 0;
-        }
-        if ((m_request_host_to_device_transfer_queue
-             || m_request_device_to_host_transfer_queue)
-            && has_dedicated_transfer_queue_family(physical_device))
-        {
-            score += 1 << 1;
-        }
-        if (m_request_compute_queue && has_dedicated_compute_queue_family(physical_device))
-        {
-            score += 1 << 2;
-        }
-
-        if (score > highest_score)
-        {
-            highest_scoring_index = index;
-            highest_score         = score;
-        }
-    }
-
-    return std::move(physical_devices[highest_scoring_index]);
-}
-
-auto DeviceBuilder::create_device_queue_create_infos(
+auto DeviceBuilder::create_queue_family_infos(
     const vk::raii::PhysicalDevice& physical_device
-) const
-    -> std::tuple<
-        std::vector<std::vector<float>>,
-        std::vector<vk::DeviceQueueCreateInfo>,
-        QueueGroup::CreateInfo>
+) const -> std::vector<QueueFamilyInfo>
 {
-    std::tuple<
-        std::vector<std::vector<float>>,
-        std::vector<vk::DeviceQueueCreateInfo>,
-        QueueGroup::CreateInfo>
-                                     result{};
-    std::vector<std::vector<float>>& per_family_queue_priorities{
-        std::get<std::vector<std::vector<float>>>(result)
-    };
-    std::vector<vk::DeviceQueueCreateInfo>& device_queue_create_infos{
-        std::get<std::vector<vk::DeviceQueueCreateInfo>>(result)
-    };
-    QueueGroup::CreateInfo& queue_group_create_info{
-        std::get<QueueGroup::CreateInfo>(result)
-    };
+    std::vector<QueueFamilyInfo> result;
 
-    const std::vector<vk::QueueFamilyProperties2> queue_family_properties{
-        physical_device.getQueueFamilyProperties2()
-    };
-
-    const auto device_queue_create_info =                            //
-        [&per_family_queue_priorities, &device_queue_create_infos]   //
-        (
-            const QueueFamilyIndex family_index
-        ) -> std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&>   //
+    for (const ErasedQueueRequest& queue_request : m_queue_requests)
     {
-        const auto iter = std::ranges::find_if(
-            device_queue_create_infos,   //
-            [family_index](const vk::DeviceQueueCreateInfo& create_info) -> bool
-            {
-                return create_info.queueFamilyIndex == family_index.underlying();   //
-            }
-        );
-        if (iter != device_queue_create_infos.cend())
-        {
-            return std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&>{
-                *iter,
-                per_family_queue_priorities[static_cast<uint32_t>(
-                    std::distance(device_queue_create_infos.begin(), iter)
-                )]
-            };
-        }
-
-        std::pair<vk::DeviceQueueCreateInfo&, std::vector<float>&> x_result{
-            device_queue_create_infos.emplace_back(),
-            per_family_queue_priorities.emplace_back()
-        };
-        x_result.first.queueFamilyIndex = family_index.underlying();
-        return x_result;
-    };
-
-    const auto queue_count_can_be_incremented =
-        [&device_queue_create_info, &queue_family_properties]   //
-        [[nodiscard]]
-        (const QueueFamilyIndex family_index) -> bool           //
-    {
-        return device_queue_create_info(family_index).first.queueCount
-             < queue_family_properties[family_index.underlying()]
-                   .queueFamilyProperties.queueCount;
-    };
-
-    const auto try_setup_new_queue =   //
-        [&device_queue_create_info,
-         &queue_family_properties,
-         &queue_group_create_info]                          //
-        (const QueueFamilyIndex family_index,
-         const float            priority) -> std::optional<uint32_t>   //
-    {
-        const auto& [queue_create_info, queue_priorities]{
-            device_queue_create_info(family_index)
-        };
-
-        if (queue_create_info.queueCount
-            < queue_family_properties[family_index.underlying()]
-                  .queueFamilyProperties.queueCount)
-        {
-            queue_priorities.push_back(priority);
-            ++queue_create_info.queueCount;
-
-            queue_group_create_info.queue_packs.push_back(
-                QueuePack{
-                    .family_index = family_index,
-                    .queue_index  = queue_create_info.queueCount - 1,
-                    .queue        = nullptr,
-                }
-            );
-
-            return queue_group_create_info.queue_packs.size() - 1;
-        }
-
-        return std::nullopt;
-    };
-
-    const auto next_incrementable_family_index =   //
-        [&queue_family_properties, &queue_count_can_be_incremented](
-            const vk::QueueFlagBits flag
-        ) -> std::optional<QueueFamilyIndex>   //
-    {
-        for (const uint32_t family_index :
-             std::views::iota(0u, queue_family_properties.size()))
-        {
-            if (queue_family_properties[family_index].queueFamilyProperties.queueFlags
-                    & flag
-                && queue_count_can_be_incremented(QueueFamilyIndex{ family_index }))
-            {
-                return QueueFamilyIndex{ family_index };
-            }
-        }
-        return std::nullopt;
-    };
-
-    const std::optional<QueueFamilyIndex> graphics_queue_family{
-        m_request_graphics_queue.transform(
-            [&physical_device] -> QueueFamilyIndex
-            { return *first_graphics_queue_family_index(physical_device); }
-        )
-    };
-
-    if (m_request_graphics_queue)
-    {
-        queue_group_create_info.graphics_queue_pack_index =
-            *try_setup_new_queue(*graphics_queue_family, 0.5f);
-    }
-
-    const std::optional<QueueFamilyIndex> compute_queue_family{
-        m_request_compute_queue.transform(
-            [&physical_device,
-             &next_incrementable_family_index,
-             &graphics_queue_family] -> QueueFamilyIndex   //
-            {
-                return first_dedicated_compute_queue_family_index(physical_device)
-                    .or_else(
-                        std::bind_front(
-                            std::cref(next_incrementable_family_index),
-                            vk::QueueFlagBits::eCompute
-                        )
-                    )
-                    .value_or(
-                        util::Lazy{
-                            [&graphics_queue_family] -> QueueFamilyIndex
-                            { return *graphics_queue_family; }   //
-                        }
-                    );
-            }
-        )   //
-    };
-
-    if (m_request_compute_queue)
-    {
-        queue_group_create_info.compute_queue_pack_index =
-            try_setup_new_queue(*compute_queue_family, 0.5f)
-                .value_or(   //
-                    util::Lazy{
-                        [&queue_group_create_info] -> uint32_t
-                        { return *queue_group_create_info.graphics_queue_pack_index; }   //
-                    }
-                );
-    }
-
-    const auto next_transfer_family = [&graphics_queue_family,
-                                       &compute_queue_family,
-                                       &next_incrementable_family_index](
-                                          const vk::raii::PhysicalDevice& x_physical_device
-                                      ) -> QueueFamilyIndex   //
-    {
-        return first_dedicated_transfer_queue_family_index(x_physical_device)
-            .or_else(
-                std::bind_front(
-                    std::cref(next_incrementable_family_index),
-                    vk::QueueFlagBits::eTransfer
-                )
-            )
-            .value_or(
-                util::Lazy{
-                    [&graphics_queue_family,
-                     &compute_queue_family] -> QueueFamilyIndex   //
-                    {
-                        if (graphics_queue_family.has_value())
-                        {
-                            return *graphics_queue_family;
-                        }
-                        if (compute_queue_family.has_value())
-                        {
-                            return *compute_queue_family;
-                        }
-                        std::unreachable();
-                    }   //
-                }
-            );
-    };
-
-    const auto setup_new_transfer_queue =                        //
-        [&queue_group_create_info, &try_setup_new_queue, this]   //
-        (const QueueFamilyIndex family_index) -> uint32_t        //
-    {
-        return try_setup_new_queue(family_index, 0.2f)
-            .value_or(
-                util::Lazy{
-                    [&queue_group_create_info, this] -> uint32_t
-                    {
-                        if (m_request_graphics_queue)
-                        {
-                            return *queue_group_create_info.graphics_queue_pack_index;
-                        }
-                        if (m_request_compute_queue)
-                        {
-                            return *queue_group_create_info.compute_queue_pack_index;
-                        }
-                        std::unreachable();
-                    }   //
-                }
-            );
-    };
-
-    if (m_request_host_to_device_transfer_queue)
-    {
-        queue_group_create_info.host_to_device_transfer_queue_pack_index =
-            setup_new_transfer_queue(next_transfer_family(physical_device));
-    }
-
-    if (m_request_device_to_host_transfer_queue)
-    {
-        queue_group_create_info.device_to_host_transfer_queue_pack_index =
-            setup_new_transfer_queue(next_transfer_family(physical_device));
-    }
-
-    if (m_request_dedicated_sparse_binding_queue)
-    {
-        const std::optional<QueueFamilyIndex> dedicated_sparse_binding_family{
-            first_dedicated_transfer_queue_family_index(physical_device)
-        };
-
-        if (dedicated_sparse_binding_family.has_value())
-        {
-            queue_group_create_info.dedicated_sparse_binding_queue_pack_index =
-                try_setup_new_queue(*dedicated_sparse_binding_family, 0.7f);
-        }
-    }
-
-    for (const QueueRequirement& queue_requirement : m_extra_queue_requirements)
-    {
-        if (std::ranges::none_of(
-                queue_group_create_info.queue_packs,
-                [&queue_requirement,
-                 &physical_device,
-                 &queue_family_properties](const QueuePack& queue_pack) -> bool
-                {
-                    return queue_requirement(
-                        physical_device,
-                        queue_pack.family_index,
-                        queue_family_properties[queue_pack.family_index.underlying()]
-                    );
-                }
-            ))
-        {
-            [[maybe_unused]]
-            const bool success =
-                try_setup_new_queue(
-                    *first_matching_queue_family_index(physical_device, queue_requirement),
-                    0.5f
-                )
-                    .has_value();
-            assert(success);
-        }
+        queue_request.prepare_queue(result, physical_device);
     }
 
     return result;

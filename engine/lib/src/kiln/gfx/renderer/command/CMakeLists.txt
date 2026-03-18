@@ -1,6 +1,11 @@
 target_sources(${PROJECT_NAME} PRIVATE
         GraphicsCommandBuffer.cxx
+        GraphicsQueueRef.cxx
+        queue_requests.cxx
+        QueueProvider.cxx
+        QueueProviderPlugin.cxx
         TransferCommandBuffer.cxx
+        TransferQueueRef.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -13,6 +18,13 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandPoolFlags.ixx
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx
+        GraphicsQueueRef.ixx
+        queue_requests.ixx
+        QueueProvider.ixx
+        QueueProviderPlugin.ixx
+        QueueProviderPluginInjection.ixx
+        SubmitInfo.ixx
         TransferCommandBuffer.ixx
         TransferCommandPool.ixx
+        TransferQueueRef.ixx
 )

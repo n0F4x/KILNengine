@@ -10,12 +10,10 @@ namespace kiln::gfx::renderer {
 Device::Device(
     vk::raii::PhysicalDevice           physical_device,
     vk::raii::Device                   logical_device,
-    vulkan::QueueGroup                 queues,
     vulkan::PhysicalDeviceCapabilities capabilities
 )
     : m_physical_device{ std::move(physical_device) },
       m_logical_device{ std::move(logical_device) },
-      m_queues{ std::move(queues) },
       m_capabilities{ std::move(capabilities) }
 {
 }
@@ -23,22 +21,6 @@ Device::Device(
 auto Device::name() const -> std::string
 {
     return m_physical_device.getProperties2().properties.deviceName;
-}
-
-auto Device::graphics_queue() const -> GraphicsQueueRef
-{
-    return GraphicsQueueRef{
-        *m_queues.graphics_queue(),
-        *m_queues.graphics_queue_family(),
-    };
-}
-
-auto Device::host_to_device_transfer_queue() const -> TransferQueueRef
-{
-    return TransferQueueRef{
-        *m_queues.host_to_device_tranfer_queue(),
-        *m_queues.host_to_device_transfer_queue_family(),
-    };
 }
 
 auto Device::physical_device() const noexcept -> const vk::raii::PhysicalDevice&

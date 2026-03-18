@@ -27,16 +27,13 @@ auto create_window(
 }
 
 Demo::Demo(
-    const kiln::config::Config&        config,
-    const vk::raii::Instance&          vulkan_instance,
-    const kiln::wsi::Context&          wsi_context,
-    const kiln::gfx::renderer::Device& render_device
+    const kiln::config::Config&               config,
+    const vk::raii::Instance&                 vulkan_instance,
+    const kiln::wsi::Context&                 wsi_context,
+    const kiln::gfx::renderer::Device&        render_device,
+    const kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
-    : immediate_transfer_command_pool{
-          render_device,
-          render_device.host_to_device_transfer_queue().family_index()
-      },
-      window{ create_window(config, wsi_context) },
+    : window{ create_window(config, wsi_context) },
       surface{
           kiln::gfx::vulkan::check_result(window.create_vulkan_surface(vulkan_instance))
       },
@@ -62,7 +59,7 @@ Demo::Demo(
       },
       graphics_command_pool{
           render_device,
-          render_device.graphics_queue().family_index(),
+          render_queue_provider.graphics_queue()->family_index(),
           kiln::gfx::renderer::CommandPoolFlags::eResettable,
       },
       graphics_command_buffer{
@@ -99,30 +96,28 @@ auto Demo::render() -> void
 }
 
 auto DemoPlugin::operator()(
-    const kiln::config::Config&        config,
-    const vk::raii::Instance&          vulkan_instance,
-    const kiln::wsi::Context&          wsi_context,
-    const kiln::gfx::renderer::Device& render_device
+    const kiln::config::Config&               config,
+    const vk::raii::Instance&                 vulkan_instance,
+    const kiln::wsi::Context&                 wsi_context,
+    const kiln::gfx::renderer::Device&        render_device,
+    const kiln::gfx::renderer::QueueProvider& render_queue_provider
 ) -> Demo
 {
     return Demo{
-        config,
-        vulkan_instance,
-        wsi_context,
-        render_device,
+        config, vulkan_instance, wsi_context, render_device, render_queue_provider
     };
 }
 
 auto demo_plugin_injection(
-    kiln::gfx::vulkan::InstancePlugin& instance_plugin,
-    kiln::gfx::renderer::DevicePlugin& device_plugin,
+    kiln::gfx::vulkan::InstancePlugin&        instance_plugin,
+    kiln::gfx::renderer::DevicePlugin&        device_plugin,
+    kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin
 {
     instance_plugin->target_api_version(vk::ApiVersion13);
     device_plugin->require_minimum_version(vk::ApiVersion13);
-    device_plugin->request_graphics_queue();
-    device_plugin->request_host_to_device_transfer_queue();
+    queue_provider_plugin.require_graphics_queue();
     device_plugin->enable_features(
         vk::PhysicalDeviceSynchronization2Features{ .synchronization2 = vk::True }
     );

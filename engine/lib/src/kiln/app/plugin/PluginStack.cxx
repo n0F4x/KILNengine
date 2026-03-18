@@ -104,7 +104,8 @@ auto PluginStack::check_for_configuration_dependencies(
     const ErasedPlugin& erased_plugin
 ) const -> void
 {
-    for (const uint64_t configuration_dependency_hash :
+    for ([[maybe_unused]]
+         const uint64_t configuration_dependency_hash :
          erased_plugin.configuration_dependency_hash_set())
     {
         PRECOND(

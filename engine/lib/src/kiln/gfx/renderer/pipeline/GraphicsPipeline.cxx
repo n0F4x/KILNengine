@@ -1,5 +1,6 @@
 module;
 
+#include <cstdint>
 #include <span>
 
 #include "kiln/util/contract_macros.hpp"

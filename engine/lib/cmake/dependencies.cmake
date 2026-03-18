@@ -14,7 +14,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC spdlog::spdlog)
 
 # GLFW
 find_package(glfw3 CONFIG REQUIRED)
-target_compile_definitions(${PROJECT_NAME} PRIVATE
+target_compile_definitions(${PROJECT_NAME} PUBLIC
         GLFW_INCLUDE_VULKAN
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
