@@ -86,6 +86,9 @@ private:
     std::pmr::deque<ErasedPlugin> m_plugins;
 
 
+    auto check_for_configuration_dependencies() const -> void;
+    auto check_for_configuration_dependencies(const ErasedPlugin&) const -> void;
+
     auto check_for_cyclic_dependencies() const -> void;
     auto check_for_cyclic_dependencies(const ErasedPlugin&) const -> void;
     auto check_for_cyclic_dependency(

@@ -2,7 +2,6 @@ module;
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
 #include <deque>
 #include <format>
 #include <memory_resource>
@@ -50,6 +49,7 @@ auto PluginStack::build(
     std::pmr::memory_resource& transitive_memory_resource
 ) && -> void
 {
+    check_for_configuration_dependencies();
     check_for_cyclic_dependencies();
 
     fix_order(transitive_memory_resource);
@@ -92,6 +92,30 @@ auto PluginStack::PluginNameChainNode::format(
     out_string.append(std::format("{}", plugin_name));
 }
 
+auto PluginStack::check_for_configuration_dependencies() const -> void
+{
+    for (const ErasedPlugin& plugin : m_plugins)
+    {
+        check_for_configuration_dependencies(plugin);
+    }
+}
+
+auto PluginStack::check_for_configuration_dependencies(
+    const ErasedPlugin& erased_plugin
+) const -> void
+{
+    for (const uint64_t configuration_dependency_hash :
+         erased_plugin.configuration_dependency_hash_set())
+    {
+        PRECOND(
+            find(configuration_dependency_hash).has_value(),
+            std::format(
+                "Missing configuration dependency for plugin `{}`", erased_plugin.name()
+            )
+        );
+    }
+}
+
 auto PluginStack::check_for_cyclic_dependencies() const -> void
 {
     for (const ErasedPlugin& plugin : m_plugins)
@@ -109,18 +133,14 @@ auto PluginStack::check_for_cyclic_dependencies(const ErasedPlugin& erased_plugi
          const uint64_t configuration_dependency_hash :
          erased_plugin.configuration_dependency_hash_set())
     {
-        if (const util::OptionalRef configuration_plugin{
-                find(configuration_dependency_hash) };
-            configuration_plugin.has_value())
-        {
-            check_for_cyclic_dependency(
-                erased_plugin.hash(),
-                erased_plugin.name(),
-                configuration_plugin->name(),
-                configuration_dependency_hash,
-                plugin_name_chain_node
-            );
-        }
+        const ErasedPlugin& configuration_plugin{ at(configuration_dependency_hash) };
+        check_for_cyclic_dependency(
+            erased_plugin.hash(),
+            erased_plugin.name(),
+            configuration_plugin.name(),
+            configuration_dependency_hash,
+            plugin_name_chain_node
+        );
     }
 }
 

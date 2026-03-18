@@ -72,12 +72,8 @@ struct RendererPluginInjection {
     auto operator()(const kiln::util::OptionalRef<WindowPlugin> window_plugin) const
         -> RendererPlugin
     {
-        if (presentation_support_requested)
-        {
-            PRECOND(window_plugin.has_value());
-        }
-
-        if (window_plugin.has_value() && window_plugin->supports_graphics)
+        if (presentation_support_requested && window_plugin.has_value()
+            && window_plugin->supports_graphics)
         {
             window_plugin->graphics_support_requested = true;
             return RendererPlugin{ .headless = false };
