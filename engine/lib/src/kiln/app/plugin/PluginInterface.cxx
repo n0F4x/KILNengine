@@ -13,27 +13,29 @@ import kiln.util.contracts;
 
 namespace kiln::app {
 
-auto PluginInterface::configuration_dependency_hash_set() const noexcept
+auto configuration_dependency_hash_set(const PluginInterface& plugin) noexcept
     -> std::span<const uint64_t>
 {
-    return m_configuration_dependency_hash_set;
+    return plugin.m_configuration_dependency_hash_set;
 }
 
-auto PluginInterface::dependency_hash_set() const noexcept -> std::span<const uint64_t>
+auto dependency_hash_set(const PluginInterface& plugin) noexcept
+    -> std::span<const uint64_t>
 {
-    return m_dependency_hash_set;
+    return plugin.m_dependency_hash_set;
 }
 
-auto PluginInterface::set_resolved_dependency_hash_set(
+auto set_resolved_dependency_hash_set(
+    PluginInterface&                plugin,
     const std::span<const uint64_t> dependency_hash_set
 ) -> void
 {
     PRECOND(
-        m_dependency_hash_set.empty()
+        plugin.m_dependency_hash_set.empty()
         && "`set_resolved_dependency_hash_set` should get called before any configuration is registered"
     );
 
-    m_dependency_hash_set.append_range(dependency_hash_set);
+    plugin.m_dependency_hash_set.append_range(dependency_hash_set);
 }
 
 auto PluginInterface::insert_configuration_dependency_hash(const uint64_t dependency_hash)

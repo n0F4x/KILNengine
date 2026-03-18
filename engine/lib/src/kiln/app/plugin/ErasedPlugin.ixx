@@ -10,6 +10,7 @@ import kiln.app.App;
 import kiln.app.plugin.hash_plugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.plugin_c;
+import kiln.app.plugin.PluginInterface;
 import kiln.util.concepts.specialization_of;
 import kiln.util.containers.Any;
 import kiln.util.containers.OptionalRef;
@@ -102,14 +103,15 @@ struct ErasedPluginExtraVTable {
         static auto configuration_dependency_hash_set(const ErasedPlugin_T& erased_plugin)
             -> std::span<const uint64_t>
         {
-            return util::any_cast<Plugin_T>(erased_plugin)
-                .configuration_dependency_hash_set();
+            return app::configuration_dependency_hash_set(
+                util::any_cast<Plugin_T>(erased_plugin)
+            );
         }
 
         static auto dependency_hash_set(const ErasedPlugin_T& erased_plugin)
             -> std::span<const uint64_t>
         {
-            return util::any_cast<Plugin_T>(erased_plugin).dependency_hash_set();
+            return app::dependency_hash_set(util::any_cast<Plugin_T>(erased_plugin));
         }
 
         template <util::specialization_of_c<util::OptionalRef>
@@ -147,7 +149,7 @@ struct ErasedPluginExtraVTable {
         {
             Plugin_T&& plugin{ util::any_cast<Plugin_T>(std::move(erased_plugin)) };
 
-            plugin = std::move(plugin).configure(app);
+            plugin = app::configure(std::move(plugin), app);
 
             if constexpr (!meta_plugin_c<Plugin_T>)
             {
