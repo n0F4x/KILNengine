@@ -26,7 +26,7 @@ public:
     auto operator->(this Self_T& self)
         -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*;
 
-    auto build(const vk::raii::Instance& instance) const -> Device;
+    auto operator()(const vk::raii::Instance& instance) const -> Device;
 
 private:
     vulkan::DeviceBuilder m_device_builder;

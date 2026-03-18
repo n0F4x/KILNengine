@@ -15,7 +15,7 @@ public:
         return self.Plugin::m_context;
     }
 
-    auto build() const -> Context
+    auto operator()() const -> Context
     {
         return m_context;
     }

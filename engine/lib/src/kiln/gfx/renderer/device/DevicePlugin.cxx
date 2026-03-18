@@ -10,7 +10,7 @@ import kiln.util.Lazy;
 
 namespace kiln::gfx::renderer {
 
-auto DevicePlugin::build(const vk::raii::Instance& instance) const -> Device
+auto DevicePlugin::operator()(const vk::raii::Instance& instance) const -> Device
 {
     auto [physical_device, logical_device, queues, enabled_capabilities] =
         m_device_builder.build(instance).value_or(

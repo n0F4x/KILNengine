@@ -24,7 +24,8 @@ consteval auto hash_plugin() -> uint64_t
 {
     if constexpr (plugin_c<MaybeMetaPlugin_T>)
     {
-        return util::hash_u64<util::result_of_t<decltype(&MaybeMetaPlugin_T::build)>>();
+        return util::
+            hash_u64<util::result_of_t<decltype(&MaybeMetaPlugin_T::operator())>>();
     }
     else if (meta_plugin_c<MaybeMetaPlugin_T>)
     {

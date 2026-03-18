@@ -37,7 +37,7 @@ public:
     [[nodiscard]]
     auto operator->(this Self_T& self) -> util::const_like_t<InstanceBuilder, Self_T>*;
 
-    auto build() const -> vk::raii::Instance;
+    auto operator()() const -> vk::raii::Instance;
 
 private:
     InstanceBuilder m_instance_builder;
@@ -52,40 +52,6 @@ consteval auto InstancePlugin::minimum_version() noexcept -> uint32_t
     return InstanceBuilder::minimum_version();
 }
 
-namespace internal {
-
-[[nodiscard]]
-auto builder_create_info(const config::Config& config) noexcept
-    -> InstanceBuilder::CreateInfo
-{
-    return InstanceBuilder::CreateInfo{
-        .engine_name    = config.engine_name(),
-        .engine_version = vk::makeApiVersion(
-            uint32_t{ 0 },
-            config.engine_version().major,
-            config.engine_version().minor,
-            config.engine_version().patch
-        ),
-        .application_name    = config.app_name(),
-        .application_version = vk::makeApiVersion(
-            uint32_t{ 0 },
-            config.app_version().major,
-            config.app_version().minor,
-            config.app_version().patch
-        ),
-    };
-}
-
-}   // namespace internal
-
-InstancePlugin::InstancePlugin(
-    const config::Config&    config,
-    const vk::raii::Context& context
-)
-    : m_instance_builder{ internal::builder_create_info(config), context }
-{
-}
-
 template <typename Self_T>
 auto InstancePlugin::operator*(this Self_T&& self)
     -> util::forward_like_t<InstanceBuilder, Self_T>
@@ -98,11 +64,6 @@ auto InstancePlugin::operator->(this Self_T& self)
     -> util::const_like_t<InstanceBuilder, Self_T>*
 {
     return &self.m_instance_builder;
-}
-
-auto InstancePlugin::build() const -> vk::raii::Instance
-{
-    return m_instance_builder.build();
 }
 
 }   // namespace kiln::gfx::vulkan

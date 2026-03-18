@@ -56,7 +56,7 @@ auto PluginStack::build(
 
     for (ErasedPlugin& plugin : m_plugins)
     {
-        std::move(plugin).configure_and_build(app);
+        std::move(plugin).build(app);
     }
 }
 

@@ -11,7 +11,7 @@ namespace kiln::gfx::renderer {
 
 export class DebugMessengerPlugin : public app::PluginInterface {
 public:
-    static auto build(const vk::raii::Instance& instance) -> DebugMessenger;
+    static auto operator()(const vk::raii::Instance& instance) -> DebugMessenger;
 };
 
 }   // namespace kiln::gfx::renderer
@@ -20,7 +20,7 @@ module :private;
 
 namespace kiln::gfx::renderer {
 
-auto DebugMessengerPlugin::build(const vk::raii::Instance& instance) -> DebugMessenger
+auto DebugMessengerPlugin::operator()(const vk::raii::Instance& instance) -> DebugMessenger
 {
     constexpr static vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info{
         .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning

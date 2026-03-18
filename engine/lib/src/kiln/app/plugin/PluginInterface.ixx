@@ -29,7 +29,7 @@ struct IsContextVariableDependencyRef {
             std::is_lvalue_reference_v<T> && context_variable_c<std::remove_reference_t<T>>
             && !std::same_as<
                 std::remove_cvref_t<T>,
-                util::result_of_t<decltype(&Plugin_T::build)>>   //
+                util::result_of_t<decltype(&Plugin_T::operator())>>   //
         };
     };
 };

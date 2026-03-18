@@ -26,7 +26,7 @@ export struct Demo {
 };
 
 export struct DemoPlugin : kiln::app::PluginInterface {
-    static auto build(
+    static auto operator()(
         const kiln::config::Config&        config,
         const vk::raii::Instance&          vulkan_instance,
         const kiln::wsi::Context&          wsi_context,
