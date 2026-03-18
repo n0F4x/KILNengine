@@ -54,7 +54,7 @@ export constexpr auto print_precondition_message_and_break(
     };
 
 #ifdef KILN_TEST
-    throw precondition_violation;
+    throw auto{ precondition_violation };
 #endif
 
     precondition_violation.print();
