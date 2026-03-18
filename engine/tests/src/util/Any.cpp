@@ -270,7 +270,7 @@ TEST_CASE("util::Any")
             explicit Container(const allocator_type& allocator = {})
                 : BigObject{},
                   m_allocator{ allocator },
-                  m_data{ m_allocator.new_object<InnerObject>(), Deleter{ allocator } }
+                  m_data{ m_allocator.new_object<InnerObject>(), Deleter{ m_allocator } }
             {
             }
 
@@ -290,8 +290,7 @@ TEST_CASE("util::Any")
             allocator_type                        m_allocator;
             std::unique_ptr<InnerObject, Deleter> m_data{
                 nullptr,
-                Deleter{
-                    std::pmr::polymorphic_allocator{ std::pmr::get_default_resource() } }
+                Deleter{ m_allocator },
             };
         };
 
