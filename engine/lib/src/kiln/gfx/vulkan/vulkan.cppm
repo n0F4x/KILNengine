@@ -6,7 +6,8 @@ export import kiln.gfx.vulkan.result;
 export import kiln.gfx.vulkan.structure_chain;
 
 export import kiln.gfx.vulkan.context;
-export import kiln.gfx.vulkan.default_debug_messenger_callback;
+export import kiln.gfx.vulkan.DebugMessengerPlugin;
+export import kiln.gfx.vulkan.DebugMessengerPluginInjection;
 export import kiln.gfx.vulkan.Device;
 export import kiln.gfx.vulkan.DeviceBuilder;
 export import kiln.gfx.vulkan.ErasedQueueRequest;

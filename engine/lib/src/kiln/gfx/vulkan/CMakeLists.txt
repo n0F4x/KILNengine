@@ -4,7 +4,7 @@ add_subdirectory(result)
 add_subdirectory(structure_chain)
 
 target_sources(${PROJECT_NAME} PRIVATE
-        default_debug_messenger_callback.cxx
+        DebugMessengerPlugin.cxx
         DeviceBuilder.cxx
         global_definitions.cpp
         InstanceBuilder.cxx
@@ -19,13 +19,14 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         vulkan.cppm
         context.ixx
-        InstanceBuilder.ixx
-        InstancePlugin.ixx
-        InstancePluginInjection.ixx
-        default_debug_messenger_callback.ixx
+        DebugMessengerPlugin.ixx
+        DebugMessengerPluginInjection.ixx
         Device.ixx
         DeviceBuilder.ixx
         ErasedQueueRequest.ixx
+        InstanceBuilder.ixx
+        InstancePlugin.ixx
+        InstancePluginInjection.ixx
         PhysicalDeviceCapabilities.ixx
         PhysicalDeviceFilter.ixx
         Profile.ixx

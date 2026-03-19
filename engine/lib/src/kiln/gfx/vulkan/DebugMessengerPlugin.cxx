@@ -7,9 +7,12 @@ module;
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-module kiln.gfx.vulkan.default_debug_messenger_callback;
+#include <vulkan/vk_platform.h>
+
+module kiln.gfx.vulkan.DebugMessengerPlugin;
 
 import kiln.config.engine_name;
+import kiln.gfx.vulkan.result.check_result;
 
 namespace kiln::gfx::vulkan {
 
@@ -41,7 +44,7 @@ constexpr auto log_level_of(const vk::DebugUtilsMessageSeverityFlagBitsEXT sever
     }
 }
 
-auto default_debug_messenger_callback(
+VKAPI_ATTR auto VKAPI_CALL default_debug_messenger_callback(
     const vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
     const vk::DebugUtilsMessageTypeFlagsEXT,
     const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -95,6 +98,24 @@ auto default_debug_messenger_callback(
     logger->log(log_level_of(severity), message.str());
 
     return vk::False;
+}
+
+auto DebugMessengerPlugin::operator()(const vk::raii::Instance& instance)
+    -> vk::raii::DebugUtilsMessengerEXT
+{
+    constexpr static vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info{
+        .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+                         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
+        .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
+                     | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+                     | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+                     | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+        .pfnUserCallback = default_debug_messenger_callback,
+    };
+
+    return check_result(
+        instance.createDebugUtilsMessengerEXT(debug_messenger_create_info)
+    );
 }
 
 }   // namespace kiln::gfx::vulkan

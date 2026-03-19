@@ -11,6 +11,7 @@ auto main() -> int
         kiln::app::create()
             .insert_plugin(kiln::config::Plugin{ "Hello triangle!" })
             .inject_plugin(kiln::gfx::vulkan::InstancePluginInjection{})
+            .inject_plugin(kiln::gfx::vulkan::DebugMessengerPluginInjection{})
             .insert_plugin(kiln::wsi::Plugin{})
             .apply_bundle(kiln::gfx::renderer::Bundle{})
             .inject_plugin(demo_plugin_injection)

@@ -1,5 +1,4 @@
 add_subdirectory(command)
-add_subdirectory(debug_messenger)
 add_subdirectory(descriptor)
 add_subdirectory(device)
 add_subdirectory(memory)
