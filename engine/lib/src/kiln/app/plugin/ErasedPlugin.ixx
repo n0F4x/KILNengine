@@ -12,11 +12,7 @@ import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.plugin_c;
 import kiln.app.plugin.PluginInterface;
 import kiln.util.Any;
-import kiln.util.concepts.specialization_of;
-import kiln.util.OptionalRef;
 import kiln.util.reflection;
-import kiln.util.type_traits.arguments_of;
-import kiln.util.TypeList;
 
 namespace kiln::app {
 
@@ -114,47 +110,9 @@ struct ErasedPluginExtraVTable {
             return app::dependency_hash_set(util::any_cast<Plugin_T>(erased_plugin));
         }
 
-        template <util::specialization_of_c<util::OptionalRef>
-                      PotentiallyOptionalContextVariableRef_T>
-        static auto fetch_dependency(App& app) -> PotentiallyOptionalContextVariableRef_T
-        {
-            return app.context()
-                .find<std::remove_cvref_t<
-                    typename PotentiallyOptionalContextVariableRef_T::ValueType>>();
-        }
-
-        template <typename PotentiallyOptionalContextVariableRef_T>
-            requires(std::is_lvalue_reference_v<PotentiallyOptionalContextVariableRef_T>)
-        static auto fetch_dependency(App& app) -> PotentiallyOptionalContextVariableRef_T
-        {
-            return app.context()
-                .at<std::remove_cvref_t<PotentiallyOptionalContextVariableRef_T>>();
-        }
-
-        static auto invoke(Plugin_T&& plugin, App& app) -> void
-        {
-            [&plugin, &app]<typename... PotentiallyOptionalContextVariableRefs_T>(
-                util::TypeList<PotentiallyOptionalContextVariableRefs_T...>
-            ) -> void
-            {
-                app.context().insert(
-                    std::move(plugin)(
-                        fetch_dependency<PotentiallyOptionalContextVariableRefs_T>(app)...
-                    )
-                );
-            }(util::arguments_of_t<decltype(&Plugin_T::operator())>{});
-        }
-
         static auto build(ErasedPlugin_T&& erased_plugin, App& app) -> void
         {
-            Plugin_T&& plugin{ util::any_cast<Plugin_T>(std::move(erased_plugin)) };
-
-            plugin = app::configure(std::move(plugin), app);
-
-            if constexpr (!meta_plugin_c<Plugin_T>)
-            {
-                invoke(std::move(plugin), app);
-            }
+            app::build(util::any_cast<Plugin_T>(std::move(erased_plugin)), app);
         }
 
         constexpr static ErasedPluginExtraVTable vtable{
