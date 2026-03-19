@@ -129,7 +129,7 @@ auto PluginTree::build_plugins(
     std::pmr::memory_resource& transitive_memory_resource
 ) && -> void
 {
-    PluginStack plugin_stack;
+    PluginStack plugin_stack{ &transitive_memory_resource };
 
     for (internal::ErasedPluginInjection& plugin_injection : m_plugin_injections)
     {
