@@ -11,6 +11,7 @@ namespace kiln::gfx::renderer {
 
 export class SwapchainPluginInjection {
 public:
+    [[nodiscard]]
     static auto operator()(
         vulkan::InstancePlugin& instance_plugin,
         const wsi::Plugin&      wsi_plugin,

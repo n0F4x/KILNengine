@@ -9,6 +9,7 @@ namespace kiln::gfx::vulkan {
 
 export class DebugMessengerPluginInjection {
 public:
+    [[nodiscard]]
     static auto operator()(InstancePlugin& instance_plugin) -> DebugMessengerPlugin
     {
         instance_plugin->enable_layer("VK_LAYER_KHRONOS_validation");

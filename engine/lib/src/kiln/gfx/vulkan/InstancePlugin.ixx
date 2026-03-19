@@ -37,6 +37,7 @@ public:
     [[nodiscard]]
     auto operator->(this Self_T& self) -> util::const_like_t<InstanceBuilder, Self_T>*;
 
+    [[nodiscard]]
     auto operator()() const -> vk::raii::Instance;
 
 private:

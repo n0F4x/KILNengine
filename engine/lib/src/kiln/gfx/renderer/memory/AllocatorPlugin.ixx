@@ -10,6 +10,7 @@ namespace kiln::gfx::renderer {
 
 export class AllocatorPlugin : public app::PluginInterface {
 public:
+    [[nodiscard]]
     static auto operator()(const vk::raii::Instance& instance, const Device& device)
         -> Allocator
     {

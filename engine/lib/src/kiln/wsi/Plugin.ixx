@@ -15,6 +15,7 @@ public:
         return self.Plugin::m_context;
     }
 
+    [[nodiscard]]
     auto operator()() const -> Context
     {
         return m_context;

@@ -8,6 +8,7 @@ namespace kiln::gfx::vulkan {
 
 export class DebugMessengerPlugin : public app::PluginInterface {
 public:
+    [[nodiscard]]
     static auto operator()(const vk::raii::Instance& instance)
         -> vk::raii::DebugUtilsMessengerEXT;
 };

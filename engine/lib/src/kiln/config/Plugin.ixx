@@ -27,6 +27,7 @@ public:
         return m_config;
     }
 
+    [[nodiscard]]
     constexpr auto operator()() && noexcept -> Config
     {
         return std::move(m_config);
