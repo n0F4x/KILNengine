@@ -9,7 +9,7 @@ namespace kiln::gfx::renderer {
 export enum struct CommandBufferUsageFlags : uint8_t
 {
     eNone       = 0,
-    eResettable = 1,
+    eReusable = 1,
 };
 
 }   // namespace kiln::gfx::renderer

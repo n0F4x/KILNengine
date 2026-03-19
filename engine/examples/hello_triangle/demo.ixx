@@ -1,19 +1,15 @@
+module;
+
+#include <vector>
+
 export module demo;
 
 import vulkan_hpp;
 
 import kiln;
 
-export struct Demo {
-    kiln::wsi::Window                          window;
-    vk::raii::SurfaceKHR                       surface;
-    kiln::gfx::renderer::Swapchain             swapchain;
-    vk::raii::PipelineLayout                   pipeline_layout;
-    kiln::gfx::renderer::ShaderModule          shader_module;
-    kiln::gfx::renderer::GraphicsPipeline      pipeline;
-    kiln::gfx::renderer::GraphicsCommandPool   graphics_command_pool;
-    kiln::gfx::renderer::GraphicsCommandBuffer graphics_command_buffer;
-
+export class Demo {
+public:
     Demo(
         const kiln::config::Config&               config,
         const vk::raii::Instance&                 vulkan_instance,
@@ -22,7 +18,22 @@ export struct Demo {
         const kiln::gfx::renderer::QueueProvider& render_queue_provider
     );
 
+    [[nodiscard]]
+    auto window() noexcept -> kiln::wsi::Window&;
+
     auto render() -> void;
+
+private:
+    kiln::wsi::Window                                       m_window;
+    vk::raii::SurfaceKHR                                    m_surface;
+    kiln::gfx::renderer::Swapchain                          m_swapchain;
+    vk::raii::PipelineLayout                                m_pipeline_layout;
+    kiln::gfx::renderer::ShaderModule                       m_shader_module;
+    kiln::gfx::renderer::GraphicsPipeline                   m_pipeline;
+    uint8_t                                                 m_number_of_frames{ 2 };
+    uint8_t                                                 m_current_frame_index{};
+    std::vector<kiln::gfx::renderer::GraphicsCommandPool>   m_graphics_command_pools;
+    std::vector<kiln::gfx::renderer::GraphicsCommandBuffer> m_graphics_command_buffers;
 };
 
 export struct DemoPlugin : kiln::app::PluginInterface {

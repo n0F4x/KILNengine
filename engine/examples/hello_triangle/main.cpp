@@ -29,13 +29,13 @@ auto run(kiln::app::App& app) -> void
     const kiln::wsi::Context& wsi_context{ app.context().at<kiln::wsi::Context>() };
     Demo&                     demo{ app.context().at<Demo>() };
 
-    while (!demo.window.should_close())
+    while (!demo.window().should_close())
     {
         kiln::wsi::poll_events(wsi_context);
 
-        if (demo.window.key_pressed(kiln::wsi::Key::eEscape))
+        if (demo.window().key_pressed(kiln::wsi::Key::eEscape))
         {
-            demo.window.request_close();
+            demo.window().request_close();
         }
 
         demo.render();

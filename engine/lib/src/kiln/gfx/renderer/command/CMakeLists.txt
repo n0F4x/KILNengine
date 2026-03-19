@@ -1,4 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
+        CommandPoolBase.cxx
         GraphicsCommandBuffer.cxx
         GraphicsQueueRef.cxx
         queue_requests.cxx

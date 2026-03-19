@@ -28,7 +28,7 @@ auto TransferCommandBuffer::get() const noexcept -> const vk::raii::CommandBuffe
 auto TransferCommandBuffer::begin() -> void
 {
     vk::CommandBufferUsageFlags flags;
-    if (!(m_usage_flags & CommandBufferUsageFlags::eResettable))
+    if (!(m_usage_flags & CommandBufferUsageFlags::eReusable))
     {
         flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
     }

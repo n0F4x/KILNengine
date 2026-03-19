@@ -27,7 +27,7 @@ public:
 
     auto allocate_primary(
         util::EnumMask<CommandBufferUsageFlags> usage_flags = CommandBufferUsageFlags::eNone
-    ) -> GraphicsCommandBuffer;
+    ) [[kiln_lifetimebound]] -> GraphicsCommandBuffer;
 };
 
 }   // namespace kiln::gfx::renderer
