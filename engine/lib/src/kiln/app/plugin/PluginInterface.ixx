@@ -10,8 +10,10 @@ export module kiln.app.plugin.PluginInterface;
 import kiln.app.App;
 import kiln.app.context.context_variable_c;
 import kiln.util.concepts.naked;
+import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.containers.MoveOnlyFunction;
+import kiln.util.containers.OptionalRef;
 import kiln.util.reflection;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.result_of;
@@ -61,7 +63,7 @@ export auto set_resolved_dependency_hash_set(
 ) -> void;
 
 export template <util::naked_c Plugin_T>
-auto configure(Plugin_T&&, App& app) -> Plugin_T&&;
+auto build(Plugin_T&&, App& app) -> void;
 
 export class PluginInterface {
 public:
@@ -81,7 +83,7 @@ private:
     ) -> void;
 
     template <util::naked_c Self_T>
-    friend auto configure(Self_T&&, App& app) -> Self_T&&;
+    friend auto build(Self_T&&, App& app) -> void;
 
 
     std::pmr::vector<uint64_t>      m_configuration_dependency_hash_set;
@@ -96,15 +98,53 @@ private:
 
 namespace kiln::app {
 
+namespace internal {
+
+template <
+    util::specialization_of_c<util::OptionalRef> PotentiallyOptionalContextVariableRef_T>
+auto fetch_dependency(App& app) -> PotentiallyOptionalContextVariableRef_T
+{
+    return app.context()
+        .find<std::remove_cvref_t<
+            typename PotentiallyOptionalContextVariableRef_T::ValueType>>();
+}
+
+template <typename PotentiallyOptionalContextVariableRef_T>
+    requires(std::is_lvalue_reference_v<PotentiallyOptionalContextVariableRef_T>)
+auto fetch_dependency(App& app) -> PotentiallyOptionalContextVariableRef_T
+{
+    return app.context().at<std::remove_cvref_t<PotentiallyOptionalContextVariableRef_T>>();
+}
+
+template <typename Plugin_T>
+auto invoke(Plugin_T&& plugin, App& app) -> void
+{
+    [&plugin, &app]<typename... PotentiallyOptionalContextVariableRefs_T>(
+        util::TypeList<PotentiallyOptionalContextVariableRefs_T...>
+    ) -> void
+    {
+        app.context().insert(
+            std::move(plugin)(
+                fetch_dependency<PotentiallyOptionalContextVariableRefs_T>(app)...
+            )
+        );
+    }(util::arguments_of_t<decltype(&Plugin_T::operator())>{});
+}
+
+}   // namespace internal
+
 template <util::naked_c Plugin_T>
-auto configure(Plugin_T&& plugin, App& app) -> Plugin_T&&
+auto build(Plugin_T&& plugin, App& app) -> void
 {
     for (Configuration& configurator : plugin.PluginInterface::m_configurators)
     {
         std::move(configurator)(plugin, app);
     }
 
-    return std::move(plugin);   // NOLINT(*-move-forwarding-reference)
+    if constexpr (requires { &Plugin_T::operator(); })
+    {
+        internal::invoke(std::move(plugin), app);
+    }
 }
 
 template <util::naked_c Self_T, configures_c<Self_T> Configuration_T>
