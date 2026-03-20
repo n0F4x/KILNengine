@@ -21,8 +21,8 @@ public:
         util::EnumMask<CommandBufferUsageFlags> usage_flags
     );
 
-    auto begin_rendering(const RenderPass& render_pass) -> void;
-    auto end_rendering() -> void;
+    auto begin_render_pass(const RenderPass& render_pass) -> void;
+    auto end_render_pass() -> void;
 
     auto bind_pipeline(const GraphicsPipeline& pipeline) -> void;
 

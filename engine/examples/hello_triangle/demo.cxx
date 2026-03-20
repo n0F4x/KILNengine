@@ -141,21 +141,19 @@ auto Demo::render() -> void
     const vk::Rect2D render_area{
         .extent = m_window.resolution(),
     };
-    const vk::RenderingAttachmentInfo color_attachment{
-        // .imageView   = *swapchain.current_image_view(),
-        .imageLayout = vk::ImageLayout::eAttachmentOptimal,
-        .loadOp      = vk::AttachmentLoadOp::eClear,
-        .storeOp     = vk::AttachmentStoreOp::eStore,
-        .clearValue{ .color{ std::array{ 0.f, 0.f, 0.2f, 1.f } } },
-    };
     const kiln::gfx::renderer::RenderPass render_pass{
-        render_area, std::span{ &color_attachment, 1 }
+        render_area,
+        std::array{
+                   kiln::gfx::renderer::ColorAttachment{}.set_clear_value(
+                std::array{ 0.f, 0.f, 0.2f, 1.f }
+            ),   //
+        }
     };
-    graphics_command_buffer.begin_rendering(render_pass);
+    graphics_command_buffer.begin_render_pass(render_pass);
 
     graphics_command_buffer.bind_pipeline(m_pipeline);
     graphics_command_buffer.draw(3);
-    graphics_command_buffer.end_rendering();
+    graphics_command_buffer.end_render_pass();
     graphics_command_buffer.end();
 
 

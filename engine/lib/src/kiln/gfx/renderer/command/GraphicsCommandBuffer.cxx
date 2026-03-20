@@ -15,7 +15,7 @@ GraphicsCommandBuffer::GraphicsCommandBuffer(
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::begin_rendering(const RenderPass& render_pass) -> void
+auto GraphicsCommandBuffer::begin_render_pass(const RenderPass& render_pass) -> void
 {
     get().beginRendering(render_pass.get());
 
@@ -37,7 +37,7 @@ auto GraphicsCommandBuffer::begin_rendering(const RenderPass& render_pass) -> vo
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::end_rendering() -> void
+auto GraphicsCommandBuffer::end_render_pass() -> void
 {
     get().endRendering();
 }
