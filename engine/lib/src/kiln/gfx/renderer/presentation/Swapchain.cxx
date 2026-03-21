@@ -9,7 +9,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module kiln.gfx.renderer.swapchain.Swapchain;
+module kiln.gfx.renderer.presentation.Swapchain;
 
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.result.Result;
@@ -18,22 +18,6 @@ import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
-
-[[nodiscard]]
-constexpr auto pick_surface_format(
-    const std::span<const vk::SurfaceFormatKHR> surface_formats
-) -> vk::SurfaceFormatKHR
-{
-    for (const vk::SurfaceFormatKHR& surface_format : surface_formats)
-    {
-        if (surface_format.format == vk::Format::eB8G8R8A8Srgb
-            && surface_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-        {
-            return surface_format;
-        }
-    }
-    return surface_formats.front();
-}
 
 constexpr auto pick_present_mode(
     const std::span<const vk::PresentModeKHR> present_modes,
@@ -89,7 +73,8 @@ auto create_swapchain(
     const vk::Extent2D&         framebuffer_size,
     const uint32_t              number_of_frames,
     const bool                  vsync,
-    const vk::SurfaceFormatKHR& surface_format
+    const vk::SurfaceFormatKHR& surface_format,
+    const Swapchain*            old_swapchain
 ) -> vk::raii::SwapchainKHR
 {
     // TODO: remove this PRECOND after
@@ -129,6 +114,8 @@ auto create_swapchain(
         .compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
         .presentMode      = present_mode,
         .clipped          = vk::True,
+        .oldSwapchain     = old_swapchain == nullptr ? vk::SwapchainKHR{}
+                                                     : old_swapchain->get(),
     };
 
     return vulkan::check_result(device.logical_device().createSwapchainKHR(create_info));
@@ -167,39 +154,34 @@ auto create_swapchain_image_views(
 }
 
 Swapchain::Swapchain(
-    const Device&               device,
     const vk::raii::SurfaceKHR& surface,
+    const vk::SurfaceFormatKHR& surface_format,
+    const Device&               device,
     const vk::Extent2D          framebuffer_size,
     const uint32_t              number_of_frames,
-    const bool                  enable_vsync
+    const bool                  enable_vsync,
+    const Swapchain*            old_swapchain
 )
-    : m_surface_format{
-          pick_surface_format(device.physical_device().getSurfaceFormatsKHR(surface))
-      },
-      m_swapchain{
+    : m_swapchain{
           create_swapchain(
               device,
               surface,
               framebuffer_size,
               number_of_frames,
               enable_vsync,
-              m_surface_format
+              surface_format,
+              old_swapchain
           )   //
       },
       m_swapchain_images{ m_swapchain.getImages() },
       m_swapchain_image_views{
           create_swapchain_image_views(
               device.logical_device(),
-              m_surface_format.format,
+              surface_format.format,
               m_swapchain_images
           )   //
       }
 {
-}
-
-auto Swapchain::surface_format() const noexcept -> const vk::SurfaceFormatKHR&
-{
-    return m_surface_format;
 }
 
 auto Swapchain::get() const noexcept -> const vk::raii::SwapchainKHR&

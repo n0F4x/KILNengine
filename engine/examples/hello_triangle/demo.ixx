@@ -24,14 +24,13 @@ public:
     auto render() -> void;
 
 private:
+    uint8_t                                                 m_number_of_frames{ 2 };
+    uint8_t                                                 m_current_frame_index{};
     kiln::wsi::Window                                       m_window;
-    vk::raii::SurfaceKHR                                    m_surface;
-    kiln::gfx::renderer::Swapchain                          m_swapchain;
+    kiln::gfx::renderer::RenderSurface                      m_surface;
     vk::raii::PipelineLayout                                m_pipeline_layout;
     kiln::gfx::renderer::ShaderModule                       m_shader_module;
     kiln::gfx::renderer::GraphicsPipeline                   m_pipeline;
-    uint8_t                                                 m_number_of_frames{ 2 };
-    uint8_t                                                 m_current_frame_index{};
     std::vector<kiln::gfx::renderer::GraphicsCommandPool>   m_graphics_command_pools;
     std::vector<kiln::gfx::renderer::GraphicsCommandBuffer> m_graphics_command_buffers;
 };

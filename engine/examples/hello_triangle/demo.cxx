@@ -89,9 +89,12 @@ Demo::Demo(
 )
     : m_window{ create_window(config, wsi_context) },
       m_surface{
-          kiln::gfx::vulkan::check_result(m_window.create_vulkan_surface(vulkan_instance))
+          kiln::gfx::vulkan::check_result(m_window.create_vulkan_surface(vulkan_instance)),
+          render_device,
+          m_number_of_frames,
+          true,
+          m_window.resolution(),
       },
-      m_swapchain{ render_device, m_surface, m_window.resolution(), 2, true },
       m_pipeline_layout{
           kiln::gfx::vulkan::check_result(
               render_device.logical_device().createPipelineLayout({})
@@ -109,7 +112,7 @@ Demo::Demo(
           m_pipeline_layout,
           m_shader_module,
           m_shader_module,
-          std::array{ m_swapchain.surface_format().format },
+          std::array{ m_surface.surface_format().format },
       },
       m_graphics_command_pools{
           create_graphics_command_pools(

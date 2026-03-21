@@ -1,10 +1,10 @@
-export module kiln.gfx.renderer.swapchain.SwapchainPluginFailedError;
+export module kiln.gfx.renderer.presentation.PresentationPluginFailedError;
 
 import kiln.app.plugin.PluginFailedError;
 
 namespace kiln::gfx::renderer {
 
-export class SwapchainPluginFailedError : public app::PluginFailedError {
+export class PresentationPluginFailedError : public app::PluginFailedError {
 public:
     using PluginFailedError::PluginFailedError;
 };

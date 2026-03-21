@@ -5,7 +5,7 @@ import kiln.gfx.renderer.command.QueueProviderPluginInjection;
 import kiln.gfx.renderer.device.DevicePluginInjection;
 import kiln.gfx.renderer.memory.AllocatorPluginInjection;
 import kiln.gfx.renderer.pipeline.PipelinePluginInjection;
-import kiln.gfx.renderer.swapchain.SwapchainPluginInjection;
+import kiln.gfx.renderer.presentation.PresentationPluginInjection;
 
 namespace kiln::gfx::renderer {
 
@@ -37,7 +37,7 @@ auto Bundle::operator()(app::Builder& builder) const -> void
     builder.inject_plugin(AllocatorPluginInjection{});
     if (!m_headless)
     {
-        builder.inject_meta_plugin(SwapchainPluginInjection{});
+        builder.inject_meta_plugin(PresentationPluginInjection{});
     }
     builder.inject_meta_plugin(PipelinePluginInjection{});
 }
