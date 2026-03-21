@@ -26,6 +26,8 @@ public:
 
     auto render() -> void;
 
+    auto shut_down() -> void;
+
 private:
     std::reference_wrapper<const kiln::gfx::renderer::Device> m_render_device_ref;
     kiln::gfx::renderer::GraphicsQueueRef                     m_graphics_queue;

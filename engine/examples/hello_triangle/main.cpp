@@ -57,4 +57,6 @@ auto run(kiln::app::App& app) -> void
         std::this_thread::sleep_for(1s / 60 - delta_time);
         last_time = now;
     }
+
+    demo.shut_down();
 }

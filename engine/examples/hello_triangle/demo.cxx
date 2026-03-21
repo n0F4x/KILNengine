@@ -265,6 +265,12 @@ auto Demo::render() -> void
     m_current_frame_index = (m_current_frame_index + 1) % m_number_of_frames;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Demo::shut_down() -> void
+{
+    m_render_device_ref.get().logical_device().waitIdle();
+}
+
 auto DemoPlugin::operator()(
     const kiln::config::Config&               config,
     const vk::raii::Instance&                 vulkan_instance,
