@@ -230,7 +230,7 @@ auto Demo::render() -> void
                    kiln::gfx::renderer::ColorAttachment{
                 m_surface.image_view_at(*swapchain_image_index),
             }
-                .set_clear_value(std::array{ 0.f, 0.f, 0.2f, 1.f }),   //
+                .set_clear_value(std::array{ 0.01f, 0.01f, 0.01f, 1.f }),   //
         }
     };
     graphics_command_buffer.begin_render_pass(render_pass);
