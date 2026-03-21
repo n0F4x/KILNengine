@@ -55,6 +55,11 @@ auto RenderSurface::extent() const noexcept -> std::optional<vk::Extent2D>
     return m_swapchain.transform(&Swapchain::extent);
 }
 
+auto RenderSurface::number_of_images() const noexcept -> uint32_t
+{
+    return m_swapchain.transform(&Swapchain::number_of_images).value_or(0);
+}
+
 auto RenderSurface::image_view_at(const uint32_t index) const noexcept
     -> const vk::raii::ImageView&
 {
@@ -66,11 +71,6 @@ auto RenderSurface::resize(const vk::Extent2D size) -> void
     if (extent() == size)
     {
         return;
-    }
-
-    if (m_swapchain.has_value())
-    {
-        m_swapchain.reset();
     }
 
     if (size.width != 0 && size.height != 0)
@@ -108,10 +108,9 @@ auto RenderSurface::acquire_image(
 }
 
 auto RenderSurface::present(
-    const QueueRefBase                             queue,
-    const uint32_t                                 image_index,
-    const std::span<const vk::Semaphore>           wait_semaphores,
-    const util::OptionalRef<const vk::raii::Fence> fence
+    const QueueRefBase                   queue,
+    const uint32_t                       image_index,
+    const std::span<const vk::Semaphore> wait_semaphores
 ) -> bool
 {
     if (!m_swapchain.has_value())
@@ -119,7 +118,7 @@ auto RenderSurface::present(
         return false;
     }
 
-    return m_swapchain->present(queue, image_index, wait_semaphores, fence);
+    return m_swapchain->present(queue, image_index, wait_semaphores);
 }
 
 }   // namespace kiln::gfx::renderer

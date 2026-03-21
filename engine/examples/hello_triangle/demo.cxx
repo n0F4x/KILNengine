@@ -6,6 +6,8 @@ module;
 #include <source_location>
 #include <span>
 
+#include <vulkan/vulkan.hpp>
+
 module demo;
 
 import kiln;
@@ -81,7 +83,7 @@ auto create_graphics_command_buffers(
 [[nodiscard]]
 auto create_per_frame_semaphores(
     const kiln::gfx::renderer::Device& device,
-    const uint8_t                      number_of_frames
+    const uint32_t                     number_of_frames
 ) -> std::vector<vk::raii::Semaphore>
 {
     std::vector<vk::raii::Semaphore> result;
@@ -170,11 +172,9 @@ Demo::Demo(
           create_per_frame_semaphores(render_device, m_number_of_frames)
       },
       m_render_finished_semaphores{
-          create_per_frame_semaphores(render_device, m_number_of_frames)
+          create_per_frame_semaphores(render_device, m_surface.number_of_images())
       },
-      m_present_finished_fences{
-          create_per_frame_fences(render_device, m_number_of_frames)
-      }
+      m_render_finished_fences{ create_per_frame_fences(render_device, m_number_of_frames) }
 {
 }
 
@@ -198,13 +198,13 @@ auto Demo::render() -> void
 {
     kiln::gfx::vulkan::check_result(
         m_render_device_ref.get().logical_device().waitForFences(
-            *m_present_finished_fences[m_current_frame_index],
+            *m_render_finished_fences[m_current_frame_index],
             vk::True,
             std::numeric_limits<uint64_t>::max()
         )
     );
     m_render_device_ref.get().logical_device().resetFences(
-        *m_present_finished_fences[m_current_frame_index]
+        *m_render_finished_fences[m_current_frame_index]
     );
 
     const std::optional<uint32_t> swapchain_image_index =
@@ -222,7 +222,7 @@ auto Demo::render() -> void
     graphics_command_buffer.begin();
 
     const vk::Rect2D render_area{
-        .extent = m_window.resolution(),
+        .extent = *m_surface.extent(),
     };
     const kiln::gfx::renderer::RenderPass render_pass{
         render_area,
@@ -244,7 +244,7 @@ auto Demo::render() -> void
         .semaphore = m_image_acquired_semaphores[m_current_frame_index],
     };
     const vk::SemaphoreSubmitInfo render_finished_semaphore_info{
-        .semaphore = m_render_finished_semaphores[m_current_frame_index],
+        .semaphore = m_render_finished_semaphores[*swapchain_image_index],
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
     };
     m_graphics_queue.submit(
@@ -252,14 +252,14 @@ auto Demo::render() -> void
         kiln::gfx::renderer::SubmitInfo{
             .wait_semaphores   = std::span{     &render_wait_semaphore_info, 1 },
             .signal_semaphores = std::span{ &render_finished_semaphore_info, 1 },
+            .fence             = m_render_finished_fences[m_current_frame_index],
     }
     );
 
     m_surface.present(
         m_graphics_queue,
         *swapchain_image_index,
-        std::span{ &*m_render_finished_semaphores[m_current_frame_index], 1 },
-        m_present_finished_fences[m_current_frame_index]
+        std::span{ &*m_render_finished_semaphores[*swapchain_image_index], 1 }
     );
 
     m_current_frame_index = (m_current_frame_index + 1) % m_number_of_frames;

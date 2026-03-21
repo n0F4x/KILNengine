@@ -40,7 +40,7 @@ private:
     std::vector<kiln::gfx::renderer::GraphicsCommandBuffer>   m_graphics_command_buffers;
     std::vector<vk::raii::Semaphore>                          m_image_acquired_semaphores;
     std::vector<vk::raii::Semaphore> m_render_finished_semaphores;
-    std::vector<vk::raii::Fence>     m_present_finished_fences;
+    std::vector<vk::raii::Fence>     m_render_finished_fences;
 };
 
 export struct DemoPlugin : kiln::app::PluginInterface {

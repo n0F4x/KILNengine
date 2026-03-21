@@ -7,6 +7,8 @@ module;
 #include <variant>
 #include <vector>
 
+#include <vulkan/vulkan.h>
+
 #include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.presentation.Swapchain;
@@ -195,6 +197,11 @@ auto Swapchain::extent() const noexcept -> vk::Extent2D
     return m_extent;
 }
 
+auto Swapchain::number_of_images() const noexcept -> uint32_t
+{
+    return static_cast<uint32_t>(m_swapchain_images.size());
+}
+
 auto Swapchain::image_view_at(const uint32_t index) const noexcept
     -> const vk::raii::ImageView&
 {
@@ -211,37 +218,37 @@ auto Swapchain::acquire_next_image_index(
         return std::nullopt;
     }
 
-    const vulkan::Result<
-        uint32_t,
-        vk::Result::eSuccess,
-        vk::Result::eSuboptimalKHR,
-        vk::Result::eErrorOutOfDateKHR>
-        result = vulkan::
-            check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
-                m_swapchain.acquireNextImage(
-                    std::numeric_limits<uint64_t>::max(),
-                    signal_semaphore.transform(&vk::raii::Semaphore::operator*)
-                        .value_or(vk::Semaphore{}),
-                    fence.transform(&vk::raii::Fence::operator*).value_or(vk::Fence{})
-                )
-            );
+    uint32_t image_index;
+
+    const std::variant vulkan_result =
+        vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
+            // TODO: use C++ method when it handles out of date result
+            m_swapchain.getDispatcher()->vkAcquireNextImageKHR(
+                m_swapchain.getDevice(),
+                *m_swapchain,
+                std::numeric_limits<uint64_t>::max(),
+                signal_semaphore.transform(&vk::raii::Semaphore::operator*)
+                    .value_or(vk::Semaphore{}),
+                fence.transform(&vk::raii::Fence::operator*).value_or(vk::Fence{}),
+                &image_index
+            )
+        );
 
     if (std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(
-            result.result_code()
+            vulkan_result
         ))
     {
         m_out_dated = true;
         return std::nullopt;
     }
 
-    return result.value();
+    return image_index;
 }
 
 auto Swapchain::present(
-    const QueueRefBase                             queue,
-    const uint32_t                                 image_index,
-    const std::span<const vk::Semaphore>           wait_semaphores,
-    const util::OptionalRef<const vk::raii::Fence> fence
+    const QueueRefBase                   queue,
+    const uint32_t                       image_index,
+    const std::span<const vk::Semaphore> wait_semaphores
 ) -> bool
 {
     if (m_out_dated)
@@ -249,18 +256,7 @@ auto Swapchain::present(
         return false;
     }
 
-    // TODO: use vk::SwapchainPresentFenceInfoKHR
-    const vk::SwapchainPresentFenceInfoEXT present_fence_info{
-        .swapchainCount = 1,
-        .pFences        = fence
-                       .transform(
-                           [](const vk::raii::Fence& u_fence) -> const vk::Fence*
-                           { return &*u_fence; }
-                       )
-                       .value_or(nullptr),
-    };
     const vk::PresentInfoKHR present_info{
-        .pNext              = &present_fence_info,
         .waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size()),
         .pWaitSemaphores    = wait_semaphores.data(),
         .swapchainCount     = 1,
@@ -269,7 +265,10 @@ auto Swapchain::present(
     };
     const std::variant result =
         vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
-            queue.get().presentKHR(present_info)
+            // TODO: use C++ method when it handles out of date result
+            queue.get().getDispatcher()->vkQueuePresentKHR(
+                *queue.get(), reinterpret_cast<const VkPresentInfoKHR*>(&present_info)
+            )
         );
 
     if (std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(

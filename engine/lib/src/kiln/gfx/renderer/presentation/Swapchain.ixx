@@ -32,6 +32,8 @@ public:
     [[nodiscard]]
     auto extent() const noexcept -> vk::Extent2D;
     [[nodiscard]]
+    auto number_of_images() const noexcept -> uint32_t;
+    [[nodiscard]]
     auto image_view_at(uint32_t index) const noexcept -> const vk::raii::ImageView&;
 
     [[nodiscard]]
@@ -41,10 +43,9 @@ public:
     ) -> std::optional<uint32_t>;
 
     auto present(
-        QueueRefBase                             queue,
-        uint32_t                                 image_index,
-        std::span<const vk::Semaphore>           wait_semaphores,
-        util::OptionalRef<const vk::raii::Fence> fence
+        QueueRefBase                   queue,
+        uint32_t                       image_index,
+        std::span<const vk::Semaphore> wait_semaphores
     ) -> bool;
 
 private:
