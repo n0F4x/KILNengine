@@ -221,6 +221,27 @@ auto Demo::render() -> void
 
     graphics_command_buffer.begin();
 
+    const vk::ImageMemoryBarrier2 render_image_memory_barrier {
+        .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+        .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+        .oldLayout = vk::ImageLayout::eUndefined,
+        .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        .image = m_surface.image_at(*swapchain_image_index),
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+          }
+    };
+    const vk::DependencyInfo render_dependency_info{
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers    = &render_image_memory_barrier,
+    };
+    graphics_command_buffer.get().pipelineBarrier2(render_dependency_info);
+
     const vk::Rect2D render_area{
         .extent = *m_surface.extent(),
     };
@@ -238,6 +259,28 @@ auto Demo::render() -> void
     graphics_command_buffer.bind_pipeline(m_pipeline);
     graphics_command_buffer.draw(3);
     graphics_command_buffer.end_render_pass();
+
+    const vk::ImageMemoryBarrier2 present_image_memory_barrier {
+        .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+        .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+        .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+        .newLayout = vk::ImageLayout::ePresentSrcKHR,
+        .image = m_surface.image_at(*swapchain_image_index),
+        .subresourceRange = {
+            .aspectMask = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+          }
+    };
+    const vk::DependencyInfo present_dependency_info{
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers    = &present_image_memory_barrier,
+    };
+    graphics_command_buffer.get().pipelineBarrier2(present_dependency_info);
+
     graphics_command_buffer.end();
 
     const vk::SemaphoreSubmitInfo render_wait_semaphore_info{

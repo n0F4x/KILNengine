@@ -202,6 +202,11 @@ auto Swapchain::number_of_images() const noexcept -> uint32_t
     return static_cast<uint32_t>(m_swapchain_images.size());
 }
 
+auto Swapchain::image_at(const uint32_t index) const noexcept -> const vk::Image&
+{
+    return m_swapchain_images[index];
+}
+
 auto Swapchain::image_view_at(const uint32_t index) const noexcept
     -> const vk::raii::ImageView&
 {

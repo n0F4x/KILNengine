@@ -60,6 +60,11 @@ auto RenderSurface::number_of_images() const noexcept -> uint32_t
     return m_swapchain.transform(&Swapchain::number_of_images).value_or(0);
 }
 
+auto RenderSurface::image_at(const uint32_t index) const noexcept -> const vk::Image&
+{
+    return m_swapchain->image_at(index);
+}
+
 auto RenderSurface::image_view_at(const uint32_t index) const noexcept
     -> const vk::raii::ImageView&
 {

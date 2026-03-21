@@ -34,6 +34,8 @@ public:
     [[nodiscard]]
     auto number_of_images() const noexcept -> uint32_t;
     [[nodiscard]]
+    auto image_at(uint32_t index) const noexcept -> const vk::Image&;
+    [[nodiscard]]
     auto image_view_at(uint32_t index) const noexcept -> const vk::raii::ImageView&;
 
     [[nodiscard]]
