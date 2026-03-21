@@ -23,6 +23,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandPoolFlags.ixx
         CommandPlugin.ixx
         CommandPluginInjection.ixx
+        DependencyInfo.ixx
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx
         GraphicsQueueRef.ixx

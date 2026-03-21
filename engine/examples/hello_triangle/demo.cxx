@@ -230,17 +230,14 @@ auto Demo::render() -> void
         .image = m_surface.image_at(*swapchain_image_index),
         .subresourceRange = {
             .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
             .levelCount = 1,
-            .baseArrayLayer = 0,
             .layerCount = 1,
-          }
+          },
     };
-    const vk::DependencyInfo render_dependency_info{
-        .imageMemoryBarrierCount = 1,
-        .pImageMemoryBarriers    = &render_image_memory_barrier,
+    const kiln::gfx::renderer::DependencyInfo render_dependency_info{
+        .image_memory_barriers = std::span{ &render_image_memory_barrier, 1 },
     };
-    graphics_command_buffer.get().pipelineBarrier2(render_dependency_info);
+    graphics_command_buffer.barrier(render_dependency_info);
 
     const vk::Rect2D render_area{
         .extent = *m_surface.extent(),
@@ -273,13 +270,12 @@ auto Demo::render() -> void
             .levelCount = 1,
             .baseArrayLayer = 0,
             .layerCount = 1,
-          }
+          },
     };
-    const vk::DependencyInfo present_dependency_info{
-        .imageMemoryBarrierCount = 1,
-        .pImageMemoryBarriers    = &present_image_memory_barrier,
+    const kiln::gfx::renderer::DependencyInfo present_dependency_info{
+        .image_memory_barriers = std::span{ &present_image_memory_barrier, 1 },
     };
-    graphics_command_buffer.get().pipelineBarrier2(present_dependency_info);
+    graphics_command_buffer.barrier(present_dependency_info);
 
     graphics_command_buffer.end();
 

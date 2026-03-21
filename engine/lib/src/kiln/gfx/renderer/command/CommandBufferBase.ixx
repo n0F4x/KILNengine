@@ -3,6 +3,7 @@ export module kiln.gfx.renderer.command.CommandBufferBase;
 import vulkan_hpp;
 
 import kiln.gfx.renderer.command.CommandBufferUsageFlags;
+import kiln.gfx.renderer.command.DependencyInfo;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.util.EnumMask;
 
@@ -20,6 +21,8 @@ public:
 
     auto begin() -> void;
     auto end() -> void;
+
+    auto barrier(const DependencyInfo& dependency_info) -> void;
 
 private:
     vk::raii::CommandBuffer                 m_command_buffer;
