@@ -4,22 +4,15 @@ module;
 
 export module kiln.gfx.renderer.command.GraphicsCommandBuffer;
 
-import vulkan_hpp;
-
-import kiln.gfx.renderer.command.CommandBufferUsageFlags;
 import kiln.gfx.renderer.command.TransferCommandBuffer;
 import kiln.gfx.renderer.pipeline.GraphicsPipeline;
 import kiln.gfx.renderer.pipeline.RenderPass;
-import kiln.util.EnumMask;
 
 namespace kiln::gfx::renderer {
 
 export class GraphicsCommandBuffer : public TransferCommandBuffer {
 public:
-    GraphicsCommandBuffer(
-        vk::raii::CommandBuffer&&               command_buffer,
-        util::EnumMask<CommandBufferUsageFlags> usage_flags
-    );
+    using TransferCommandBuffer::TransferCommandBuffer;
 
     auto begin_render_pass(const RenderPass& render_pass) -> void;
     auto end_render_pass() -> void;

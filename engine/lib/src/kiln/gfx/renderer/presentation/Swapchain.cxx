@@ -162,7 +162,8 @@ Swapchain::Swapchain(
     const bool                  enable_vsync,
     const Swapchain*            old_swapchain
 )
-    : m_swapchain{
+    : m_extent{ framebuffer_size },
+      m_swapchain{
           create_swapchain(
               device,
               surface,
@@ -189,35 +190,27 @@ auto Swapchain::get() const noexcept -> const vk::raii::SwapchainKHR&
     return m_swapchain;
 }
 
-auto Swapchain::current_image_index() const noexcept -> std::optional<uint32_t>
+auto Swapchain::extent() const noexcept -> vk::Extent2D
 {
-    return m_current_image_index;
+    return m_extent;
 }
 
-auto Swapchain::current_image_view() const noexcept
-    -> util::OptionalRef<const vk::raii::ImageView>
+auto Swapchain::image_view_at(const uint32_t index) const noexcept
+    -> const vk::raii::ImageView&
 {
-    if (!m_current_image_index)
+    return m_swapchain_image_views[index];
+}
+
+auto Swapchain::acquire_next_image_index(
+    const util::OptionalRef<const vk::raii::Semaphore> signal_semaphore,
+    const util::OptionalRef<const vk::raii::Fence>     fence
+) -> std::optional<uint32_t>
+{
+    if (m_out_dated)
     {
         return std::nullopt;
     }
 
-    return m_swapchain_image_views[*m_current_image_index];
-}
-
-auto Swapchain::acquire_next_image_index(
-    const vk::raii::Semaphore&                     semaphore,
-    const util::OptionalRef<const vk::raii::Fence> fence
-) -> bool
-{
-    m_current_image_index.reset();
-
-    if (m_out_dated)
-    {
-        return false;
-    }
-
-    const vk::Fence null_fence{};
     const vulkan::Result<
         uint32_t,
         vk::Result::eSuccess,
@@ -227,8 +220,9 @@ auto Swapchain::acquire_next_image_index(
             check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
                 m_swapchain.acquireNextImage(
                     std::numeric_limits<uint64_t>::max(),
-                    semaphore,
-                    fence.transform(&vk::raii::Fence::operator*).value_or(null_fence)
+                    signal_semaphore.transform(&vk::raii::Semaphore::operator*)
+                        .value_or(vk::Semaphore{}),
+                    fence.transform(&vk::raii::Fence::operator*).value_or(vk::Fence{})
                 )
             );
 
@@ -237,10 +231,55 @@ auto Swapchain::acquire_next_image_index(
         ))
     {
         m_out_dated = true;
+        return std::nullopt;
+    }
+
+    return result.value();
+}
+
+auto Swapchain::present(
+    const QueueRefBase                             queue,
+    const uint32_t                                 image_index,
+    const std::span<const vk::Semaphore>           wait_semaphores,
+    const util::OptionalRef<const vk::raii::Fence> fence
+) -> bool
+{
+    if (m_out_dated)
+    {
         return false;
     }
 
-    m_current_image_index = result.value();
+    // TODO: use vk::SwapchainPresentFenceInfoKHR
+    const vk::SwapchainPresentFenceInfoEXT present_fence_info{
+        .swapchainCount = 1,
+        .pFences        = fence
+                       .transform(
+                           [](const vk::raii::Fence& u_fence) -> const vk::Fence*
+                           { return &*u_fence; }
+                       )
+                       .value_or(nullptr),
+    };
+    const vk::PresentInfoKHR present_info{
+        .pNext              = &present_fence_info,
+        .waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size()),
+        .pWaitSemaphores    = wait_semaphores.data(),
+        .swapchainCount     = 1,
+        .pSwapchains        = &*m_swapchain,
+        .pImageIndices      = &image_index,
+    };
+    const std::variant result =
+        vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
+            queue.get().presentKHR(present_info)
+        );
+
+    if (std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(
+            result
+        ))
+    {
+        m_out_dated = true;
+        return false;
+    }
+
     return true;
 }
 

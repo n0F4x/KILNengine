@@ -29,22 +29,22 @@ auto create_window(
 
 [[nodiscard]]
 auto create_graphics_command_pool(
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::QueueProvider& render_queue_provider
+    const kiln::gfx::renderer::Device&          render_device,
+    const kiln::gfx::renderer::GraphicsQueueRef graphics_queue
 ) -> kiln::gfx::renderer::GraphicsCommandPool
 {
     return kiln::gfx::renderer::GraphicsCommandPool{
         render_device,
-        render_queue_provider.graphics_queue()->family_index(),
+        graphics_queue.family_index(),
         kiln::gfx::renderer::CommandPoolFlags::eResettable,
     };
 }
 
 [[nodiscard]]
 auto create_graphics_command_pools(
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::QueueProvider& render_queue_provider,
-    const uint8_t                             number_of_frames
+    const kiln::gfx::renderer::Device&          render_device,
+    const kiln::gfx::renderer::GraphicsQueueRef graphics_queue,
+    const uint8_t                               number_of_frames
 ) -> std::vector<kiln::gfx::renderer::GraphicsCommandPool>
 {
     std::vector<kiln::gfx::renderer::GraphicsCommandPool> result;
@@ -52,9 +52,7 @@ auto create_graphics_command_pools(
 
     for (auto _ : std::views::repeat(std::ignore, number_of_frames))
     {
-        result.push_back(
-            create_graphics_command_pool(render_device, render_queue_provider)
-        );
+        result.push_back(create_graphics_command_pool(render_device, graphics_queue));
     }
 
     return result;
@@ -80,6 +78,48 @@ auto create_graphics_command_buffers(
     return result;
 }
 
+[[nodiscard]]
+auto create_per_frame_semaphores(
+    const kiln::gfx::renderer::Device& device,
+    const uint8_t                      number_of_frames
+) -> std::vector<vk::raii::Semaphore>
+{
+    std::vector<vk::raii::Semaphore> result;
+    result.reserve(number_of_frames);
+
+    for (const auto _ : std::views::repeat(std::ignore, number_of_frames))
+    {
+        result.push_back(
+            kiln::gfx::vulkan::check_result(
+                device.logical_device().createSemaphore(vk::SemaphoreCreateInfo{})
+            )
+        );
+    }
+
+    return result;
+}
+
+[[nodiscard]]
+auto create_per_frame_fences(
+    const kiln::gfx::renderer::Device& device,
+    const uint8_t                      number_of_frames
+) -> std::vector<vk::raii::Fence>
+{
+    std::vector<vk::raii::Fence> result;
+    result.reserve(number_of_frames);
+
+    for (const auto _ : std::views::repeat(std::ignore, number_of_frames))
+    {
+        result.push_back(
+            kiln::gfx::vulkan::check_result(device.logical_device().createFence(
+                vk::FenceCreateInfo{ .flags = vk::FenceCreateFlagBits::eSignaled }
+            ))
+        );
+    }
+
+    return result;
+}
+
 Demo::Demo(
     const kiln::config::Config&               config,
     const vk::raii::Instance&                 vulkan_instance,
@@ -87,7 +127,9 @@ Demo::Demo(
     const kiln::gfx::renderer::Device&        render_device,
     const kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
-    : m_window{ create_window(config, wsi_context) },
+    : m_render_device_ref{ render_device },
+      m_graphics_queue{ *render_queue_provider.graphics_queue() },
+      m_window{ create_window(config, wsi_context) },
       m_surface{
           kiln::gfx::vulkan::check_result(m_window.create_vulkan_surface(vulkan_instance)),
           render_device,
@@ -117,12 +159,21 @@ Demo::Demo(
       m_graphics_command_pools{
           create_graphics_command_pools(
               render_device,
-              render_queue_provider,
+              m_graphics_queue,
               m_number_of_frames
           )   //
       },
       m_graphics_command_buffers{
           create_graphics_command_buffers(m_graphics_command_pools)
+      },
+      m_image_acquired_semaphores{
+          create_per_frame_semaphores(render_device, m_number_of_frames)
+      },
+      m_render_finished_semaphores{
+          create_per_frame_semaphores(render_device, m_number_of_frames)
+      },
+      m_present_finished_fences{
+          create_per_frame_fences(render_device, m_number_of_frames)
       }
 {
 }
@@ -132,8 +183,37 @@ auto Demo::window() noexcept -> kiln::wsi::Window&
     return m_window;
 }
 
+auto Demo::on_window_resize(const kiln::wsi::Size2u new_resolution) -> void
+{
+    if (m_surface.extent() == new_resolution)
+    {
+        return;
+    }
+
+    m_render_device_ref.get().logical_device().waitIdle();
+    m_surface.resize(new_resolution);
+}
+
 auto Demo::render() -> void
 {
+    kiln::gfx::vulkan::check_result(
+        m_render_device_ref.get().logical_device().waitForFences(
+            *m_present_finished_fences[m_current_frame_index],
+            vk::True,
+            std::numeric_limits<uint64_t>::max()
+        )
+    );
+    m_render_device_ref.get().logical_device().resetFences(
+        *m_present_finished_fences[m_current_frame_index]
+    );
+
+    const std::optional<uint32_t> swapchain_image_index =
+        m_surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
+    if (!swapchain_image_index.has_value())
+    {
+        return;
+    }
+
     m_graphics_command_pools[m_current_frame_index].reset();
     kiln::gfx::renderer::GraphicsCommandBuffer& graphics_command_buffer{
         m_graphics_command_buffers[m_current_frame_index]
@@ -147,9 +227,10 @@ auto Demo::render() -> void
     const kiln::gfx::renderer::RenderPass render_pass{
         render_area,
         std::array{
-                   kiln::gfx::renderer::ColorAttachment{}.set_clear_value(
-                std::array{ 0.f, 0.f, 0.2f, 1.f }
-            ),   //
+                   kiln::gfx::renderer::ColorAttachment{
+                m_surface.image_view_at(*swapchain_image_index),
+            }
+                .set_clear_value(std::array{ 0.f, 0.f, 0.2f, 1.f }),   //
         }
     };
     graphics_command_buffer.begin_render_pass(render_pass);
@@ -159,6 +240,27 @@ auto Demo::render() -> void
     graphics_command_buffer.end_render_pass();
     graphics_command_buffer.end();
 
+    const vk::SemaphoreSubmitInfo render_wait_semaphore_info{
+        .semaphore = m_image_acquired_semaphores[m_current_frame_index],
+    };
+    const vk::SemaphoreSubmitInfo render_finished_semaphore_info{
+        .semaphore = m_render_finished_semaphores[m_current_frame_index],
+        .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+    };
+    m_graphics_queue.submit(
+        graphics_command_buffer,
+        kiln::gfx::renderer::SubmitInfo{
+            .wait_semaphores   = std::span{     &render_wait_semaphore_info, 1 },
+            .signal_semaphores = std::span{ &render_finished_semaphore_info, 1 },
+    }
+    );
+
+    m_surface.present(
+        m_graphics_queue,
+        *swapchain_image_index,
+        std::span{ &*m_render_finished_semaphores[m_current_frame_index], 1 },
+        m_present_finished_fences[m_current_frame_index]
+    );
 
     m_current_frame_index = (m_current_frame_index + 1) % m_number_of_frames;
 }
@@ -177,18 +279,11 @@ auto DemoPlugin::operator()(
 }
 
 auto demo_plugin_injection(
-    kiln::gfx::vulkan::InstancePlugin&        instance_plugin,
-    kiln::gfx::renderer::DevicePlugin&        device_plugin,
     kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin
 {
-    instance_plugin->target_api_version(vk::ApiVersion13);
-    device_plugin->require_minimum_version(vk::ApiVersion13);
     queue_provider_plugin.require_graphics_queue();
-    device_plugin->enable_features(
-        vk::PhysicalDeviceSynchronization2Features{ .synchronization2 = vk::True }
-    );
 
     return DemoPlugin{};
 }

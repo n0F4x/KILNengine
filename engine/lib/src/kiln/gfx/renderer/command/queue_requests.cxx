@@ -116,6 +116,7 @@ auto GraphicsQueueRequest::is_suitable(
     const vk::QueueFamilyProperties2& family_properties
 ) const -> bool
 {
+    // TODO: move presentation support logic elsewhere
     return family_properties.queueFamilyProperties.queueFlags
              & vk::QueueFlagBits::eGraphics
         && wsi::vulkan_queue_family_supports_presenting(

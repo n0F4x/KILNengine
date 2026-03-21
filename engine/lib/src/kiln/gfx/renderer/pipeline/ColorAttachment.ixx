@@ -1,6 +1,7 @@
 module;
 
 #include <array>
+#include <functional>
 #include <optional>
 #include <span>
 #include <utility>
@@ -9,10 +10,16 @@ module;
 
 export module kiln.gfx.renderer.pipeline.ColorAttachment;
 
+import vulkan_hpp;
+
 namespace kiln::gfx::renderer {
 
 export class ColorAttachment {
 public:
+    explicit ColorAttachment([[kiln_lifetimebound]] const vk::raii::ImageView& image_view);
+
+    [[nodiscard]]
+    auto image_view() const noexcept -> const vk::raii::ImageView&;
     [[nodiscard]]
     auto clear_value() const noexcept [[kiln_lifetimebound]]
     -> std::optional<std::span<const float, 4>>;
@@ -22,14 +29,25 @@ public:
         -> Self_T&&;
 
 private:
-    std::optional<std::array<float, 4>> m_clear_value;
+    std::reference_wrapper<const vk::raii::ImageView> m_image_view;
+    std::optional<std::array<float, 4>>               m_clear_value;
 };
 
 }   // namespace kiln::gfx::renderer
 
 namespace kiln::gfx::renderer {
 
-inline auto ColorAttachment::clear_value() const noexcept
+ColorAttachment::ColorAttachment(const vk::raii::ImageView& image_view)
+    : m_image_view{ image_view }
+{
+}
+
+auto ColorAttachment::image_view() const noexcept -> const vk::raii::ImageView&
+{
+    return m_image_view;
+}
+
+auto ColorAttachment::clear_value() const noexcept
     -> std::optional<std::span<const float, 4>>
 {
     return m_clear_value.transform(

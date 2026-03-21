@@ -2,12 +2,14 @@ module;
 
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <vector>
 
 export module kiln.gfx.renderer.presentation.Swapchain;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.command.QueueRefBase;
 import kiln.gfx.renderer.device.Device;
 import kiln.util.containers.OptionalRef;
 
@@ -28,22 +30,28 @@ public:
     [[nodiscard]]
     auto get() const noexcept -> const vk::raii::SwapchainKHR&;
     [[nodiscard]]
-    auto current_image_index() const noexcept -> std::optional<uint32_t>;
+    auto extent() const noexcept -> vk::Extent2D;
     [[nodiscard]]
-    auto current_image_view() const noexcept
-        -> util::OptionalRef<const vk::raii::ImageView>;
+    auto image_view_at(uint32_t index) const noexcept -> const vk::raii::ImageView&;
 
     [[nodiscard]]
     auto acquire_next_image_index(
-        const vk::raii::Semaphore&               semaphore,
+        util::OptionalRef<const vk::raii::Semaphore> signal_semaphore,
+        util::OptionalRef<const vk::raii::Fence>     fence
+    ) -> std::optional<uint32_t>;
+
+    auto present(
+        QueueRefBase                             queue,
+        uint32_t                                 image_index,
+        std::span<const vk::Semaphore>           wait_semaphores,
         util::OptionalRef<const vk::raii::Fence> fence
     ) -> bool;
 
 private:
+    vk::Extent2D                     m_extent;
     vk::raii::SwapchainKHR           m_swapchain;
     std::vector<vk::Image>           m_swapchain_images;
     std::vector<vk::raii::ImageView> m_swapchain_image_views;
-    std::optional<uint32_t>          m_current_image_index;
     bool                             m_out_dated{};
 };
 

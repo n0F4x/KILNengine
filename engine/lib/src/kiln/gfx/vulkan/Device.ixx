@@ -12,9 +12,9 @@ import kiln.gfx.vulkan.QueueFamilyInfo;
 namespace kiln::gfx::vulkan {
 
 export struct Device {
-    vk::raii::PhysicalDevice                               physical_device;
-    vk::raii::Device                                       logical_device;
-    PhysicalDeviceCapabilities                             enabled_capabilities;
+    vk::raii::PhysicalDevice     physical_device;
+    vk::raii::Device             logical_device;
+    PhysicalDeviceCapabilities   enabled_capabilities;
     // TODO: use std::inplace_vector
     std::vector<QueueFamilyInfo> queue_families;
 };

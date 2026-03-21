@@ -172,10 +172,12 @@ constexpr auto represents_internal_contract_violation(
 
 template <typename T>
 [[nodiscard]]
-constexpr auto represents_internal_contract_violation(const std::pair<vk::Result, T>& result)
-    -> bool
+constexpr auto represents_internal_contract_violation(
+    const std::pair<vk::Result, T>& result
+) -> bool
 {
-    return result_category(result.first) == ResultCategory::eInternalContractViolationError;
+    return result_category(result.first)
+        == ResultCategory::eInternalContractViolationError;
 }
 
 template <typename T>
@@ -206,8 +208,7 @@ constexpr auto represents_runtime_error(const vk::Result result_code) noexcept -
 
 template <typename T>
 [[nodiscard]]
-constexpr auto represents_runtime_error(const std::pair<vk::Result, T>& result)
-    -> bool
+constexpr auto represents_runtime_error(const std::pair<vk::Result, T>& result) -> bool
 {
     return result_category(result.first) == ResultCategory::eRuntimeError;
 }
@@ -236,8 +237,7 @@ constexpr auto represents_success(const vk::Result result_code) noexcept -> bool
 
 template <typename T>
 [[nodiscard]]
-constexpr auto represents_success(const std::pair<vk::Result, T>& result)
-    -> bool
+constexpr auto represents_success(const std::pair<vk::Result, T>& result) -> bool
 {
     return result_category(result.first) == ResultCategory::eSuccess;
 }

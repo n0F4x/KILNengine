@@ -1,18 +1,12 @@
 module;
 
-#include <utility>
+#include <cstdint>
 
 module kiln.gfx.renderer.command.GraphicsCommandBuffer;
 
-namespace kiln::gfx::renderer {
+import vulkan_hpp;
 
-GraphicsCommandBuffer::GraphicsCommandBuffer(
-    vk::raii::CommandBuffer&&                     command_buffer,
-    const util::EnumMask<CommandBufferUsageFlags> usage_flags
-)
-    : TransferCommandBuffer{ std::move(command_buffer), usage_flags }
-{
-}
+namespace kiln::gfx::renderer {
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto GraphicsCommandBuffer::begin_render_pass(const RenderPass& render_pass) -> void

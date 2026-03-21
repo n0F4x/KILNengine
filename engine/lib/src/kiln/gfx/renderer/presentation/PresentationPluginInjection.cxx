@@ -4,6 +4,8 @@ module;
 
 module kiln.gfx.renderer.presentation.PresentationPluginInjection;
 
+import vulkan_hpp;
+
 import kiln.gfx.renderer.presentation.PresentationPluginFailedError;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.util.Lazy;
@@ -41,6 +43,16 @@ auto PresentationPluginInjection::operator()(
     }
 
     device_plugin->enable_extension(vk::KHRSwapchainExtensionName);
+
+    // TODO: use promoted VK_KHR_surface_maintenance1 and VK_KHR_swapchain_maintenance1
+    instance_plugin->enable_extension(vk::KHRGetSurfaceCapabilities2ExtensionName);
+    instance_plugin->enable_extension(vk::EXTSurfaceMaintenance1ExtensionName);
+    device_plugin->enable_extension(vk::EXTSwapchainMaintenance1ExtensionName);
+    device_plugin->enable_features(
+        vk::PhysicalDeviceSwapchainMaintenance1FeaturesEXT{
+            .swapchainMaintenance1 = vk::True,
+        }
+    );
 
     return PresentationPlugin{};
 }

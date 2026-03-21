@@ -24,7 +24,7 @@ auto transform_color_attachments(const std::span<const ColorAttachment> color_at
     for (const ColorAttachment& attachment : color_attachments)
     {
         vk::RenderingAttachmentInfo transformed_attachment{
-            // .imageView   = attachment.image_view(),
+            .imageView   = attachment.image_view(),
             .imageLayout = vk::ImageLayout::eAttachmentOptimal,
         };
 
@@ -54,7 +54,7 @@ auto transform_depth_attachment(const DepthAttachment* depth_attachment)
     if (depth_attachment != nullptr)
     {
         result = vk::RenderingAttachmentInfo{
-            // .imageView   = attachment.image_view(),
+            .imageView   = depth_attachment->image_view(),
             .imageLayout = vk::ImageLayout::eAttachmentOptimal,
         };
 

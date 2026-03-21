@@ -1,5 +1,6 @@
 module;
 
+#include <optional>
 #include <span>
 #include <utility>
 
@@ -36,7 +37,7 @@ RenderSurface::RenderSurface(
     : m_surface{ std::move(surface) },
       m_device_ref{ device },
       m_surface_format{
-          pick_surface_format(device.physical_device().getSurfaceFormatsKHR(surface))
+          pick_surface_format(device.physical_device().getSurfaceFormatsKHR(m_surface))
       },
       m_number_of_frames_in_flight{ number_of_frames_in_flight },
       m_vsync{ vsync }
@@ -49,14 +50,27 @@ auto RenderSurface::surface_format() const noexcept -> const vk::SurfaceFormatKH
     return m_surface_format;
 }
 
+auto RenderSurface::extent() const noexcept -> std::optional<vk::Extent2D>
+{
+    return m_swapchain.transform(&Swapchain::extent);
+}
+
+auto RenderSurface::image_view_at(const uint32_t index) const noexcept
+    -> const vk::raii::ImageView&
+{
+    return m_swapchain->image_view_at(index);
+}
+
 auto RenderSurface::resize(const vk::Extent2D size) -> void
 {
+    if (extent() == size)
+    {
+        return;
+    }
+
     if (m_swapchain.has_value())
     {
-        m_device_ref.get().logical_device().waitIdle();
-
-        // TODO: destroy swapchain in case any image is currently acquired by the
-        //  application
+        m_swapchain.reset();
     }
 
     if (size.width != 0 && size.height != 0)
@@ -71,11 +85,41 @@ auto RenderSurface::resize(const vk::Extent2D size) -> void
             m_swapchain
                 .transform(
                     [](const Swapchain& old_swapchain) -> const Swapchain*
-                    { return &old_swapchain; }
+                    {
+                        return &old_swapchain;   //
+                    }
                 )
                 .value_or(nullptr),
         };
     }
+}
+
+auto RenderSurface::acquire_image(
+    const util::OptionalRef<const vk::raii::Semaphore> signal_semaphore,
+    const util::OptionalRef<const vk::raii::Fence>     fence
+) -> std::optional<uint32_t>
+{
+    return m_swapchain.and_then(
+        [signal_semaphore, fence](Swapchain& swapchain) -> std::optional<uint32_t>
+        {
+            return swapchain.acquire_next_image_index(signal_semaphore, fence);   //
+        }
+    );
+}
+
+auto RenderSurface::present(
+    const QueueRefBase                             queue,
+    const uint32_t                                 image_index,
+    const std::span<const vk::Semaphore>           wait_semaphores,
+    const util::OptionalRef<const vk::raii::Fence> fence
+) -> bool
+{
+    if (!m_swapchain.has_value())
+    {
+        return false;
+    }
+
+    return m_swapchain->present(queue, image_index, wait_semaphores, fence);
 }
 
 }   // namespace kiln::gfx::renderer

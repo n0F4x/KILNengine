@@ -1,5 +1,6 @@
 module;
 
+#include <functional>
 #include <vector>
 
 export module demo;
@@ -21,18 +22,25 @@ public:
     [[nodiscard]]
     auto window() noexcept -> kiln::wsi::Window&;
 
+    auto on_window_resize(kiln::wsi::Size2u new_resolution) -> void;
+
     auto render() -> void;
 
 private:
-    uint8_t                                                 m_number_of_frames{ 2 };
-    uint8_t                                                 m_current_frame_index{};
-    kiln::wsi::Window                                       m_window;
-    kiln::gfx::renderer::RenderSurface                      m_surface;
-    vk::raii::PipelineLayout                                m_pipeline_layout;
-    kiln::gfx::renderer::ShaderModule                       m_shader_module;
-    kiln::gfx::renderer::GraphicsPipeline                   m_pipeline;
-    std::vector<kiln::gfx::renderer::GraphicsCommandPool>   m_graphics_command_pools;
-    std::vector<kiln::gfx::renderer::GraphicsCommandBuffer> m_graphics_command_buffers;
+    std::reference_wrapper<const kiln::gfx::renderer::Device> m_render_device_ref;
+    kiln::gfx::renderer::GraphicsQueueRef                     m_graphics_queue;
+    uint8_t                                                   m_number_of_frames{ 2 };
+    uint8_t                                                   m_current_frame_index{};
+    kiln::wsi::Window                                         m_window;
+    kiln::gfx::renderer::RenderSurface                        m_surface;
+    vk::raii::PipelineLayout                                  m_pipeline_layout;
+    kiln::gfx::renderer::ShaderModule                         m_shader_module;
+    kiln::gfx::renderer::GraphicsPipeline                     m_pipeline;
+    std::vector<kiln::gfx::renderer::GraphicsCommandPool>     m_graphics_command_pools;
+    std::vector<kiln::gfx::renderer::GraphicsCommandBuffer>   m_graphics_command_buffers;
+    std::vector<vk::raii::Semaphore>                          m_image_acquired_semaphores;
+    std::vector<vk::raii::Semaphore> m_render_finished_semaphores;
+    std::vector<vk::raii::Fence>     m_present_finished_fences;
 };
 
 export struct DemoPlugin : kiln::app::PluginInterface {
@@ -47,8 +55,6 @@ export struct DemoPlugin : kiln::app::PluginInterface {
 
 export [[nodiscard]]
 auto demo_plugin_injection(
-    kiln::gfx::vulkan::InstancePlugin&        instance_plugin,
-    kiln::gfx::renderer::DevicePlugin&        device_plugin,
     kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
     const kiln::gfx::renderer::PipelinePlugin&
 ) -> DemoPlugin;
