@@ -20,6 +20,7 @@ module;
 export module kiln.app.plugin.PluginTree;
 
 import kiln.app.App;
+import kiln.app.context.Context;
 import kiln.app.memory.Arena;
 import kiln.app.plugin.ErasedPlugin;
 import kiln.app.plugin.hash_plugin;
@@ -419,7 +420,9 @@ auto PluginTree::check_required_build_dependencies() const -> void
         {
             std::ignore = this;
 
-            if constexpr (!internal::represents_optional_dependency_c<Dependency_T>)
+            if constexpr (!internal::represents_optional_dependency_c<Dependency_T>
+                          && !Context::
+                                 is_always_available<std::remove_cvref_t<Dependency_T>>())
             {
                 PRECOND(
                     contains(util::hash_u64<std::remove_cvref_t<Dependency_T>>()),
@@ -461,9 +464,8 @@ constexpr auto count_build_dependencies() -> uint32_t
 
 template <typename PluginInjection_T>
 [[nodiscard]]
-auto collect_direct_dependency_hashes(
-    std::pmr::memory_resource& transient_memory_resource
-) -> std::pmr::vector<uint64_t>
+auto collect_direct_dependency_hashes(std::pmr::memory_resource& transient_memory_resource)
+    -> std::pmr::vector<uint64_t>
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
 
