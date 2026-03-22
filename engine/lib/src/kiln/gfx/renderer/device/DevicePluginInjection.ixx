@@ -9,7 +9,7 @@ export struct DevicePluginInjection {
     [[nodiscard]]
     static auto operator()(const app::MemoryPlugin& memory_plugin) -> DevicePlugin
     {
-        return DevicePlugin{ &memory_plugin.builder_local_arena().pool_resource() };
+        return DevicePlugin{ memory_plugin.builder_local_arena().pool_allocator() };
     }
 };
 

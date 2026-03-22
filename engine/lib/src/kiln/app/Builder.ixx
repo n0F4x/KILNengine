@@ -59,7 +59,7 @@ private:
     Arena m_app_arena;
     Arena m_builder_arena;
 
-    PluginTree m_plugin_tree{ &m_builder_arena.pool_resource() };
+    PluginTree m_plugin_tree{ m_builder_arena.pool_allocator() };
 };
 
 }   // namespace kiln::app
