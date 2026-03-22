@@ -92,9 +92,12 @@ template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
 auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injection)
     -> Self_T&&
 {
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        self.Builder::m_builder_arena.make_transient_resource()
+    };
+
     self.Builder::m_plugin_tree.plug_in(
-        std::forward_like<PluginInjection_T>(plugin_injection),
-        self.Builder::m_builder_arena.transient_resource()
+        std::forward_like<PluginInjection_T>(plugin_injection), transient_memory_resource
     );
 
     return std::forward<Self_T>(self);
@@ -129,9 +132,13 @@ auto Builder::inject_meta_plugin(
     MetaPluginInjection_T&& meta_plugin_injection
 ) -> Self_T&&
 {
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        self.Builder::m_builder_arena.make_transient_resource()
+    };
+
     self.Builder::m_plugin_tree.plug_in_meta(
         std::forward_like<MetaPluginInjection_T>(meta_plugin_injection),
-        self.Builder::m_builder_arena.transient_resource()
+        transient_memory_resource
     );
 
     return std::forward<Self_T>(self);
@@ -154,8 +161,10 @@ inline auto Builder::build() && -> App
 {
     App result{ std::move(m_app_arena) };
 
-    std::move(m_plugin_tree)
-        .build_plugins(result, result.context().at<Arena>().transient_resource());
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        result.context().at<Arena>().make_transient_resource()
+    };
+    std::move(m_plugin_tree).build_plugins(result, transient_memory_resource);
 
     return result;
 }
