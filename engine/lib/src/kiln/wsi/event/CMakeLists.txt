@@ -3,6 +3,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         event.cppm
-        poll_events.ixx
         Key.ixx
+        poll_events.ixx
+        wait_events.ixx
 )

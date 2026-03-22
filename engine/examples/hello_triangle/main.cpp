@@ -1,7 +1,6 @@
 #include <atomic>
 #include <chrono>
 #include <print>
-#include <semaphore>
 #include <thread>
 
 import kiln;
@@ -62,14 +61,9 @@ auto run(kiln::app::App& app) -> void
         }   //
     };
 
-    auto last_time{ std::chrono::steady_clock::now() };
     while (!demo.window().should_close())
     {
-        const auto now{ std::chrono::steady_clock::now() };
-        const auto delta_time{ now - last_time };
-
-
-        kiln::wsi::poll_events(wsi_context);
+        kiln::wsi::wait_events(wsi_context);
 
         if (demo.window().key_pressed(kiln::wsi::Key::eEscape))
         {
@@ -79,10 +73,6 @@ auto run(kiln::app::App& app) -> void
         // TODO: only do this on a window resize event
         window_resolution = demo.window().resolution();
         window_resized    = true;
-
-
-        std::this_thread::sleep_for(1s / 60 - delta_time);
-        last_time = now;
     }
 
     running = false;
