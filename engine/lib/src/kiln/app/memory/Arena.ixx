@@ -5,6 +5,8 @@ module;
 
 export module kiln.app.memory.Arena;
 
+import kiln.util.Deleter;
+
 namespace kiln::app {
 
 export class Arena {
@@ -24,16 +26,21 @@ public:
     }
 
 private:
-    // TODO: use std::indirect
-    std::unique_ptr<std::pmr::memory_resource> m_monotonic_resource{
-        std::make_unique<std::pmr::monotonic_buffer_resource>()
+    // TODO: use std::polymorphic
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_monotonic_resource{
+        std::pmr::polymorphic_allocator{ std::pmr::get_default_resource() }
+            .new_object<std::pmr::monotonic_buffer_resource>(),
+        util::Deleter{ std::pmr::get_default_resource() }
     };
-    std::pmr::polymorphic_allocator<> m_monotonic_allocator{ m_monotonic_resource.get() };
-    std::unique_ptr<std::pmr::memory_resource> m_pool_resource{
-        std::make_unique<std::pmr::unsynchronized_pool_resource>(m_monotonic_resource.get())
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_pool_resource{
+        std::pmr::polymorphic_allocator{ m_monotonic_resource.get() }
+            .new_object<std::pmr::unsynchronized_pool_resource>(m_monotonic_resource.get()),
+        util::Deleter{ m_monotonic_resource.get() }
     };
-    std::unique_ptr<std::pmr::memory_resource> m_transitive_memory_pool{
-        std::make_unique<std::pmr::unsynchronized_pool_resource>(m_monotonic_resource.get())
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_transitive_memory_pool{
+        std::pmr::polymorphic_allocator{ m_monotonic_resource.get() }
+            .new_object<std::pmr::unsynchronized_pool_resource>(m_monotonic_resource.get()),
+        util::Deleter{ m_monotonic_resource.get() }
     };
 };
 

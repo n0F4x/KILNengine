@@ -1,11 +1,9 @@
 module;
 
 #include <algorithm>
-#include <concepts>
 #include <cstdint>
 #include <deque>
 #include <format>
-#include <functional>
 #include <memory_resource>
 #include <tuple>
 #include <type_traits>
