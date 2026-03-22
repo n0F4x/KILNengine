@@ -5,6 +5,7 @@ module;
 #include <ranges>
 #include <source_location>
 #include <span>
+#include <vector>
 
 module demo;
 
@@ -42,12 +43,13 @@ auto create_graphics_command_pool(
 
 [[nodiscard]]
 auto create_graphics_command_pools(
+    const std::pmr::polymorphic_allocator<>&    allocator,
     const kiln::gfx::renderer::Device&          render_device,
     const kiln::gfx::renderer::GraphicsQueueRef graphics_queue,
     const uint8_t                               number_of_frames
-) -> std::vector<kiln::gfx::renderer::GraphicsCommandPool>
+) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>
 {
-    std::vector<kiln::gfx::renderer::GraphicsCommandPool> result;
+    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool> result{ allocator };
     result.reserve(number_of_frames);
 
     for (auto _ : std::views::repeat(std::ignore, number_of_frames))
@@ -60,10 +62,11 @@ auto create_graphics_command_pools(
 
 [[nodiscard]]
 auto create_graphics_command_buffers(
-    std::vector<kiln::gfx::renderer::GraphicsCommandPool>& command_pools
-) -> std::vector<kiln::gfx::renderer::GraphicsCommandBuffer>
+    const std::pmr::polymorphic_allocator<>&                    allocator,
+    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>& command_pools
+) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandBuffer>
 {
-    std::vector<kiln::gfx::renderer::GraphicsCommandBuffer> result;
+    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandBuffer> result{ allocator };
     result.reserve(command_pools.size());
 
     for (const std::size_t index : std::views::iota(0uz, command_pools.size()))
@@ -80,11 +83,12 @@ auto create_graphics_command_buffers(
 
 [[nodiscard]]
 auto create_per_frame_semaphores(
-    const kiln::gfx::renderer::Device& device,
-    const uint32_t                     number_of_frames
-) -> std::vector<vk::raii::Semaphore>
+    const std::pmr::polymorphic_allocator<>& allocator,
+    const kiln::gfx::renderer::Device&       device,
+    const uint32_t                           number_of_frames
+) -> std::pmr::vector<vk::raii::Semaphore>
 {
-    std::vector<vk::raii::Semaphore> result;
+    std::pmr::vector<vk::raii::Semaphore> result{ allocator };
     result.reserve(number_of_frames);
 
     for (const auto _ : std::views::repeat(std::ignore, number_of_frames))
@@ -101,11 +105,12 @@ auto create_per_frame_semaphores(
 
 [[nodiscard]]
 auto create_per_frame_fences(
-    const kiln::gfx::renderer::Device& device,
-    const uint8_t                      number_of_frames
-) -> std::vector<vk::raii::Fence>
+    const std::pmr::polymorphic_allocator<>& allocator,
+    const kiln::gfx::renderer::Device&       device,
+    const uint8_t                            number_of_frames
+) -> std::pmr::vector<vk::raii::Fence>
 {
-    std::vector<vk::raii::Fence> result;
+    std::pmr::vector<vk::raii::Fence> result{ allocator };
     result.reserve(number_of_frames);
 
     for (const auto _ : std::views::repeat(std::ignore, number_of_frames))
@@ -120,7 +125,29 @@ auto create_per_frame_fences(
     return result;
 }
 
+Demo::Demo(Demo&& other, const allocator_type& allocator)
+    : m_render_device_ref{ std::move(other.m_render_device_ref) },
+      m_graphics_queue{ std::move(other.m_graphics_queue) },
+      m_number_of_frames{ std::move(other.m_number_of_frames) },
+      m_current_frame_index{ std::move(other.m_current_frame_index) },
+      m_window{ std::move(other.m_window) },
+      m_surface{ std::move(other.m_surface) },
+      m_pipeline_layout{ std::move(other.m_pipeline_layout) },
+      m_shader_module{ std::move(other.m_shader_module) },
+      m_pipeline{ std::move(other.m_pipeline) },
+      m_graphics_command_pools{ std::move(other.m_graphics_command_pools), allocator },
+      m_graphics_command_buffers{ std::move(other.m_graphics_command_buffers), allocator },
+      m_image_acquired_semaphores{ std::move(other.m_image_acquired_semaphores),
+                                   allocator },
+      m_render_finished_semaphores{ std::move(other.m_render_finished_semaphores),
+                                    allocator },
+      m_render_finished_fences{ std::move(other.m_render_finished_fences), allocator }
+{
+}
+
 Demo::Demo(
+    const std::allocator_arg_t,
+    const allocator_type&                     allocator,
     const kiln::config::Config&               config,
     const vk::raii::Instance&                 vulkan_instance,
     const kiln::wsi::Context&                 wsi_context,
@@ -158,22 +185,34 @@ Demo::Demo(
       },
       m_graphics_command_pools{
           create_graphics_command_pools(
+              allocator,
               render_device,
               m_graphics_queue,
               m_number_of_frames
           )   //
       },
       m_graphics_command_buffers{
-          create_graphics_command_buffers(m_graphics_command_pools)
+          create_graphics_command_buffers(allocator, m_graphics_command_pools)
       },
       m_image_acquired_semaphores{
-          create_per_frame_semaphores(render_device, m_number_of_frames)
+          create_per_frame_semaphores(allocator, render_device, m_number_of_frames)
       },
       m_render_finished_semaphores{
-          create_per_frame_semaphores(render_device, m_surface.number_of_images())
+          create_per_frame_semaphores(
+              allocator,
+              render_device,
+              m_surface.number_of_images()
+          )   //
       },
-      m_render_finished_fences{ create_per_frame_fences(render_device, m_number_of_frames) }
+      m_render_finished_fences{
+          create_per_frame_fences(allocator, render_device, m_number_of_frames)
+      }
 {
+}
+
+auto Demo::get_allocator() const -> allocator_type
+{
+    return m_graphics_command_pools.get_allocator();
 }
 
 auto Demo::window() noexcept -> kiln::wsi::Window&
@@ -310,6 +349,7 @@ auto Demo::shut_down() -> void
 }
 
 auto DemoPlugin::operator()(
+    kiln::app::Arena&                         arena,
     const kiln::config::Config&               config,
     const vk::raii::Instance&                 vulkan_instance,
     const kiln::wsi::Context&                 wsi_context,
@@ -318,7 +358,13 @@ auto DemoPlugin::operator()(
 ) -> Demo
 {
     return Demo{
-        config, vulkan_instance, wsi_context, render_device, render_queue_provider
+        std::allocator_arg,
+        arena.pool_allocator(),   //
+        config,
+        vulkan_instance,
+        wsi_context,
+        render_device,
+        render_queue_provider,
     };
 }
 
