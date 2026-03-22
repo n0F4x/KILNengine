@@ -126,17 +126,20 @@ PluginTree::PluginTree(const allocator_type& allocator)
 
 auto PluginTree::build_plugins(
     App&                       app,
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) && -> void
 {
-    PluginStack plugin_stack{ &transitive_memory_resource };
+    std::pmr::monotonic_buffer_resource plugin_stack_memory_resource{
+        &transient_memory_resource
+    };
+    PluginStack plugin_stack{ &plugin_stack_memory_resource };
 
     for (internal::ErasedPluginInjection& plugin_injection : m_plugin_injections)
     {
         std::move(plugin_injection)(plugin_stack);
     }
 
-    std::move(plugin_stack).build(app, transitive_memory_resource);
+    std::move(plugin_stack).build(app, transient_memory_resource);
 }
 
 auto PluginTree::PluginNameChainNode::format() const -> std::string
@@ -233,7 +236,7 @@ auto PluginTree::collect_all_resolved_dependency_hashes(
 
 auto PluginTree::reestablish_internal_ordering_of_plugins(
     const internal::ErasedPluginInjection& new_plugin,
-    std::pmr::memory_resource&             transitive_memory_resource
+    std::pmr::memory_resource&             transient_memory_resource
 ) -> void
 {
     /*
@@ -258,7 +261,7 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(
     }
 
     std::pmr::deque<uint64_t> all_resolved_dependency_hashes{
-        std::initializer_list{ new_plugin.hash() }, &transitive_memory_resource
+        std::initializer_list{ new_plugin.hash() }, &transient_memory_resource
     };
     collect_all_resolved_dependency_hashes(new_plugin, all_resolved_dependency_hashes);
     std::ranges::sort(all_resolved_dependency_hashes);
@@ -269,7 +272,7 @@ auto PluginTree::reestablish_internal_ordering_of_plugins(
      */
 
     std::pmr::vector<decltype(first_dependent_injection_iter)>
-        to_be_shifted_injection_iters{ &transitive_memory_resource };
+        to_be_shifted_injection_iters{ &transient_memory_resource };
     to_be_shifted_injection_iters.reserve(all_resolved_dependency_hashes.size());
     for (auto iter{ std::next(first_dependent_injection_iter) };   //
          iter != m_plugin_injections.cend();
