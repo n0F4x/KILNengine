@@ -1,5 +1,7 @@
+#include <atomic>
 #include <chrono>
 #include <print>
+#include <semaphore>
 #include <thread>
 
 import kiln;
@@ -32,6 +34,33 @@ auto run(kiln::app::App& app) -> void
 
     const kiln::wsi::Context& wsi_context{ app.context().at<kiln::wsi::Context>() };
     Demo&                     demo{ app.context().at<Demo>() };
+    std::atomic_bool          running{ true };
+    std::atomic_bool          window_resized{ false };
+    std::atomic               window_resolution{ demo.window().resolution() };
+
+    std::jthread render_thread{
+        [&] -> void
+        {
+            auto last_time{ std::chrono::steady_clock::now() };
+            while (running)
+            {
+                const auto now{ std::chrono::steady_clock::now() };
+                const auto delta_time{ now - last_time };
+
+
+                if (window_resized.exchange(false))
+                {
+                    demo.on_window_resize(window_resolution);
+                }
+
+                demo.render();
+
+
+                std::this_thread::sleep_for(1s / 60 - delta_time);
+                last_time = now;
+            }
+        }   //
+    };
 
     auto last_time{ std::chrono::steady_clock::now() };
     while (!demo.window().should_close())
@@ -48,15 +77,16 @@ auto run(kiln::app::App& app) -> void
         }
 
         // TODO: only do this on a window resize event
-        demo.on_window_resize(demo.window().resolution());
-
-
-        demo.render();
+        window_resolution = demo.window().resolution();
+        window_resized    = true;
 
 
         std::this_thread::sleep_for(1s / 60 - delta_time);
         last_time = now;
     }
+
+    running = false;
+    render_thread.join();
 
     demo.shut_down();
 }
