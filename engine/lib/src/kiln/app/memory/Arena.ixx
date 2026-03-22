@@ -20,9 +20,9 @@ public:
 
     [[nodiscard]]
     // ReSharper disable once CppMemberFunctionMayBeConst
-    auto transient_resource() -> std::pmr::memory_resource&
+    auto make_transient_resource() -> std::pmr::monotonic_buffer_resource
     {
-        return *m_pool_resource;
+        return std::pmr::monotonic_buffer_resource{ m_transient_memory_resource.get() };
     }
 
 private:
@@ -37,9 +37,9 @@ private:
             .new_object<std::pmr::unsynchronized_pool_resource>(m_monotonic_resource.get()),
         util::Deleter{ m_monotonic_resource.get() }
     };
-    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_transient_memory_pool{
+    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_transient_memory_resource{
         std::pmr::polymorphic_allocator{ m_monotonic_resource.get() }
-            .new_object<std::pmr::unsynchronized_pool_resource>(m_monotonic_resource.get()),
+            .new_object<std::pmr::monotonic_buffer_resource>(m_monotonic_resource.get()),
         util::Deleter{ m_monotonic_resource.get() }
     };
 };

@@ -129,10 +129,7 @@ auto PluginTree::build_plugins(
     std::pmr::memory_resource& transient_memory_resource
 ) && -> void
 {
-    std::pmr::monotonic_buffer_resource plugin_stack_memory_resource{
-        &transient_memory_resource
-    };
-    PluginStack plugin_stack{ &plugin_stack_memory_resource };
+    PluginStack plugin_stack{ &transient_memory_resource };
 
     for (internal::ErasedPluginInjection& plugin_injection : m_plugin_injections)
     {
