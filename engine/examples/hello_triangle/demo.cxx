@@ -6,8 +6,6 @@ module;
 #include <source_location>
 #include <span>
 
-#include <vulkan/vulkan.hpp>
-
 module demo;
 
 import kiln;
@@ -222,7 +220,7 @@ auto Demo::render() -> void
     graphics_command_buffer.begin();
 
     const vk::ImageMemoryBarrier2 render_image_memory_barrier {
-        .srcStageMask = vk::PipelineStageFlagBits2::eTopOfPipe,
+        .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
         .oldLayout = vk::ImageLayout::eUndefined,
@@ -260,7 +258,7 @@ auto Demo::render() -> void
     const vk::ImageMemoryBarrier2 present_image_memory_barrier {
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
         .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-        .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
         .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
         .newLayout = vk::ImageLayout::ePresentSrcKHR,
         .image = m_surface.image_at(*swapchain_image_index),
@@ -281,6 +279,7 @@ auto Demo::render() -> void
 
     const vk::SemaphoreSubmitInfo render_wait_semaphore_info{
         .semaphore = m_image_acquired_semaphores[m_current_frame_index],
+        .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
     };
     const vk::SemaphoreSubmitInfo render_finished_semaphore_info{
         .semaphore = m_render_finished_semaphores[*swapchain_image_index],
