@@ -13,9 +13,9 @@ export class Arena {
 public:
     [[nodiscard]]
     // ReSharper disable once CppMemberFunctionMayBeConst
-    auto pool_resource() -> std::pmr::memory_resource&
+    auto pool_allocator() -> std::pmr::polymorphic_allocator<>
     {
-        return *m_pool_resource;
+        return m_pool_resource.get();
     }
 
     [[nodiscard]]

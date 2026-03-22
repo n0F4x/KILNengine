@@ -25,9 +25,10 @@ private:
     Arena m_arena;
 
     std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_context_memory_resource{
-        std::pmr::polymorphic_allocator{ &m_arena.pool_resource() }
-            .new_object<std::pmr::monotonic_buffer_resource>(&m_arena.pool_resource()),
-        util::Deleter{ &m_arena.pool_resource() }
+        m_arena.pool_allocator().new_object<std::pmr::monotonic_buffer_resource>(
+            m_arena.pool_allocator().resource()
+        ),
+        util::Deleter{ m_arena.pool_allocator() }
     };
     Context m_context{ std::allocator_arg, m_context_memory_resource.get(), m_arena };
 };
