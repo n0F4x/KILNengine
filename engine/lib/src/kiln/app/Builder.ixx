@@ -16,7 +16,6 @@ import kiln.app.plugin.meta_plugin_injection_c;
 import kiln.app.plugin.plugin_c;
 import kiln.app.plugin.plugin_injection_c;
 import kiln.app.plugin.PluginTree;
-import kiln.util.Deleter;
 
 namespace kiln::app {
 
