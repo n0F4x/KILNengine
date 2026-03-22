@@ -126,20 +126,20 @@ public:
     template <decays_to_plugin_injection_c PluginInjection_T>
     auto plug_in(
         PluginInjection_T&&        plugin_injection,
-        std::pmr::memory_resource& transitive_memory_resource =
+        std::pmr::memory_resource& transient_memory_resource =
             *std::pmr::get_default_resource()
     ) -> std::decay_t<PluginInjection_T>&;
 
     template <decays_to_meta_plugin_injection_c PluginInjection_T>
     auto plug_in_meta(
         PluginInjection_T&&        plugin_injection,
-        std::pmr::memory_resource& transitive_memory_resource =
+        std::pmr::memory_resource& transient_memory_resource =
             *std::pmr::get_default_resource()
     ) -> std::decay_t<PluginInjection_T>&;
 
     auto build_plugins(
         App&                       app,
-        std::pmr::memory_resource& transitive_memory_resource =
+        std::pmr::memory_resource& transient_memory_resource =
             *std::pmr::get_default_resource()
     ) && -> void;
 
@@ -165,7 +165,7 @@ private:
     template <typename PluginInjection_T>
     auto plug_in_maybe_meta(
         PluginInjection_T&&        plugin_injection,
-        std::pmr::memory_resource& transitive_memory_resource
+        std::pmr::memory_resource& transient_memory_resource
     ) -> std::decay_t<PluginInjection_T>&;
 
     template <typename Plugin_T>
@@ -178,7 +178,7 @@ private:
     auto check_required_dependencies() const -> void;
     template <typename PluginInjection_T>
     auto check_for_cyclic_dependencies(
-        std::pmr::memory_resource& transitive_memory_resource
+        std::pmr::memory_resource& transient_memory_resource
     ) const -> void;
     auto check_for_new_cyclic_dependency(
         uint64_t                   new_plugin_hash,
@@ -212,7 +212,7 @@ private:
         -> internal::ErasedPluginInjection&;
     auto reestablish_internal_ordering_of_plugins(
         const internal::ErasedPluginInjection& new_plugin,
-        std::pmr::memory_resource&             transitive_memory_resource =
+        std::pmr::memory_resource&             transient_memory_resource =
             *std::pmr::get_default_resource()
     ) -> void;
     auto resolve(uint64_t new_plugin_hash) -> void;
@@ -325,29 +325,29 @@ auto PluginTree::contains(const uint64_t plugin_hash) const noexcept -> bool
 template <decays_to_plugin_injection_c PluginInjection_T>
 auto PluginTree::plug_in(
     PluginInjection_T&&        plugin_injection,
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) -> std::decay_t<PluginInjection_T>&
 {
     return plug_in_maybe_meta(
-        std::forward<PluginInjection_T>(plugin_injection), transitive_memory_resource
+        std::forward<PluginInjection_T>(plugin_injection), transient_memory_resource
     );
 }
 
 template <decays_to_meta_plugin_injection_c PluginInjection_T>
 auto PluginTree::plug_in_meta(
     PluginInjection_T&&        plugin_injection,
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) -> std::decay_t<PluginInjection_T>&
 {
     return plug_in_maybe_meta(
-        std::forward<PluginInjection_T>(plugin_injection), transitive_memory_resource
+        std::forward<PluginInjection_T>(plugin_injection), transient_memory_resource
     );
 }
 
 template <typename PluginInjection_T>
 auto PluginTree::plug_in_maybe_meta(
     PluginInjection_T&&        plugin_injection,
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) -> std::decay_t<PluginInjection_T>&
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
@@ -355,7 +355,7 @@ auto PluginTree::plug_in_maybe_meta(
 
     check_for_duplicated_plugin<Plugin>();
     check_required_dependencies<PluginInjection_T>();
-    check_for_cyclic_dependencies<PluginInjection_T>(transitive_memory_resource);
+    check_for_cyclic_dependencies<PluginInjection_T>(transient_memory_resource);
 
     internal::ErasedPluginInjection& erased_result{
         push_back(std::forward<PluginInjection_T>(plugin_injection))
@@ -367,7 +367,7 @@ auto PluginTree::plug_in_maybe_meta(
             .plugin_injection
     };
 
-    reestablish_internal_ordering_of_plugins(erased_result, transitive_memory_resource);
+    reestablish_internal_ordering_of_plugins(erased_result, transient_memory_resource);
     resolve(plugin_hash);
 
     return result;
@@ -461,12 +461,12 @@ constexpr auto count_build_dependencies() -> uint32_t
 template <typename PluginInjection_T>
 [[nodiscard]]
 auto collect_direct_dependency_hashes(
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) -> std::pmr::vector<uint64_t>
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
 
-    std::pmr::vector<uint64_t> result{ &transitive_memory_resource };
+    std::pmr::vector<uint64_t> result{ &transient_memory_resource };
     result.reserve(
         util::arguments_of_t<PluginInjection_T>::size()
         + count_build_dependencies<Plugin>()
@@ -503,7 +503,7 @@ auto collect_direct_dependency_hashes(
 
 template <typename PluginInjection_T>
 auto PluginTree::check_for_cyclic_dependencies(
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) const -> void
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
@@ -516,7 +516,7 @@ auto PluginTree::check_for_cyclic_dependencies(
     }
 
     const std::pmr::vector<uint64_t> dependency_hashes{
-        collect_direct_dependency_hashes<PluginInjection_T>(transitive_memory_resource)
+        collect_direct_dependency_hashes<PluginInjection_T>(transient_memory_resource)
     };
 
     const PluginNameChainNode plugin_name_chain_node{

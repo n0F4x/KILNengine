@@ -46,13 +46,13 @@ auto PluginStack::get_allocator() const -> allocator_type
 
 auto PluginStack::build(
     App&                       app,
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) && -> void
 {
     check_for_configuration_dependencies();
     check_for_cyclic_dependencies();
 
-    fix_order(transitive_memory_resource);
+    fix_order(transient_memory_resource);
 
     for (ErasedPlugin& plugin : m_plugins)
     {
@@ -190,17 +190,17 @@ auto PluginStack::check_for_cyclic_dependency(
     }
 }
 
-auto PluginStack::fix_order(std::pmr::memory_resource& transitive_memory_resource) -> void
+auto PluginStack::fix_order(std::pmr::memory_resource& transient_memory_resource) -> void
 {
     for (const uint64_t plugin_hash : m_plugin_hashes)
     {
-        fix_order(plugin_hash, transitive_memory_resource);
+        fix_order(plugin_hash, transient_memory_resource);
     }
 }
 
 auto PluginStack::fix_order(
     const uint64_t             plugin_hash,
-    std::pmr::memory_resource& transitive_memory_resource
+    std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
     /*
@@ -226,7 +226,7 @@ auto PluginStack::fix_order(
     const ErasedPlugin& plugin{ at(plugin_hash) };
 
     std::pmr::deque<uint64_t> all_dependency_plugin_hashes{
-        std::initializer_list{ plugin_hash }, &transitive_memory_resource
+        std::initializer_list{ plugin_hash }, &transient_memory_resource
     };
     collect_all_resolved_dependency_plugin_hashes(plugin, all_dependency_plugin_hashes);
     std::ranges::sort(all_dependency_plugin_hashes);
@@ -237,7 +237,7 @@ auto PluginStack::fix_order(
      */
 
     std::pmr::vector<decltype(first_dependent_plugin_iter)> to_be_shifted_plugin_iters{
-        &transitive_memory_resource
+        &transient_memory_resource
     };
     to_be_shifted_plugin_iters.reserve(all_dependency_plugin_hashes.size());
     for (auto iter{ std::next(first_dependent_plugin_iter) };   //

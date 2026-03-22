@@ -68,7 +68,7 @@ public:
         requires(storable<std::remove_cvref_t<Plugin_T>>());
 
 
-    auto build(App& app, std::pmr::memory_resource& transitive_memory_resource) && -> void;
+    auto build(App& app, std::pmr::memory_resource& transient_memory_resource) && -> void;
 
 private:
     struct PluginNameChainNode {
@@ -99,10 +99,10 @@ private:
         const PluginNameChainNode& visited_plugin_names
     ) const -> void;
 
-    auto fix_order(std::pmr::memory_resource& transitive_memory_resource) -> void;
+    auto fix_order(std::pmr::memory_resource& transient_memory_resource) -> void;
     auto fix_order(
         uint64_t                   plugin_hash,
-        std::pmr::memory_resource& transitive_memory_resource
+        std::pmr::memory_resource& transient_memory_resource
     ) -> void;
 
     auto collect_all_resolved_dependency_plugin_hashes(
