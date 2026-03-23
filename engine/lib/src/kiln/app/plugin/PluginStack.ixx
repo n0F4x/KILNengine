@@ -140,7 +140,9 @@ auto PluginStack::find(this Self_T& self) noexcept
             [](util::const_like_t<ErasedPlugin, Self_T>& erased_plugin)
                 -> util::const_like_t<Plugin_T, Self_T>&
             {
-                return util::any_cast<Plugin_T>(erased_plugin);   //
+                return static_cast<util::const_like_t<Plugin_T, Self_T>&>(
+                    *erased_plugin
+                );   //
             }
         );
 }
@@ -149,7 +151,9 @@ template <typename Plugin_T, typename Self_T>
 auto PluginStack::at(this Self_T& self) -> util::const_like_t<Plugin_T, Self_T>&
     requires(storable<Plugin_T>())
 {
-    return util::any_cast<Plugin_T>(self.PluginStack::at(hash_plugin<Plugin_T>()));
+    return static_cast<util::const_like_t<Plugin_T, Self_T>&>(
+        *self.PluginStack::at(hash_plugin<Plugin_T>())
+    );
 }
 
 template <typename Plugin_T>
@@ -160,8 +164,8 @@ auto PluginStack::insert(Plugin_T&& plugin) -> Plugin_T&
         m_plugin_hashes, hash_plugin<std::remove_cvref_t<Plugin_T>>()
     ));
 
-    auto& result = util::any_cast<std::remove_cvref_t<Plugin_T>>(
-        m_plugins.emplace_back(std::forward<Plugin_T>(plugin))
+    auto& result = static_cast<std::remove_cvref_t<Plugin_T>&>(
+        *m_plugins.emplace_back(std::forward<Plugin_T>(plugin))
     );
     const util::ScopeFail plugin_guard{
         [this] noexcept -> void { m_plugins.pop_back(); },

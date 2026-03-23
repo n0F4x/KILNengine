@@ -213,7 +213,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         );
     }
 
-    constexpr static auto merge_to_Vulkan11_features(
+    constexpr static auto merge_to_vulkan11_features(
         const ErasedStruct&                 that,
         vk::PhysicalDeviceVulkan11Features& vulkan11_features
     ) -> void
@@ -222,7 +222,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         merge_physical_device_features(vulkan11_features, util::any_cast<Struct_T>(that));
     }
 
-    constexpr static auto merge_to_Vulkan12_features(
+    constexpr static auto merge_to_vulkan12_features(
         const ErasedStruct&                 that,
         vk::PhysicalDeviceVulkan12Features& vulkan12_features
     ) -> void
@@ -231,7 +231,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         merge_physical_device_features(vulkan12_features, util::any_cast<Struct_T>(that));
     }
 
-    constexpr static auto merge_to_Vulkan13_features(
+    constexpr static auto merge_to_vulkan13_features(
         const ErasedStruct&                 that,
         vk::PhysicalDeviceVulkan13Features& vulkan13_features
     ) -> void
@@ -240,7 +240,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         merge_physical_device_features(vulkan13_features, util::any_cast<Struct_T>(that));
     }
 
-    constexpr static auto merge_to_Vulkan14_features(
+    constexpr static auto merge_to_vulkan14_features(
         const ErasedStruct&                 that,
         vk::PhysicalDeviceVulkan14Features& vulkan14_features
     ) -> void
@@ -272,9 +272,8 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
     }
 
     constexpr static ErasedStructExtraVTable vtable{
-        .address_of = address_of,
-        .next_pointer_of =
-            []
+        .address_of      = address_of,
+        .next_pointer_of = [] -> auto
         {
             if constexpr (std::is_const_v<std::remove_pointer_t<decltype(Struct_T::pNext)>>)
             {
@@ -285,8 +284,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
                 return next_pointer_of;
             }
         }(),
-        .const_next_pointer_of =
-            []
+        .const_next_pointer_of = [] -> auto
         {
             if constexpr (std::is_const_v<std::remove_pointer_t<decltype(Struct_T::pNext)>>)
             {
@@ -297,8 +295,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
                 return nullptr;
             }
         }(),
-        .empty =
-            []
+        .empty = [] -> auto
         {
             if constexpr (extends_struct_c<Struct_T, vk::PhysicalDeviceFeatures2>)
             {
@@ -309,8 +306,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
                 return nullptr;
             }
         }(),
-        .matches =
-            []
+        .matches = [] -> auto
         {
             if constexpr (extends_struct_c<Struct_T, vk::PhysicalDeviceFeatures2>)
             {
@@ -321,8 +317,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
                 return nullptr;
             }
         }(),
-        .merge =
-            []
+        .merge = [] -> auto
         {
             if constexpr (extends_struct_c<Struct_T, vk::PhysicalDeviceFeatures2>)
             {
@@ -333,56 +328,51 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
                 return nullptr;
             }
         }(),
-        .merge_to_Vulkan11_features =
-            []
+        .merge_to_Vulkan11_features = [] -> auto
         {
             if constexpr (core_feature_struct_from_vulkan11_c<Struct_T>)
             {
-                return merge_to_Vulkan11_features;
+                return merge_to_vulkan11_features;
             }
             else
             {
                 return nullptr;
             }
         }(),
-        .merge_to_Vulkan12_features =
-            []
+        .merge_to_Vulkan12_features = [] -> auto
         {
             if constexpr (core_feature_struct_from_vulkan12_c<Struct_T>)
             {
-                return merge_to_Vulkan12_features;
+                return merge_to_vulkan12_features;
             }
             else
             {
                 return nullptr;
             }
         }(),
-        .merge_to_Vulkan13_features =
-            []
+        .merge_to_Vulkan13_features = [] -> auto
         {
             if constexpr (core_feature_struct_from_vulkan13_c<Struct_T>)
             {
-                return merge_to_Vulkan13_features;
+                return merge_to_vulkan13_features;
             }
             else
             {
                 return nullptr;
             }
         }(),
-        .merge_to_Vulkan14_features =
-            []
+        .merge_to_Vulkan14_features = [] -> auto
         {
             if constexpr (core_feature_struct_from_vulkan14_c<Struct_T>)
             {
-                return merge_to_Vulkan14_features;
+                return merge_to_vulkan14_features;
             }
             else
             {
                 return nullptr;
             }
         }(),
-        .filter =
-            []
+        .filter = [] -> auto
         {
             if constexpr (extends_struct_c<Struct_T, vk::PhysicalDeviceFeatures2>)
             {
@@ -393,8 +383,7 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
                 return nullptr;
             }
         }(),
-        .erase =
-            []
+        .erase = [] -> auto
         {
             if constexpr (extends_struct_c<Struct_T, vk::PhysicalDeviceFeatures2>)
             {
@@ -459,7 +448,7 @@ public:
         self.m_extra_vtable(self).merge(self, features);
     }
 
-    constexpr auto try_merge_to_Vulkan11_features(
+    constexpr auto try_merge_to_vulkan11_features(
         this const ErasedStruct&            self,
         vk::PhysicalDeviceVulkan11Features& vulkan11_features
     ) -> bool
@@ -472,7 +461,7 @@ public:
         return false;
     }
 
-    constexpr auto try_merge_to_Vulkan12_features(
+    constexpr auto try_merge_to_vulkan12_features(
         this const ErasedStruct&            self,
         vk::PhysicalDeviceVulkan12Features& vulkan12_features
     ) -> bool
@@ -485,7 +474,7 @@ public:
         return false;
     }
 
-    constexpr auto try_merge_to_Vulkan13_features(
+    constexpr auto try_merge_to_vulkan13_features(
         this const ErasedStruct&            self,
         vk::PhysicalDeviceVulkan13Features& vulkan13_features
     ) -> bool
@@ -498,7 +487,7 @@ public:
         return false;
     }
 
-    constexpr auto try_merge_to_Vulkan14_features(
+    constexpr auto try_merge_to_vulkan14_features(
         this const ErasedStruct&            self,
         vk::PhysicalDeviceVulkan14Features& vulkan14_features
     ) -> bool
@@ -699,7 +688,7 @@ constexpr auto
     {
         if constexpr (std::is_same_v<Vulkan1XFeatures_T, vk::PhysicalDeviceVulkan11Features>)
         {
-            if (erased_features.try_merge_to_Vulkan11_features(vulkan1X_features))
+            if (erased_features.try_merge_to_vulkan11_features(vulkan1X_features))
             {
                 marked_for_removal.push_back(sType);
             }
@@ -708,7 +697,7 @@ constexpr auto
                                Vulkan1XFeatures_T,
                                vk::PhysicalDeviceVulkan12Features>)
         {
-            if (erased_features.try_merge_to_Vulkan12_features(vulkan1X_features))
+            if (erased_features.try_merge_to_vulkan12_features(vulkan1X_features))
             {
                 marked_for_removal.push_back(sType);
             }
@@ -717,7 +706,7 @@ constexpr auto
                                Vulkan1XFeatures_T,
                                vk::PhysicalDeviceVulkan13Features>)
         {
-            if (erased_features.try_merge_to_Vulkan13_features(vulkan1X_features))
+            if (erased_features.try_merge_to_vulkan13_features(vulkan1X_features))
             {
                 marked_for_removal.push_back(sType);
             }
@@ -726,7 +715,7 @@ constexpr auto
                                Vulkan1XFeatures_T,
                                vk::PhysicalDeviceVulkan14Features>)
         {
-            if (erased_features.try_merge_to_Vulkan14_features(vulkan1X_features))
+            if (erased_features.try_merge_to_vulkan14_features(vulkan1X_features))
             {
                 marked_for_removal.push_back(sType);
             }
@@ -737,6 +726,7 @@ constexpr auto
         }
     }
 
+    // NOLINTNEXTLINE(*-identifier-naming)
     for (const vk::StructureType sType : marked_for_removal)
     {
         m_chain.erase(sType);

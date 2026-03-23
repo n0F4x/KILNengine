@@ -106,7 +106,7 @@ auto PluginStack::check_for_configuration_dependencies(
 {
     for ([[maybe_unused]]
          const uint64_t configuration_dependency_hash :
-         erased_plugin.configuration_dependency_hash_set())
+         configuration_dependency_hash_set(*erased_plugin))
     {
         PRECOND(
             find(configuration_dependency_hash).has_value(),
@@ -132,7 +132,7 @@ auto PluginStack::check_for_cyclic_dependencies(const ErasedPlugin& erased_plugi
              .plugin_name = erased_plugin.name(),
          };
          const uint64_t configuration_dependency_hash :
-         erased_plugin.configuration_dependency_hash_set())
+         configuration_dependency_hash_set(*erased_plugin))
     {
         const ErasedPlugin& configuration_plugin{ at(configuration_dependency_hash) };
         check_for_cyclic_dependency(
@@ -173,7 +173,7 @@ auto PluginStack::check_for_cyclic_dependency(
         return;
     }
 
-    for (const uint64_t next_dependency_hash : dependency_iter->dependency_hash_set())
+    for (const uint64_t next_dependency_hash : dependency_hash_set(**dependency_iter))
     {
         const PluginNameChainNode plugin_chain_node{
             .previous    = &visited_plugin_names,
@@ -213,7 +213,7 @@ auto PluginStack::fix_order(
         [plugin_hash](const ErasedPlugin& dependent_plugin) -> bool
         {
             return std::ranges::binary_search(
-                dependent_plugin.dependency_hash_set(), plugin_hash
+                dependency_hash_set(*dependent_plugin), plugin_hash
             );
         }
     );
@@ -268,9 +268,9 @@ auto PluginStack::collect_all_resolved_dependency_plugin_hashes(
     std::pmr::deque<uint64_t>& out
 ) const -> void
 {
-    for (const uint64_t plugin_dependency_hash : plugin.dependency_hash_set())
+    for (const uint64_t plugin_dependency_hash : dependency_hash_set(*plugin))
     {
-        if (util::OptionalRef dependency{ find(plugin_dependency_hash) };
+        if (const util::OptionalRef dependency{ find(plugin_dependency_hash) };
             dependency.has_value() && !std::ranges::contains(out, plugin_dependency_hash))
         {
             out.push_back(plugin_dependency_hash);

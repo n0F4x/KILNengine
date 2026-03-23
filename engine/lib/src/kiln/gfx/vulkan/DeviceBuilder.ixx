@@ -81,7 +81,6 @@ public:
 private:
     PhysicalDeviceFilter                 m_physical_device_filter;
     PhysicalDeviceCapabilities           m_optional_capabilities;
-    // TODO: use std::pmr::polymorphic
     std::pmr::vector<ErasedQueueRequest> m_queue_requests;
 
     [[nodiscard]]

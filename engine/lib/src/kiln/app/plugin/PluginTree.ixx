@@ -22,7 +22,6 @@ export module kiln.app.plugin.PluginTree;
 import kiln.app.App;
 import kiln.app.context.Context;
 import kiln.app.memory.Arena;
-import kiln.app.plugin.ErasedPlugin;
 import kiln.app.plugin.hash_plugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.meta_plugin_injection_c;

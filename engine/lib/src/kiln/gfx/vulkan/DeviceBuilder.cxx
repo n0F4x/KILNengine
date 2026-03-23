@@ -171,7 +171,7 @@ auto DeviceBuilder::create_queue_family_infos(
 
     for (const ErasedQueueRequest& queue_request : m_queue_requests)
     {
-        queue_request.prepare_queue(result, physical_device);
+        queue_request->prepare_queue(result, physical_device);
     }
 
     return result;
