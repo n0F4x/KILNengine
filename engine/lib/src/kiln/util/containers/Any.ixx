@@ -131,9 +131,9 @@ private:
 
 export template <typename T>
 concept any_traits_c = requires {
+    { T::is_move_only() } -> std::convertible_to<bool>;
     { T::size() } -> std::same_as<std::size_t>;
     { T::alignment() } -> std::same_as<std::size_t>;
-    { T::is_move_only() } -> std::convertible_to<bool>;
     { T::template meets_custom_requirements<Dummy>() } -> std::convertible_to<bool>;
 
     typename T::InterfaceMixin;
@@ -178,6 +178,12 @@ struct DefaultAnyTraits {
         using ExtraVTable    = ExtraVTable_T<Any_T>;
 
         [[nodiscard]]
+        consteval static auto is_move_only() noexcept -> bool
+        {
+            return is_move_only_T;
+        }
+
+        [[nodiscard]]
         consteval static auto size() noexcept -> std::size_t
         {
             return size_T;
@@ -187,12 +193,6 @@ struct DefaultAnyTraits {
         consteval static auto alignment() noexcept -> std::size_t
         {
             return alignment_T;
-        }
-
-        [[nodiscard]]
-        consteval static auto is_move_only() noexcept -> bool
-        {
-            return is_move_only_T;
         }
 
         template <typename T>
@@ -216,7 +216,7 @@ export template <typename T, typename Any_T>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
-export template <naked_c T, typename Any_T>
+export template <decayed_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
 auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
@@ -234,9 +234,9 @@ public:
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
+    consteval static auto is_move_only() -> bool;
     consteval static auto size() -> std::size_t;
     consteval static auto alignment() -> std::size_t;
-    consteval static auto is_move_only() -> bool;
     template <typename T>
     consteval static auto storable() -> bool;
 
@@ -303,7 +303,7 @@ public:
               && (std::remove_cvref_t<Any_T>::template storable<T>())
     friend auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
-    template <naked_c T, typename Any_T>
+    template <decayed_c T, typename Any_T>
         requires any_c<std::remove_cvref_t<Any_T>>
     friend auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
@@ -617,7 +617,7 @@ auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
         any_cast(std::forward_like<Any_T>(any.NakedAny::BasicAny::m_storage));
 }
 
-template <naked_c T, typename Any_T>
+template <decayed_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
 auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
@@ -644,6 +644,12 @@ auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 }
 
 template <typename Traits_T>
+consteval auto BasicAny<Traits_T>::is_move_only() -> bool
+{
+    return Traits::is_move_only();
+}
+
+template <typename Traits_T>
 consteval auto BasicAny<Traits_T>::size() -> std::size_t
 {
     return Traits::size();
@@ -656,16 +662,10 @@ consteval auto BasicAny<Traits_T>::alignment() -> std::size_t
 }
 
 template <typename Traits_T>
-consteval auto BasicAny<Traits_T>::is_move_only() -> bool
-{
-    return Traits::is_move_only();
-}
-
-template <typename Traits_T>
 template <typename T>
 consteval auto BasicAny<Traits_T>::storable() -> bool
 {
-    return storable_c<T> && (is_move_only() || std::copy_constructible<T>)
+    return storable_c<T> && decayed_c<T> && (is_move_only() || std::copy_constructible<T>)
         && Traits::template meets_custom_requirements<T>();
 }
 
@@ -709,12 +709,15 @@ constexpr BasicAny<Traits_T>::~BasicAny<Traits_T>()
 template <typename Traits_T>
 template <typename T, typename... Args_T>
     requires std::constructible_from<T, Args_T&&...>
-constexpr BasicAny<Traits_T>::BasicAny(std::in_place_type_t<T>, Args_T&&... args)
+constexpr BasicAny<Traits_T>::BasicAny(
+    std::in_place_type_t<T> in_place_type,
+    Args_T&&... args
+)
     requires(storable<T>())
     : BasicAny{
           std::allocator_arg,
           allocator_type{},
-          std::in_place_type<std::decay_t<T>>,
+          in_place_type,
           std::forward<Args_T>(args)...,
       }
 {

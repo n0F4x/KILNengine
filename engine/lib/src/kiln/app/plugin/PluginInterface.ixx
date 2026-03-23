@@ -28,7 +28,7 @@ struct IsContextVariableDependencyRef {
     template <typename T>
     struct type {
         constexpr static bool value{
-            std::is_lvalue_reference_v<T> && context_variable_c<std::remove_reference_t<T>>
+            std::is_lvalue_reference_v<T> && context_variable_c<std::remove_cvref_t<T>>
             && !std::same_as<
                 std::remove_cvref_t<T>,
                 util::result_of_t<decltype(&Plugin_T::operator())>>   //

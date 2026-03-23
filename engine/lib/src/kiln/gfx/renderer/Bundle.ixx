@@ -27,6 +27,8 @@ private:
 
 }   // namespace kiln::gfx::renderer
 
+module :private;
+
 namespace kiln::gfx::renderer {
 
 Bundle::Bundle(const CreateInfo& create_info) : m_headless{ create_info.headless } {}

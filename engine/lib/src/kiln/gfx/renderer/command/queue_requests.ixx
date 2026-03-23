@@ -1,8 +1,7 @@
 module;
 
+#include <cstdint>
 #include <functional>
-#include <optional>
-#include <span>
 
 export module kiln.gfx.renderer.command.queue_requests;
 

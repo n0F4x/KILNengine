@@ -26,6 +26,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
             -Wold-style-cast
             -Wcast-align
             -Wcast-qual
+            -Wno-unused-command-line-argument
     )
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL 21)
         add_compile_options(

@@ -673,7 +673,7 @@ constexpr auto StructureChain<RootStruct_T>::merge(
             m_chain.try_emplace(incoming_sType, incoming_features);
 
         iter->second.merge(
-            util::reinterpret_any_cast<const vk::BaseInStructure&>(incoming_features)
+            util::reinterpret_any_cast<vk::BaseInStructure>(incoming_features)
         );
 
         needs_reconnect |= inserted;

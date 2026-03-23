@@ -242,11 +242,11 @@ TEST_CASE("util::Any")
                 return std::pmr::new_delete_resource()->allocate(bytes, alignment);
             }
 
-            void do_deallocate(
+            auto do_deallocate(
                 void* const       p,
                 const std::size_t bytes,
                 const std::size_t alignment
-            ) override
+            ) -> void override
             {
                 std::pmr::new_delete_resource()->deallocate(p, bytes, alignment);
             }
