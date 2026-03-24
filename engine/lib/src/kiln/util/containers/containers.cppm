@@ -7,6 +7,7 @@ export import kiln.util.containers.CopyableFunction;
 export import kiln.util.containers.FlatMap;
 export import kiln.util.containers.Function;
 export import kiln.util.containers.GenericStack;
+export import kiln.util.containers.Indirect;
 export import kiln.util.containers.MoveOnlyAny;
 export import kiln.util.containers.MoveOnlyFunction;
 export import kiln.util.containers.OptionalRef;

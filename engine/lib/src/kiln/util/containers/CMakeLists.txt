@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FlatMap.ixx
         Function.ixx
         GenericStack.ixx
+        Indirect.ixx
         MoveOnlyAny.ixx
         MoveOnlyFunction.ixx
         OptionalRef.ixx

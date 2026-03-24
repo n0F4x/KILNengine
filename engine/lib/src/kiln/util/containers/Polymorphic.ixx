@@ -3,6 +3,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <memory_resource>
+#include <type_traits>
 #include <utility>
 
 #include "kiln/util/contract_macros.hpp"
@@ -61,7 +62,6 @@ export template <typename T, bool move_only_T = false>
 class Polymorphic {
 public:
     using ValueType      = T;
-    // NOLINTNEXTLINE(*-identifier-naming)
     using allocator_type = std::pmr::polymorphic_allocator<T>;
 
 
@@ -90,7 +90,7 @@ public:
             && storable<std::remove_cvref_t<U>>()
         );
     template <typename U>
-    Polymorphic(std::allocator_arg_t, const allocator_type& allocator, U&& value)
+    explicit Polymorphic(std::allocator_arg_t, const allocator_type& allocator, U&& value)
         requires(
             !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
             && !util::specialization_of_c<U, std::in_place_type_t>
@@ -102,7 +102,7 @@ public:
     explicit Polymorphic(std::in_place_type_t<U>, Args_T&&... args)
         requires(std::is_constructible_v<U, Args_T && ...> && storable<U>());
     template <naked_c U, typename... Args_T>
-    Polymorphic(
+    explicit Polymorphic(
         std::allocator_arg_t,
         const allocator_type& allocator,
         std::in_place_type_t<U>,
@@ -135,7 +135,8 @@ public:
     auto get_allocator() const noexcept -> allocator_type;
 
     // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
-    auto swap(Polymorphic& other) -> void;   // NOLINT(*-noexcept-swap)
+    // NOLINTNEXTLINE(*-noexcept-swap)
+    auto swap(Polymorphic& other) -> void;
 
 private:
     allocator_type m_allocator;
@@ -147,9 +148,10 @@ private:
     auto release() -> void;
 };
 
-template <typename T>
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
-auto swap(Polymorphic<T>& lhs, Polymorphic<T>& rhs) -> void;   // NOLINT(*-noexcept-swap)
+// NOLINTNEXTLINE(*-noexcept-swap)
+template <typename T>
+auto swap(Polymorphic<T>& lhs, Polymorphic<T>& rhs) -> void;
 
 }   // namespace kiln::util
 
@@ -500,8 +502,6 @@ auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) noexcept -> Pol
         return *this;
     }
 
-    PRECOND(m_allocator == other.m_allocator);
-
     swap(other);
     other.release();
 
@@ -544,8 +544,8 @@ auto Polymorphic<T, move_only_T>::get_allocator() const noexcept -> allocator_ty
     return m_allocator;
 }
 
-template <typename T, bool move_only_T>
 // NOLINTNEXTLINE(*-noexcept-swap)
+template <typename T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::swap(Polymorphic& other) -> void
 {
     PRECOND(m_allocator == other.m_allocator);
@@ -564,9 +564,10 @@ auto Polymorphic<T, move_only_T>::release() -> void
     }
 }
 
-template <typename T>
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
-auto swap(Polymorphic<T>& lhs, Polymorphic<T>& rhs) -> void   // NOLINT(*-noexcept-swap)
+// NOLINTNEXTLINE(*-noexcept-swap)
+template <typename T>
+auto swap(Polymorphic<T>& lhs, Polymorphic<T>& rhs) -> void
 {
     lhs.swap(rhs);
 }
