@@ -9,12 +9,13 @@ module;
 
 export module kiln.util.containers.Indirect;
 
+import kiln.util.concepts.decayed;
 import kiln.util.contracts;
 import kiln.util.ScopeFail;
 
 namespace kiln::util {
 
-export template <typename T>
+export template <decayed_c T>
 class Indirect {
 public:
     using ValueType      = T;
@@ -47,10 +48,10 @@ public:
         )
     explicit Indirect(std::allocator_arg_t, const allocator_type& allocator, U&& value);
 
-    template <typename Args_T>
+    template <typename... Args_T>
         requires(std::is_constructible_v<T, Args_T && ...>)
     explicit Indirect(std::in_place_t, Args_T&&... args);
-    template <typename Args_T>
+    template <typename... Args_T>
         requires(std::is_constructible_v<T, Args_T && ...>)
     explicit Indirect(
         std::allocator_arg_t,
@@ -119,7 +120,7 @@ auto copy_construct(std::pmr::polymorphic_allocator<T>& allocator, const T* othe
     return allocator.template new_object<T>(*other_handle);
 }
 
-template <typename T>
+template <decayed_c T>
 Indirect<T>::Indirect(const Indirect& other)
     requires(std::copy_constructible<T>)
     : m_allocator{ other.m_allocator },
@@ -127,7 +128,7 @@ Indirect<T>::Indirect(const Indirect& other)
 {
 }
 
-template <typename T>
+template <decayed_c T>
 Indirect<T>::Indirect(const Indirect& other, const allocator_type& allocator)
     requires(std::copy_constructible<T>)
     : m_allocator{ allocator },
@@ -135,7 +136,7 @@ Indirect<T>::Indirect(const Indirect& other, const allocator_type& allocator)
 {
 }
 
-template <typename T>
+template <decayed_c T>
 Indirect<T>::Indirect(Indirect&& other) noexcept
     : m_allocator{ other.m_allocator },
       m_handle{ std::exchange(other.m_handle, nullptr) }
@@ -158,7 +159,7 @@ auto move_construct(
     return std::exchange(other_handle, nullptr);
 }
 
-template <typename T>
+template <decayed_c T>
 Indirect<T>::Indirect(Indirect&& other, const allocator_type& allocator)
     requires(std::copy_constructible<T>)
     : m_allocator{ allocator },
@@ -177,7 +178,7 @@ auto assert_allocator_upon_move_only_move_construct(
     return new_allocator;
 }
 
-template <typename T>
+template <decayed_c T>
 Indirect<T>::Indirect(Indirect&& other, const allocator_type& allocator)
     requires(!std::copy_constructible<T>)
     : m_allocator{
@@ -187,7 +188,7 @@ Indirect<T>::Indirect(Indirect&& other, const allocator_type& allocator)
 {
 }
 
-template <typename T>
+template <decayed_c T>
 Indirect<T>::~Indirect()
 {
     if (m_handle != nullptr)
@@ -196,7 +197,7 @@ Indirect<T>::~Indirect()
     }
 }
 
-template <typename T>
+template <decayed_c T>
 template <typename U>
     requires(
         !std::is_same_v<std::remove_cvref_t<U>, Indirect<T>>
@@ -212,7 +213,7 @@ Indirect<T>::Indirect(U&& value)
 {
 }
 
-template <typename T>
+template <decayed_c T>
 template <typename U>
     requires(!std::is_same_v<std::remove_cvref_t<U>, Indirect<T>>
              && !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t>
@@ -223,8 +224,8 @@ Indirect<T>::Indirect(std::allocator_arg_t, const allocator_type& allocator, U&&
 {
 }
 
-template <typename T>
-template <typename Args_T>
+template <decayed_c T>
+template <typename... Args_T>
     requires(std::is_constructible_v<T, Args_T && ...>)
 Indirect<T>::Indirect(const std::in_place_t in_place, Args_T&&... args)
     : Indirect{
@@ -236,8 +237,8 @@ Indirect<T>::Indirect(const std::in_place_t in_place, Args_T&&... args)
 {
 }
 
-template <typename T>
-template <typename Args_T>
+template <decayed_c T>
+template <typename... Args_T>
     requires(std::is_constructible_v<T, Args_T && ...>)
 Indirect<T>::Indirect(
     std::allocator_arg_t,
@@ -250,7 +251,7 @@ Indirect<T>::Indirect(
 {
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator=(const Indirect& other) -> Indirect&
     requires(std::copy_constructible<T>)
 {
@@ -285,7 +286,7 @@ auto Indirect<T>::operator=(const Indirect& other) -> Indirect&
     return *this;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator=(Indirect&& other) -> Indirect&
     requires(std::copy_constructible<T>)
 {
@@ -306,7 +307,7 @@ auto Indirect<T>::operator=(Indirect&& other) -> Indirect&
     return *this;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator=(Indirect&& other) noexcept -> Indirect&
     requires(!std::copy_constructible<T>)
 {
@@ -321,21 +322,21 @@ auto Indirect<T>::operator=(Indirect&& other) noexcept -> Indirect&
     return *this;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator->() noexcept -> T*
 {
     PRECOND(m_handle != nullptr);
     return m_handle;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator->() const noexcept -> const T*
 {
     PRECOND(m_handle != nullptr);
     return m_handle;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator*() noexcept -> T&
 {
     PRECOND(m_handle != nullptr);
@@ -343,7 +344,7 @@ auto Indirect<T>::operator*() noexcept -> T&
     return *m_handle;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::operator*() const noexcept -> const T&
 {
     PRECOND(m_handle != nullptr);
@@ -351,13 +352,13 @@ auto Indirect<T>::operator*() const noexcept -> const T&
     return *m_handle;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::get_allocator() const noexcept -> allocator_type
 {
     return m_allocator;
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::swap(Indirect& other) -> void
 {
     PRECOND(m_allocator == other.m_allocator);
@@ -365,7 +366,7 @@ auto Indirect<T>::swap(Indirect& other) -> void
     std::swap(m_handle, other.m_handle);
 }
 
-template <typename T>
+template <decayed_c T>
 auto Indirect<T>::release() -> void
 {
     if (m_handle != nullptr)

@@ -11,7 +11,7 @@ module;
 
 export module kiln.util.containers.Polymorphic;
 
-import kiln.util.concepts.naked;
+import kiln.util.concepts.decayed;
 import kiln.util.concepts.specialization_of;
 import kiln.util.contracts;
 import kiln.util.reflection;
@@ -58,7 +58,7 @@ private:
     std::reference_wrapper<const VTable> m_vtable;
 };
 
-export template <typename T, bool move_only_T = false>
+export template <decayed_c T, bool move_only_T = false>
 class Polymorphic {
 public:
     using ValueType      = T;
@@ -98,10 +98,10 @@ public:
             && storable<std::remove_cvref_t<U>>()
         );
 
-    template <naked_c U, typename... Args_T>
+    template <decayed_c U, typename... Args_T>
     explicit Polymorphic(std::in_place_type_t<U>, Args_T&&... args)
         requires(std::is_constructible_v<U, Args_T && ...> && storable<U>());
-    template <naked_c U, typename... Args_T>
+    template <decayed_c U, typename... Args_T>
     explicit Polymorphic(
         std::allocator_arg_t,
         const allocator_type& allocator,
@@ -273,27 +273,27 @@ auto CopyMechanism<T, true>::type_hash() const -> uint64_t
     return m_vtable.get().type_hash();
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 consteval auto Polymorphic<T, move_only_T>::is_move_only() -> bool
 {
     return move_only_T;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 template <typename U>
 consteval auto Polymorphic<T, move_only_T>::storable() -> bool
 {
     return is_move_only() || std::copyable<U>;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 Polymorphic<T, move_only_T>::Polymorphic(const Polymorphic& other)
     requires(!is_move_only())
     : Polymorphic{ other, other.m_allocator }
 {
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 Polymorphic<T, move_only_T>::Polymorphic(
     const Polymorphic&    other,
     const allocator_type& allocator
@@ -305,7 +305,7 @@ Polymorphic<T, move_only_T>::Polymorphic(
 {
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 Polymorphic<T, move_only_T>::Polymorphic(Polymorphic&& other) noexcept
     : m_allocator{ other.m_allocator },
       m_handle{ std::exchange(other.m_handle, nullptr) },
@@ -313,7 +313,7 @@ Polymorphic<T, move_only_T>::Polymorphic(Polymorphic&& other) noexcept
 {
 }
 
-template <typename T, bool enable_copy_T>
+template <decayed_c T, bool enable_copy_T>
 [[nodiscard]]
 auto move_construct_copyable_handle(
     std::pmr::polymorphic_allocator<T>&       new_allocator,
@@ -330,7 +330,7 @@ auto move_construct_copyable_handle(
     return copy_mechanism.construct(new_allocator, other_handle);
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 Polymorphic<T, move_only_T>::Polymorphic(
     Polymorphic&&         other,
     const allocator_type& allocator
@@ -360,7 +360,7 @@ auto assert_allocator_upon_move_only_move_construct(
     return new_allocator;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 Polymorphic<T, move_only_T>::Polymorphic(
     Polymorphic&&         other,
     const allocator_type& allocator
@@ -374,7 +374,7 @@ Polymorphic<T, move_only_T>::Polymorphic(
 {
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 Polymorphic<T, move_only_T>::~Polymorphic()
 {
     if (m_handle)
@@ -383,7 +383,7 @@ Polymorphic<T, move_only_T>::~Polymorphic()
     }
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 template <typename U>
 Polymorphic<T, move_only_T>::Polymorphic(U&& value)
     requires(
@@ -400,7 +400,7 @@ Polymorphic<T, move_only_T>::Polymorphic(U&& value)
 {
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 template <typename U>
 Polymorphic<T, move_only_T>::Polymorphic(
     std::allocator_arg_t,
@@ -419,8 +419,8 @@ Polymorphic<T, move_only_T>::Polymorphic(
 {
 }
 
-template <typename T, bool move_only_T>
-template <naked_c U, typename... Args_T>
+template <decayed_c T, bool move_only_T>
+template <decayed_c U, typename... Args_T>
 Polymorphic<T, move_only_T>::Polymorphic(
     std::in_place_type_t<U> in_place_type,
     Args_T&&... args
@@ -435,8 +435,8 @@ Polymorphic<T, move_only_T>::Polymorphic(
 {
 }
 
-template <typename T, bool move_only_T>
-template <naked_c U, typename... Args_T>
+template <decayed_c T, bool move_only_T>
+template <decayed_c U, typename... Args_T>
 Polymorphic<T, move_only_T>::Polymorphic(
     std::allocator_arg_t,
     const allocator_type& allocator,
@@ -450,7 +450,7 @@ Polymorphic<T, move_only_T>::Polymorphic(
 {
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::operator=(const Polymorphic& other) -> Polymorphic&
     requires(!is_move_only())
 {
@@ -471,7 +471,7 @@ auto Polymorphic<T, move_only_T>::operator=(const Polymorphic& other) -> Polymor
     return *this;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 // NOLINTNEXTLINE(*-noexcept-move-operations,*-noexcept-move,*-noexcept-move-constructor)
 auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) -> Polymorphic&
     requires(!is_move_only())
@@ -493,7 +493,7 @@ auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) -> Polymorphic&
     return *this;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) noexcept -> Polymorphic&
     requires(is_move_only())
 {
@@ -508,21 +508,21 @@ auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) noexcept -> Pol
     return *this;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::operator->() noexcept -> T*
 {
     PRECOND(m_handle != nullptr);
     return m_handle;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::operator->() const noexcept -> const T*
 {
     PRECOND(m_handle != nullptr);
     return m_handle;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::operator*() noexcept -> T&
 {
     PRECOND(m_handle != nullptr);
@@ -530,7 +530,7 @@ auto Polymorphic<T, move_only_T>::operator*() noexcept -> T&
     return *m_handle;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::operator*() const noexcept -> const T&
 {
     PRECOND(m_handle != nullptr);
@@ -538,14 +538,14 @@ auto Polymorphic<T, move_only_T>::operator*() const noexcept -> const T&
     return *m_handle;
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::get_allocator() const noexcept -> allocator_type
 {
     return m_allocator;
 }
 
 // NOLINTNEXTLINE(*-noexcept-swap)
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::swap(Polymorphic& other) -> void
 {
     PRECOND(m_allocator == other.m_allocator);
@@ -554,7 +554,7 @@ auto Polymorphic<T, move_only_T>::swap(Polymorphic& other) -> void
     std::swap(m_copy_mechanism, other.m_copy_mechanism);
 }
 
-template <typename T, bool move_only_T>
+template <decayed_c T, bool move_only_T>
 auto Polymorphic<T, move_only_T>::release() -> void
 {
     if (m_handle != nullptr)
