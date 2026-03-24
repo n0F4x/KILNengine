@@ -1,6 +1,5 @@
 module;
 
-#include <memory>
 #include <memory_resource>
 #include <utility>
 
@@ -8,7 +7,7 @@ export module kiln.app.App;
 
 import kiln.app.context.Context;
 import kiln.app.memory.Arena;
-import kiln.util.Deleter;
+import kiln.util.containers.Indirect;
 import kiln.util.type_traits.forward_like;
 
 namespace kiln::app {
@@ -24,13 +23,12 @@ public:
 private:
     Arena m_arena;
 
-    std::unique_ptr<std::pmr::memory_resource, util::Deleter> m_context_memory_resource{
-        m_arena.pool_allocator().new_object<std::pmr::monotonic_buffer_resource>(
-            m_arena.pool_allocator().resource()
-        ),
-        util::Deleter{ m_arena.pool_allocator() }
+    util::Indirect<std::pmr::monotonic_buffer_resource> m_context_memory_resource{
+        std::allocator_arg,
+        m_arena.pool_allocator(),
+        m_arena.pool_allocator().resource()
     };
-    Context m_context{ std::allocator_arg, m_context_memory_resource.get(), m_arena };
+    Context m_context{ std::allocator_arg, &*m_context_memory_resource, m_arena };
 };
 
 }   // namespace kiln::app

@@ -287,6 +287,7 @@ auto Indirect<T>::operator=(const Indirect& other) -> Indirect&
 }
 
 template <decayed_c T>
+// NOLINTNEXTLINE(*-noexcept-move-constructor)
 auto Indirect<T>::operator=(Indirect&& other) -> Indirect&
     requires(std::copy_constructible<T>)
 {
