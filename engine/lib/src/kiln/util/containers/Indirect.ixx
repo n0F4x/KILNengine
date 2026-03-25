@@ -99,8 +99,8 @@ private:
 };
 
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
-template <typename T>
 // NOLINTNEXTLINE(*-noexcept-swap)
+export template <typename T>
 auto swap(Indirect<T>& lhs, Indirect<T>& rhs) -> void;
 
 }   // namespace kiln::util

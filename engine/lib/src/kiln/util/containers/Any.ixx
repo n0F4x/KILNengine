@@ -95,7 +95,7 @@ export consteval auto default_any_size() -> std::size_t
 
 export consteval auto default_any_alignment() -> std::size_t
 {
-    return sizeof(void*);
+    return alignof(std::max_align_t);
 }
 
 export template <typename T>

@@ -1,6 +1,7 @@
 module;
 
 #include <memory_resource>
+#include <utility>
 
 export module kiln.app.memory.Arena;
 

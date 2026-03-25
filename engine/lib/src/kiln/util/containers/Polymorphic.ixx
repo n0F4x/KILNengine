@@ -19,46 +19,107 @@ import kiln.util.ScopeFail;
 
 namespace kiln::util {
 
-template <typename T, bool enable_T>
-class CopyMechanism;
+template <typename T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+class EraseMechanism;
 
-template <typename T>
-class CopyMechanism<T, false> {
+template <typename T, bool move_only_T, std::size_t alignment_T>
+class EraseMechanism<T, move_only_T, 0, alignment_T> {
 public:
-    template <typename U>
-    constexpr explicit CopyMechanism(std::in_place_type_t<U>) noexcept
-    {
-    }
-};
+    struct Storage {
+        T* handle;
+    };
 
-template <typename T>
-class CopyMechanism<T, true> {
-public:
     template <typename U>
-    constexpr explicit CopyMechanism(std::in_place_type_t<U>) noexcept;
+    constexpr explicit EraseMechanism(std::in_place_type_t<U>) noexcept
+        requires(!move_only_T);
+    template <typename U>
+    constexpr explicit EraseMechanism(std::in_place_type_t<U>) noexcept
+        requires(move_only_T);
 
     [[nodiscard]]
-    auto construct(std::pmr::polymorphic_allocator<T>& allocator, const T* source) const
-        -> T*;
-
-    auto assign(
+    auto copy_construct(
         std::pmr::polymorphic_allocator<T>& allocator,
-        T*&                                 destination,
-        const T*                            source,
-        uint64_t                            destination_type,
-        uint64_t                            source_type
-    ) const -> void;
+        const Storage&                      other_storage
+    ) const -> Storage
+        requires(!move_only_T);
+    [[nodiscard]]
+    constexpr static auto move_construct(Storage&& other_storage) noexcept -> Storage;
+    [[nodiscard]]
+    auto move_construct(
+        std::pmr::polymorphic_allocator<T>&       new_allocator,
+        const std::pmr::polymorphic_allocator<T>& other_allocator,
+        Storage&&                                 other_storage
+    ) -> Storage
+        requires(!move_only_T);
+    [[nodiscard]]
+    static auto move_construct(
+        std::pmr::polymorphic_allocator<T>&       new_allocator,
+        const std::pmr::polymorphic_allocator<T>& other_allocator,
+        Storage&&                                 other_storage
+    ) noexcept -> Storage
+        requires(move_only_T);
+    static auto drop(std::pmr::polymorphic_allocator<T>& allocator, Storage&& storage)
+        -> void;
+
+    template <typename U, typename... Args_T>
+    [[nodiscard]]
+    static auto construct(
+        std::allocator_arg_t,
+        std::pmr::polymorphic_allocator<T>& allocator,
+        std::in_place_type_t<U>,
+        Args_T&&... args
+    ) -> Storage;
+
+    auto copy_assign(
+        std::pmr::polymorphic_allocator<T>& allocator,
+        Storage&                            storage,
+        const Storage&                      other_storage,
+        uint64_t                            other_type_hash
+    ) const -> void
+        requires(!move_only_T);
 
     [[nodiscard]]
-    auto type_hash() const -> uint64_t;
+    constexpr static auto address_of(Storage& storage) -> T*;
+    [[nodiscard]]
+    constexpr static auto address_of(const Storage& storage) -> const T*;
+    [[nodiscard]]
+    constexpr static auto dereference(Storage& storage) -> T&;
+    [[nodiscard]]
+    constexpr static auto dereference(const Storage& storage) -> const T&;
+
+    [[nodiscard]]
+    auto type_hash() const -> uint64_t
+        requires(!move_only_T);
+
+    constexpr static auto swap(Storage& lhs, Storage& rhs) noexcept -> void;
+    static auto release(std::pmr::polymorphic_allocator<T>& allocator, Storage& storage)
+        -> void;
 
 private:
     struct VTable;
 
-    std::reference_wrapper<const VTable> m_vtable;
+    struct EmptyVTable {};
+
+    [[kiln_no_unique_address]]
+    std::conditional_t<!move_only_T, std::reference_wrapper<const VTable>, EmptyVTable>
+        m_vtable;
 };
 
-export template <decayed_c T, bool move_only_T = false>
+export consteval auto default_polymorphic_size() -> std::size_t
+{
+    return 3 * sizeof(void*);
+}
+
+export consteval auto default_polymorphic_alignment() -> std::size_t
+{
+    return alignof(std::max_align_t);
+}
+
+export template <
+    decayed_c   T,
+    bool        move_only_T = false,
+    std::size_t size_T      = 0,
+    std::size_t alignment_T = 0>
 class Polymorphic {
 public:
     using ValueType      = T;
@@ -66,6 +127,8 @@ public:
 
 
     consteval static auto is_move_only() -> bool;
+    consteval static auto size() -> std::size_t;
+    consteval static auto alignment() -> std::size_t;
     template <typename U>
     consteval static auto storable() -> bool;
 
@@ -75,10 +138,7 @@ public:
     Polymorphic(const Polymorphic&, const allocator_type& allocator)
         requires(!is_move_only());
     Polymorphic(Polymorphic&&) noexcept;
-    Polymorphic(Polymorphic&&, const allocator_type& allocator)
-        requires(!is_move_only());
-    Polymorphic(Polymorphic&&, const allocator_type& allocator)
-        requires(is_move_only());
+    Polymorphic(Polymorphic&&, const allocator_type& allocator);
     ~Polymorphic();
 
     template <typename U>
@@ -139,10 +199,10 @@ public:
     auto swap(Polymorphic& other) -> void;
 
 private:
-    allocator_type m_allocator;
-    T*             m_handle;
+    allocator_type                                               m_allocator;
+    EraseMechanism<T, move_only_T, size_T, alignment_T>::Storage m_storage;
     [[kiln_no_unique_address]]
-    CopyMechanism<T, !is_move_only()> m_copy_mechanism;
+    EraseMechanism<T, move_only_T, size_T, alignment_T> m_erase_mechanism;
 
 
     auto release() -> void;
@@ -150,23 +210,26 @@ private:
 
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
 // NOLINTNEXTLINE(*-noexcept-swap)
-template <typename T>
-auto swap(Polymorphic<T>& lhs, Polymorphic<T>& rhs) -> void;
+export template <typename T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto swap(
+    Polymorphic<T, move_only_T, size_T, alignment_T>& lhs,
+    Polymorphic<T, move_only_T, size_T, alignment_T>& rhs
+) -> void;
 
 }   // namespace kiln::util
 
 namespace kiln::util {
 
-template <typename T>
-struct CopyMechanism<T, true>::VTable {
-    using ConstructFunc =
-        auto(std::pmr::polymorphic_allocator<T>& allocator, const T* source) -> T*;
-    using AssignFunc = auto(
+template <typename T, bool move_only_T, std::size_t alignment_T>
+struct EraseMechanism<T, move_only_T, 0, alignment_T>::VTable {
+    using CopyConstructFunc =
+        auto(std::pmr::polymorphic_allocator<T>& allocator, const Storage& other_storage)
+            -> Storage;
+    using CopyAssignFunc = auto(
         std::pmr::polymorphic_allocator<T>& allocator,
-        T*&                                 destination,
-        const T*                            source,
-        uint64_t                            destination_type,
-        uint64_t                            source_type
+        Storage&                            storage,
+        const Storage&                      other_storage,
+        uint64_t                            other_type_hash
     ) -> void;
     using TypeHash = auto() -> uint64_t;
 
@@ -174,44 +237,51 @@ struct CopyMechanism<T, true>::VTable {
     struct Operations;
 
 
-    std::reference_wrapper<ConstructFunc> construct;
-    std::reference_wrapper<AssignFunc>    assign;
-    std::reference_wrapper<TypeHash>      type_hash;
+    std::reference_wrapper<CopyConstructFunc> copy_construct;
+    std::reference_wrapper<CopyAssignFunc>    copy_assign;
+    std::reference_wrapper<TypeHash>          type_hash;
 };
 
-template <typename T>
+template <typename T, bool move_only_T, std::size_t alignment_T>
 template <typename U>
-struct CopyMechanism<T, true>::VTable::Operations {
-    static auto
-        construct(std::pmr::polymorphic_allocator<T>& allocator, const T* const source)
-            -> T*
+struct EraseMechanism<T, move_only_T, 0, alignment_T>::VTable::Operations {
+    static auto copy_construct(
+        std::pmr::polymorphic_allocator<T>& allocator,
+        const Storage&                      other_storage
+    ) -> Storage
     {
-        if (source == nullptr)
+        if (other_storage.handle == nullptr)
         {
-            return nullptr;
+            return Storage{ .handle = nullptr };
         }
 
-        return allocator.template new_object<U>(static_cast<const U&>(*source));   //
+        return Storage{
+            .handle = allocator.template new_object<U>(
+                static_cast<const U&>(*other_storage.handle)
+            ),
+        };
     }
 
-    static auto assign(
+    static auto copy_assign(
         std::pmr::polymorphic_allocator<T>& allocator,
-        T*&                                 destination,
-        const T* const                      source,
-        const uint64_t                      destination_type,
-        const uint64_t                      source_type
+        Storage&                            storage,
+        const Storage&                      other_storage,
+        const uint64_t                      other_type_hash
     ) -> void
     {
-        if (destination != nullptr && source != nullptr && destination_type == source_type)
+        if (storage.handle != nullptr && other_storage.handle != nullptr
+            && type_hash() == other_type_hash)
         {
-            static_cast<U&>(*destination) = static_cast<const U&>(*source);
+            static_cast<U&>(*storage.handle) =
+                static_cast<const U&>(*other_storage.handle);
             return;
         }
 
-        T* const new_object =
-            source == nullptr
-                ? nullptr
-                : allocator.template new_object<U>(static_cast<const U&>(*source));
+        T* const        new_object = other_storage.handle == nullptr
+                                       ? nullptr
+                                       : allocator.template new_object<U>(
+                                      static_cast<const U&>(*other_storage.handle)
+                                  );
         const ScopeFail new_object_guard{
             [&] noexcept -> void
             {
@@ -219,12 +289,12 @@ struct CopyMechanism<T, true>::VTable::Operations {
             }   //
         };
 
-        if (destination != nullptr)
+        if (storage.handle != nullptr)
         {
-            allocator.delete_object(destination);
+            allocator.delete_object(storage.handle);
         }
 
-        destination = new_object;
+        storage.handle = new_object;
     }
 
     constexpr static auto type_hash() -> uint64_t
@@ -233,159 +303,258 @@ struct CopyMechanism<T, true>::VTable::Operations {
     }
 
     constexpr static VTable vtable{
-        .construct = construct,
-        .assign    = assign,
-        .type_hash = type_hash,
+        .copy_construct = copy_construct,
+        .copy_assign    = copy_assign,
+        .type_hash      = type_hash,
     };
 };
 
-template <typename T>
+template <typename T, bool move_only_T, std::size_t alignment_T>
 template <typename U>
-constexpr CopyMechanism<T, true>::CopyMechanism(std::in_place_type_t<U>) noexcept
+constexpr EraseMechanism<T, move_only_T, 0, alignment_T>::EraseMechanism(
+    std::in_place_type_t<U>
+) noexcept
+    requires(!move_only_T)
     : m_vtable{ VTable::template Operations<U>::vtable }
 {
 }
 
-template <typename T>
-auto CopyMechanism<T, true>::construct(
-    std::pmr::polymorphic_allocator<T>& allocator,
-    const T* const                      source
-) const -> T*
+template <typename T, bool move_only_T, std::size_t alignment_T>
+template <typename U>
+constexpr EraseMechanism<T, move_only_T, 0, alignment_T>::EraseMechanism(
+    std::in_place_type_t<U>
+) noexcept
+    requires(move_only_T)
 {
-    return m_vtable.get().construct(allocator, source);
 }
 
-template <typename T>
-auto CopyMechanism<T, true>::assign(
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::copy_construct(
     std::pmr::polymorphic_allocator<T>& allocator,
-    T*&                                 destination,
-    const T* const                      source,
-    const uint64_t                      destination_type,
-    const uint64_t                      source_type
+    const Storage&                      other_storage
+) const -> Storage
+    requires(!move_only_T)
+{
+    return m_vtable.get().copy_construct(allocator, other_storage);
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+constexpr auto EraseMechanism<T, move_only_T, 0, alignment_T>::move_construct(
+    Storage&& other_storage
+) noexcept -> Storage
+{
+    return Storage{ .handle = std::exchange(other_storage.handle, nullptr) };
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::move_construct(
+    std::pmr::polymorphic_allocator<T>&       new_allocator,
+    const std::pmr::polymorphic_allocator<T>& other_allocator,
+    Storage&&                                 other_storage
+) -> Storage
+    requires(!move_only_T)
+{
+    if (new_allocator == other_allocator)
+    {
+        return Storage{ .handle = std::exchange(other_storage.handle, nullptr) };
+    }
+
+    return copy_construct(new_allocator, other_storage);
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::move_construct(
+    std::pmr::polymorphic_allocator<T>&       new_allocator,
+    const std::pmr::polymorphic_allocator<T>& other_allocator,
+    Storage&&                                 other_storage
+) noexcept -> Storage
+    requires(move_only_T)
+{
+    PRECOND(new_allocator == other_allocator);
+    return Storage{ .handle = std::exchange(other_storage.handle, nullptr) };
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::drop(
+    std::pmr::polymorphic_allocator<T>& allocator,
+    Storage&&                           storage
+) -> void
+{
+    if (storage.handle != nullptr)
+    {
+        allocator.delete_object(storage.handle);
+    }
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+template <typename U, typename... Args_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::construct(
+    std::allocator_arg_t,
+    std::pmr::polymorphic_allocator<T>& allocator,
+    std::in_place_type_t<U>,
+    Args_T&&... args
+) -> Storage
+{
+    return Storage{
+        .handle = allocator.template new_object<U>(std::forward<Args_T>(args)...),
+    };
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::copy_assign(
+    std::pmr::polymorphic_allocator<T>& allocator,
+    Storage&                            storage,
+    const Storage&                      other_storage,
+    const uint64_t                      other_type_hash
 ) const -> void
+    requires(!move_only_T)
 {
-    m_vtable.get().assign(allocator, destination, source, destination_type, source_type);
+    m_vtable.get().copy_assign(allocator, storage, other_storage, other_type_hash);
 }
 
-template <typename T>
-auto CopyMechanism<T, true>::type_hash() const -> uint64_t
+template <typename T, bool move_only_T, std::size_t alignment_T>
+constexpr auto EraseMechanism<T, move_only_T, 0, alignment_T>::address_of(Storage& storage)
+    -> T*
+{
+    PRECOND(storage.handle != nullptr);
+    return storage.handle;
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+constexpr auto EraseMechanism<T, move_only_T, 0, alignment_T>::address_of(
+    const Storage& storage
+) -> const T*
+{
+    PRECOND(storage.handle != nullptr);
+    return storage.handle;
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+constexpr auto EraseMechanism<T, move_only_T, 0, alignment_T>::dereference(
+    Storage& storage
+) -> T&
+{
+    PRECOND(storage.handle != nullptr);
+    return *storage.handle;
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+constexpr auto EraseMechanism<T, move_only_T, 0, alignment_T>::dereference(
+    const Storage& storage
+) -> const T&
+{
+    PRECOND(storage.handle != nullptr);
+    return *storage.handle;
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::type_hash() const -> uint64_t
+    requires(!move_only_T)
 {
     return m_vtable.get().type_hash();
 }
 
-template <decayed_c T, bool move_only_T>
-consteval auto Polymorphic<T, move_only_T>::is_move_only() -> bool
+template <typename T, bool move_only_T, std::size_t alignment_T>
+constexpr auto EraseMechanism<T, move_only_T, 0, alignment_T>::swap(
+    Storage& lhs,
+    Storage& rhs
+) noexcept -> void
+{
+    std::swap(lhs.handle, rhs.handle);
+}
+
+template <typename T, bool move_only_T, std::size_t alignment_T>
+auto EraseMechanism<T, move_only_T, 0, alignment_T>::release(
+    std::pmr::polymorphic_allocator<T>& allocator,
+    Storage&                            storage
+) -> void
+{
+    if (storage.handle != nullptr)
+    {
+        allocator.delete_object(storage.handle);
+        storage.handle = nullptr;
+    }
+}
+
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+consteval auto Polymorphic<T, move_only_T, size_T, alignment_T>::is_move_only() -> bool
 {
     return move_only_T;
 }
 
-template <decayed_c T, bool move_only_T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+consteval auto Polymorphic<T, move_only_T, size_T, alignment_T>::size() -> std::size_t
+{
+    return size_T;
+}
+
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+consteval auto Polymorphic<T, move_only_T, size_T, alignment_T>::alignment()
+    -> std::size_t
+{
+    return alignment_T;
+}
+
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <typename U>
-consteval auto Polymorphic<T, move_only_T>::storable() -> bool
+consteval auto Polymorphic<T, move_only_T, size_T, alignment_T>::storable() -> bool
 {
     return is_move_only() || std::copyable<U>;
 }
 
-template <decayed_c T, bool move_only_T>
-Polymorphic<T, move_only_T>::Polymorphic(const Polymorphic& other)
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(const Polymorphic& other)
     requires(!is_move_only())
     : Polymorphic{ other, other.m_allocator }
 {
 }
 
-template <decayed_c T, bool move_only_T>
-Polymorphic<T, move_only_T>::Polymorphic(
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(
     const Polymorphic&    other,
     const allocator_type& allocator
 )
     requires(!is_move_only())
     : m_allocator{ allocator },
-      m_handle{ other.m_copy_mechanism.construct(m_allocator, other.m_handle) },
-      m_copy_mechanism{ other.m_copy_mechanism }
+      m_storage{ other.m_erase_mechanism.copy_construct(m_allocator, other.m_storage) },
+      m_erase_mechanism{ other.m_erase_mechanism }
 {
 }
 
-template <decayed_c T, bool move_only_T>
-Polymorphic<T, move_only_T>::Polymorphic(Polymorphic&& other) noexcept
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(Polymorphic&& other) noexcept
     : m_allocator{ other.m_allocator },
-      m_handle{ std::exchange(other.m_handle, nullptr) },
-      m_copy_mechanism{ other.m_copy_mechanism }
+      m_storage{ other.m_erase_mechanism.move_construct(std::move(other.m_storage)) },
+      m_erase_mechanism{ other.m_erase_mechanism }
 {
 }
 
-template <decayed_c T, bool enable_copy_T>
-[[nodiscard]]
-auto move_construct_copyable_handle(
-    std::pmr::polymorphic_allocator<T>&       new_allocator,
-    const std::pmr::polymorphic_allocator<T>& other_allocator,
-    T*&                                       other_handle,
-    const CopyMechanism<T, enable_copy_T>&    copy_mechanism
-) -> T*
-{
-    if (new_allocator == other_allocator)
-    {
-        return std::exchange(other_handle, nullptr);
-    }
-
-    return copy_mechanism.construct(new_allocator, other_handle);
-}
-
-template <decayed_c T, bool move_only_T>
-Polymorphic<T, move_only_T>::Polymorphic(
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(
     Polymorphic&&         other,
     const allocator_type& allocator
 )
-    requires(!is_move_only())
     : m_allocator{ allocator },
-      m_handle{
-          move_construct_copyable_handle(
+      m_storage{
+          other.m_erase_mechanism.move_construct(
               m_allocator,
               other.m_allocator,
-              other.m_handle,
-              other.m_copy_mechanism
+              std::move(other.m_storage)
           )   //
       },
-      m_copy_mechanism{ other.m_copy_mechanism }
+      m_erase_mechanism{ other.m_erase_mechanism }
 {
 }
 
-template <typename T>
-[[nodiscard]]
-auto assert_allocator_upon_move_only_move_construct(
-    const std::pmr::polymorphic_allocator<T>& new_allocator,
-    const std::pmr::polymorphic_allocator<T>& other_allocator
-) -> std::pmr::polymorphic_allocator<T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+Polymorphic<T, move_only_T, size_T, alignment_T>::~Polymorphic()
 {
-    PRECOND(new_allocator == other_allocator);
-    return new_allocator;
+    m_erase_mechanism.drop(m_allocator, std::move(m_storage));
 }
 
-template <decayed_c T, bool move_only_T>
-Polymorphic<T, move_only_T>::Polymorphic(
-    Polymorphic&&         other,
-    const allocator_type& allocator
-)
-    requires(is_move_only())
-    : m_allocator{
-          assert_allocator_upon_move_only_move_construct(allocator, other.m_allocator)
-      },
-      m_handle{ std::exchange(other.m_handle, nullptr) },
-      m_copy_mechanism{ other.m_copy_mechanism }
-{
-}
-
-template <decayed_c T, bool move_only_T>
-Polymorphic<T, move_only_T>::~Polymorphic()
-{
-    if (m_handle)
-    {
-        m_allocator.delete_object(m_handle);
-    }
-}
-
-template <decayed_c T, bool move_only_T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <typename U>
-Polymorphic<T, move_only_T>::Polymorphic(U&& value)
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
     requires(
         !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
         && !util::specialization_of_c<U, std::in_place_type_t>
@@ -400,9 +569,9 @@ Polymorphic<T, move_only_T>::Polymorphic(U&& value)
 {
 }
 
-template <decayed_c T, bool move_only_T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <typename U>
-Polymorphic<T, move_only_T>::Polymorphic(
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(
     std::allocator_arg_t,
     const allocator_type& allocator,
     U&&                   value
@@ -412,16 +581,21 @@ Polymorphic<T, move_only_T>::Polymorphic(
              && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
              && storable<std::remove_cvref_t<U>>())
     : m_allocator{ allocator },
-      m_handle{
-          m_allocator.template new_object<std::remove_cvref_t<U>>(std::forward<U>(value))
+      m_storage{
+          EraseMechanism<T, move_only_T, size_T, alignment_T>::construct(
+              std::allocator_arg,
+              m_allocator,
+              std::in_place_type<std::remove_cvref_t<U>>,
+              std::forward<U>(value)
+          )   //
       },
-      m_copy_mechanism{ std::in_place_type<U> }
+      m_erase_mechanism{ std::in_place_type<U> }
 {
 }
 
-template <decayed_c T, bool move_only_T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <decayed_c U, typename... Args_T>
-Polymorphic<T, move_only_T>::Polymorphic(
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(
     std::in_place_type_t<U> in_place_type,
     Args_T&&... args
 )
@@ -435,23 +609,31 @@ Polymorphic<T, move_only_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool move_only_T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <decayed_c U, typename... Args_T>
-Polymorphic<T, move_only_T>::Polymorphic(
+Polymorphic<T, move_only_T, size_T, alignment_T>::Polymorphic(
     std::allocator_arg_t,
-    const allocator_type& allocator,
-    std::in_place_type_t<U>,
+    const allocator_type&   allocator,
+    std::in_place_type_t<U> in_place_type,
     Args_T&&... args
 )
     requires(std::is_constructible_v<U, Args_T && ...> && storable<U>())
     : m_allocator{ allocator },
-      m_handle{ m_allocator.template new_object<U>(std::forward<Args_T>(args)...) },
-      m_copy_mechanism{ std::in_place_type<U> }
+      m_storage{
+          EraseMechanism<T, move_only_T, size_T, alignment_T>::construct(
+              std::allocator_arg,
+              m_allocator,
+              in_place_type,
+              std::forward<Args_T>(args)...
+          )   //
+      },
+      m_erase_mechanism{ std::in_place_type<U> }
 {
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::operator=(const Polymorphic& other) -> Polymorphic&
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator=(const Polymorphic& other)
+    -> Polymorphic&
     requires(!is_move_only())
 {
     if (this == &other)
@@ -459,21 +641,18 @@ auto Polymorphic<T, move_only_T>::operator=(const Polymorphic& other) -> Polymor
         return *this;
     }
 
-    other.m_copy_mechanism.assign(
-        m_allocator,
-        m_handle,
-        other.m_handle,
-        m_copy_mechanism.type_hash(),
-        other.m_copy_mechanism.type_hash()
+    other.m_erase_mechanism.copy_assign(
+        m_allocator, m_storage, other.m_storage, other.m_erase_mechanism.type_hash()
     );
-    m_copy_mechanism = other.m_copy_mechanism;
+    m_erase_mechanism = other.m_erase_mechanism;
 
     return *this;
 }
 
-template <decayed_c T, bool move_only_T>
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
 // NOLINTNEXTLINE(*-noexcept-move-operations,*-noexcept-move,*-noexcept-move-constructor)
-auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) -> Polymorphic&
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator=(Polymorphic&& other)
+    -> Polymorphic&
     requires(!is_move_only())
 {
     if (this == &other)
@@ -493,8 +672,10 @@ auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) -> Polymorphic&
     return *this;
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) noexcept -> Polymorphic&
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator=(
+    Polymorphic&& other
+) noexcept -> Polymorphic&
     requires(is_move_only())
 {
     if (this == &other)
@@ -508,66 +689,62 @@ auto Polymorphic<T, move_only_T>::operator=(Polymorphic&& other) noexcept -> Pol
     return *this;
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::operator->() noexcept -> T*
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator->() noexcept -> T*
 {
-    PRECOND(m_handle != nullptr);
-    return m_handle;
+    return m_erase_mechanism.address_of(m_storage);
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::operator->() const noexcept -> const T*
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator->() const noexcept
+    -> const T*
 {
-    PRECOND(m_handle != nullptr);
-    return m_handle;
+    return m_erase_mechanism.address_of(m_storage);
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::operator*() noexcept -> T&
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator*() noexcept -> T&
 {
-    PRECOND(m_handle != nullptr);
-    // ReSharper disable once CppDFANullDereference
-    return *m_handle;
+    return m_erase_mechanism.dereference(m_storage);
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::operator*() const noexcept -> const T&
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::operator*() const noexcept
+    -> const T&
 {
-    PRECOND(m_handle != nullptr);
-    // ReSharper disable once CppDFANullDereference
-    return *m_handle;
+    return m_erase_mechanism.dereference(m_storage);
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::get_allocator() const noexcept -> allocator_type
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::get_allocator() const noexcept
+    -> allocator_type
 {
     return m_allocator;
 }
 
 // NOLINTNEXTLINE(*-noexcept-swap)
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::swap(Polymorphic& other) -> void
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::swap(Polymorphic& other) -> void
 {
     PRECOND(m_allocator == other.m_allocator);
 
-    std::swap(m_handle, other.m_handle);
-    std::swap(m_copy_mechanism, other.m_copy_mechanism);
+    m_erase_mechanism.swap(m_storage, other.m_storage);
+    std::swap(m_erase_mechanism, other.m_erase_mechanism);
 }
 
-template <decayed_c T, bool move_only_T>
-auto Polymorphic<T, move_only_T>::release() -> void
+template <decayed_c T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto Polymorphic<T, move_only_T, size_T, alignment_T>::release() -> void
 {
-    if (m_handle != nullptr)
-    {
-        m_allocator.delete_object(m_handle);
-        m_handle = nullptr;
-    }
+    m_erase_mechanism.release(m_allocator, m_storage);
 }
 
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
 // NOLINTNEXTLINE(*-noexcept-swap)
-template <typename T>
-auto swap(Polymorphic<T>& lhs, Polymorphic<T>& rhs) -> void
+template <typename T, bool move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto swap(
+    Polymorphic<T, move_only_T, size_T, alignment_T>& lhs,
+    Polymorphic<T, move_only_T, size_T, alignment_T>& rhs
+) -> void
 {
     lhs.swap(rhs);
 }
