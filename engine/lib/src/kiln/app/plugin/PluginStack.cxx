@@ -257,7 +257,22 @@ auto PluginStack::fix_order(
          * Shift injection in front of the first dependent injection
          */
 
+        const auto first_dependent_plugin_hash_iter{
+            std::next(
+                m_plugin_hashes.begin(),
+                std::distance(m_plugins.begin(), first_dependent_plugin_iter)
+            )   //
+        };
+        const auto plugin_hash_iter{
+            std::next(
+                m_plugin_hashes.begin(), std::distance(m_plugins.begin(), plugin_iter)
+            )   //
+        };
+
         // TODO: use std::ranges::rotate when libc++ supports it
+        std::rotate(
+            first_dependent_plugin_hash_iter, plugin_hash_iter, std::next(plugin_hash_iter)
+        );
         first_dependent_plugin_iter =
             std::rotate(first_dependent_plugin_iter, plugin_iter, std::next(plugin_iter));
     }

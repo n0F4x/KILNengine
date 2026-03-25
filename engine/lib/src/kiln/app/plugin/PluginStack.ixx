@@ -180,27 +180,22 @@ template <typename Self_T>
 auto PluginStack::find(this Self_T& self, const uint64_t plugin_hash) noexcept
     -> util::OptionalRef<util::const_like_t<ErasedPlugin, Self_T>>
 {
-    const auto distance{
-        static_cast<uint32_t>(
-            std::distance(
-                std::ranges::begin(self.PluginStack::m_plugin_hashes),
-                std::ranges::find(
-                    self.PluginStack::m_plugin_hashes,
-                    plugin_hash
-                )
-            )   //
-        )       //
+    const auto plugin_hash_iter{
+        std::ranges::find(self.PluginStack::m_plugin_hashes, plugin_hash)
     };
-    if (distance == std::ranges::size(self.PluginStack::m_plugin_hashes))
+    if (plugin_hash_iter == self.PluginStack::m_plugin_hashes.cend())
     {
         return std::nullopt;
     }
 
-    return self.PluginStack::m_plugins[distance];
+    return *std::next(
+        self.PluginStack::m_plugins.begin(),
+        std::distance(self.PluginStack::m_plugin_hashes.begin(), plugin_hash_iter)
+    );
 }
 
 template <typename Self_T>
-auto PluginStack::at(this Self_T& self, uint64_t plugin_hash) noexcept
+auto PluginStack::at(this Self_T& self, const uint64_t plugin_hash) noexcept
     -> util::const_like_t<ErasedPlugin, Self_T>&
 {
     const util::OptionalRef found{ self.PluginStack::find(plugin_hash) };
