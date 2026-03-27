@@ -35,6 +35,7 @@ target_sources(VulkanCppModule PUBLIC
 )
 target_compile_definitions(VulkanCppModule PUBLIC
         VK_NO_PROTOTYPES
+        VULKAN_HPP_ASSERT_ON_RESULT=void
         VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
         VULKAN_HPP_NO_EXCEPTIONS
         VULKAN_HPP_NO_CONSTRUCTORS
