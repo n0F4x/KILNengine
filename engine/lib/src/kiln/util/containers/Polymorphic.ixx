@@ -463,7 +463,7 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
     {
         if constexpr (uses_small_buffer())
         {
-            std::construct_at(
+            destination_allocator.construct(
                 static_cast<U*>(destination_storage.small_buffer.data()),
                 std::move(*static_cast<U*>(source_storage.small_buffer.data()))
             );
