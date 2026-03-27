@@ -26,13 +26,9 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
             -Wold-style-cast
             -Wcast-align
             -Wcast-qual
+            -Wnrvo
             -Wno-unused-command-line-argument
     )
-    if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL 21)
-        add_compile_options(
-                -Wnrvo
-        )
-    endif ()
     if (${project_prefix}DEBUG AND LIBCPP)
         add_compile_definitions(
                 _LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG
