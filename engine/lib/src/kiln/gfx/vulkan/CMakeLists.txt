@@ -4,6 +4,7 @@ add_subdirectory(result)
 add_subdirectory(structure_chain)
 
 target_sources(${PROJECT_NAME} PRIVATE
+        Bundle.cxx
         DebugMessengerPlugin.cxx
         DeviceBuilder.cxx
         global_definitions.cpp
@@ -18,6 +19,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         vulkan.cppm
+        Bundle.ixx
         context.ixx
         DebugMessengerPlugin.ixx
         DebugMessengerPluginInjection.ixx

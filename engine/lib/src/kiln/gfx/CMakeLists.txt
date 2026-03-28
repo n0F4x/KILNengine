@@ -6,4 +6,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         gfx.cppm
+        Bundle.ixx
 )

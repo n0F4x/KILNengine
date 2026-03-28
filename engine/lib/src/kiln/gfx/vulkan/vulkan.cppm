@@ -5,6 +5,7 @@ export import kiln.gfx.vulkan.format;
 export import kiln.gfx.vulkan.result;
 export import kiln.gfx.vulkan.structure_chain;
 
+export import kiln.gfx.vulkan.Bundle;
 export import kiln.gfx.vulkan.context;
 export import kiln.gfx.vulkan.DebugMessengerPlugin;
 export import kiln.gfx.vulkan.DebugMessengerPluginInjection;
