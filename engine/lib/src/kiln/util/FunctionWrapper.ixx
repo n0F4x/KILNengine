@@ -4,7 +4,7 @@ module;
 #include <functional>
 #include <utility>
 
-export module kiln.util.containers.FunctionWrapper;
+export module kiln.util.FunctionWrapper;
 
 import kiln.util.concepts.naked;
 import kiln.util.concepts.function;

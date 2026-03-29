@@ -6,12 +6,16 @@ module;
 
 export module kiln.util.reflection;
 
+import kiln.util.hash;
+
 namespace kiln::util {
 
 export template <typename T>
+[[nodiscard]]
 consteval auto name_of() noexcept -> std::string_view;
 
 export template <typename T>
+[[nodiscard]]
 consteval auto hash_u64() noexcept -> uint64_t;
 
 }   // namespace kiln::util
@@ -88,19 +92,8 @@ consteval auto name_of() noexcept -> std::string_view
 
 template <typename T>
 consteval auto hash_u64() noexcept -> uint64_t
-{   // "Fowler–Noll–Vo - 1a" hash function
-    constexpr uint64_t offset{ 14'695'981'039'346'656'037ull };
-    // ReSharper disable once CppTooWideScope
-    constexpr uint64_t prime{ 1'099'511'628'211ull };
-
-    uint64_t result{ offset };
-
-    for (const auto character : name_of<T>())
-    {
-        result = (result ^ static_cast<uint64_t>(character)) * prime;
-    }
-
-    return result;
+{
+    return hash_u64(name_of<T>());
 }
 
 }   // namespace kiln::util

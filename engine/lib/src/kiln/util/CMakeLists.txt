@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         EnumMask.ixx
         for_each.ixx
         FunctionWrapper.ixx
+        hash.ixx
         Lazy.ixx
         Overloaded.ixx
         reflection.ixx

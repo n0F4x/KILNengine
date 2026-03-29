@@ -15,4 +15,6 @@ export template <
     std::size_t alignment_T = sizeof(void*)>
 using MoveOnlyFunction = Function<Signature_T, true, size_T, alignment_T>;
 
+export using util::any_cast;
+
 }   // namespace kiln::util

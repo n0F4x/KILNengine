@@ -6,7 +6,7 @@ module;
 
 export module kiln.util.Overloaded;
 
-import kiln.util.containers.FunctionWrapper;
+import kiln.util.FunctionWrapper;
 
 namespace kiln::util {
 

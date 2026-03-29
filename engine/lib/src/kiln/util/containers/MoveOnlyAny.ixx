@@ -18,4 +18,6 @@ export using MoveOnlyAny = BasicMoveOnlyAny<>;
 export template <typename T>
 concept move_only_any_c = any_c<T> && (T::is_move_only());
 
+export using util::any_cast;
+
 }   // namespace kiln::util

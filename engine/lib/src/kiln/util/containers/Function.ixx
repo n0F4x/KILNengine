@@ -43,6 +43,8 @@ using Function = BasicAny<typename internal::FunctionTraits<
     Signature_T,
     arguments_of_t<Signature_T>>::AnyTraits>;
 
+export using util::any_cast;
+
 }   // namespace kiln::util
 
 namespace kiln::util::internal {
