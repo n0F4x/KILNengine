@@ -1,10 +1,10 @@
-module kiln.gfx.renderer.command.CommandPluginInjection;
+module kiln.gfx.renderer.command.CommandPlugin;
 
 import vulkan_hpp;
 
 namespace kiln::gfx::renderer {
 
-auto CommandPluginInjection::operator()(
+auto make_command_plugin(
     vulkan::InstancePlugin& instance_plugin,
     DevicePlugin&           device_plugin
 ) -> CommandPlugin

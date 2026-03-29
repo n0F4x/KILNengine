@@ -22,13 +22,11 @@ target_sources(${PROJECT_NAME} PUBLIC
         Bundle.ixx
         context.ixx
         DebugMessengerPlugin.ixx
-        DebugMessengerPluginInjection.ixx
         Device.ixx
         DeviceBuilder.ixx
         ErasedQueueRequest.ixx
         InstanceBuilder.ixx
         InstancePlugin.ixx
-        InstancePluginInjection.ixx
         PhysicalDeviceCapabilities.ixx
         PhysicalDeviceFilter.ixx
         Profile.ixx

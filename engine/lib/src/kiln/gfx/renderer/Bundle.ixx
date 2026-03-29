@@ -1,12 +1,12 @@
 export module kiln.gfx.renderer.Bundle;
 
 import kiln.app.Builder;
-import kiln.gfx.renderer.command.CommandPluginInjection;
-import kiln.gfx.renderer.command.QueueProviderPluginInjection;
-import kiln.gfx.renderer.device.DevicePluginInjection;
-import kiln.gfx.renderer.memory.AllocatorPluginInjection;
-import kiln.gfx.renderer.pipeline.PipelinePluginInjection;
-import kiln.gfx.renderer.presentation.PresentationPluginInjection;
+import kiln.gfx.renderer.command.CommandPlugin;
+import kiln.gfx.renderer.command.QueueProviderPlugin;
+import kiln.gfx.renderer.device.DevicePlugin;
+import kiln.gfx.renderer.memory.AllocatorPlugin;
+import kiln.gfx.renderer.pipeline.PipelinePlugin;
+import kiln.gfx.renderer.presentation.PresentationPlugin;
 
 namespace kiln::gfx::renderer {
 
@@ -35,15 +35,15 @@ Bundle::Bundle(const CreateInfo& create_info) : m_headless{ create_info.headless
 
 auto Bundle::operator()(app::Builder& builder) const -> void
 {
-    builder.inject_plugin(DevicePluginInjection{});
-    builder.inject_meta_plugin(CommandPluginInjection{});
-    builder.inject_plugin(QueueProviderPluginInjection{});
-    builder.inject_plugin(AllocatorPluginInjection{});
+    builder.inject_plugin(make_device_plugin);
+    builder.inject_meta_plugin(make_command_plugin);
+    builder.inject_plugin(make_queue_provider_plugin);
+    builder.inject_plugin(make_allocator_plugin);
     if (!m_headless)
     {
-        builder.inject_meta_plugin(PresentationPluginInjection{});
+        builder.inject_meta_plugin(make_presentation_plugin);
     }
-    builder.inject_meta_plugin(PipelinePluginInjection{});
+    builder.inject_meta_plugin(make_pipeline_plugin);
 }
 
 }   // namespace kiln::gfx::renderer

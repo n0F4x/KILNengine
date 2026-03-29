@@ -10,7 +10,7 @@ export module kiln.app.Builder;
 
 import kiln.app.App;
 import kiln.app.memory.Arena;
-import kiln.app.memory.MemoryPluginInjection;
+import kiln.app.memory.MemoryPlugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.meta_plugin_injection_c;
 import kiln.app.plugin.plugin_c;
@@ -31,7 +31,7 @@ public:
         requires std::constructible_from<Plugin_T, Args_T&&...>
     auto emplace_plugin(this Self_T&&, Args_T&&... args) -> Self_T&&;
 
-    template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
+    template <typename Self_T, plugin_injection_c PluginInjection_T>
     auto inject_plugin(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T&&;
 
 
@@ -42,7 +42,7 @@ public:
         requires std::constructible_from<MetaPlugin_T, Args_T&&...>
     auto emplace_meta_plugin(this Self_T&&, Args_T&&... args) -> Self_T&&;
 
-    template <typename Self_T, decays_to_meta_plugin_injection_c MetaPluginInjection_T>
+    template <typename Self_T, meta_plugin_injection_c MetaPluginInjection_T>
     auto inject_meta_plugin(this Self_T&&, MetaPluginInjection_T&& meta_plugin_injection)
         -> Self_T&&;
 
@@ -66,29 +66,47 @@ private:
 
 namespace kiln::app {
 
+Builder::Builder()
+{
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        m_builder_arena.make_transient_resource()
+    };
+
+    m_plugin_tree.insert_meta_plugin(
+        MemoryPlugin{ m_app_arena, m_builder_arena }, transient_memory_resource
+    );
+}
+
 template <typename Self_T, decays_to_plugin_c Plugin_T>
 auto Builder::insert_plugin(this Self_T&& self, Plugin_T&& plugin) -> Self_T&&
 {
-    return std::forward<Self_T>(self)
-        .template emplace_plugin<std::remove_cvref_t<Plugin_T>>(
-            std::forward<Plugin_T>(plugin)
-        );
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        self.Builder::m_builder_arena.make_transient_resource()
+    };
+
+    self.Builder::m_plugin_tree.insert_plugin(
+        std::forward<Plugin_T>(plugin), transient_memory_resource
+    );
+
+    return std::forward<Self_T>(self);
 }
 
 template <plugin_c Plugin_T, typename Self_T, typename... Args_T>
     requires std::constructible_from<Plugin_T, Args_T&&...>
 auto Builder::emplace_plugin(this Self_T&& self, Args_T&&... args) -> Self_T&&
 {
-    return std::forward<Self_T>(self).inject_plugin(
-        [x_plugin =
-             Plugin_T(std::forward<Args_T>(args)...)] mutable -> std::decay_t<Plugin_T>
-        {
-            return std::move(x_plugin);   //
-        }
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        self.Builder::m_builder_arena.make_transient_resource()
+    };
+
+    self.Builder::m_plugin_tree.template emplace_plugin<Plugin_T>(
+        transient_memory_resource, std::forward<Args_T>(args)...
     );
+
+    return std::forward<Self_T>(self);
 }
 
-template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
+template <typename Self_T, plugin_injection_c PluginInjection_T>
 auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injection)
     -> Self_T&&
 {
@@ -96,9 +114,7 @@ auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injec
         self.Builder::m_builder_arena.make_transient_resource()
     };
 
-    self.Builder::m_plugin_tree.plug_in(
-        std::forward_like<PluginInjection_T>(plugin_injection), transient_memory_resource
-    );
+    self.Builder::m_plugin_tree.inject_plugin(plugin_injection, transient_memory_resource);
 
     return std::forward<Self_T>(self);
 }
@@ -107,26 +123,33 @@ template <typename Self_T, decays_to_meta_plugin_c MetaPlugin_T>
 auto Builder::insert_meta_plugin(this Self_T&& self, MetaPlugin_T&& meta_plugin)
     -> Self_T&&
 {
-    return std::forward<Self_T>(self)
-        .template emplace_meta_plugin<std::remove_cvref_t<MetaPlugin_T>>(
-            std::forward<MetaPlugin_T>(meta_plugin)
-        );
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        self.Builder::m_builder_arena.make_transient_resource()
+    };
+
+    self.Builder::m_plugin_tree.insert_meta_plugin(
+        std::forward<MetaPlugin_T>(meta_plugin), transient_memory_resource
+    );
+
+    return std::forward<Self_T>(self);
 }
 
 template <meta_plugin_c MetaPlugin_T, typename Self_T, typename... Args_T>
     requires std::constructible_from<MetaPlugin_T, Args_T&&...>
 auto Builder::emplace_meta_plugin(this Self_T&& self, Args_T&&... args) -> Self_T&&
 {
-    return std::forward<Self_T>(self).inject_meta_plugin(
-        [x_meta_plugin = MetaPlugin_T(std::forward<Args_T>(args)...)] mutable
-            -> std::decay_t<MetaPlugin_T>
-        {
-            return std::move(x_meta_plugin);   //
-        }
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        self.Builder::m_builder_arena.make_transient_resource()
+    };
+
+    self.Builder::m_plugin_tree.template emplace_meta_plugin<MetaPlugin_T>(
+        transient_memory_resource, std::forward<Args_T>(args)...
     );
+
+    return std::forward<Self_T>(self);
 }
 
-template <typename Self_T, decays_to_meta_plugin_injection_c MetaPluginInjection_T>
+template <typename Self_T, meta_plugin_injection_c MetaPluginInjection_T>
 auto Builder::inject_meta_plugin(
     this Self_T&&           self,
     MetaPluginInjection_T&& meta_plugin_injection
@@ -136,9 +159,8 @@ auto Builder::inject_meta_plugin(
         self.Builder::m_builder_arena.make_transient_resource()
     };
 
-    self.Builder::m_plugin_tree.plug_in_meta(
-        std::forward_like<MetaPluginInjection_T>(meta_plugin_injection),
-        transient_memory_resource
+    self.Builder::m_plugin_tree.inject_meta_plugin(
+        meta_plugin_injection, transient_memory_resource
     );
 
     return std::forward<Self_T>(self);
@@ -152,12 +174,7 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
     return std::forward<Self_T>(self);
 }
 
-inline Builder::Builder()
-{
-    m_plugin_tree.plug_in_meta(MemoryPluginInjection{ m_app_arena, m_builder_arena });
-}
-
-inline auto Builder::build() && -> App
+auto Builder::build() && -> App
 {
     App result{ std::move(m_app_arena) };
 

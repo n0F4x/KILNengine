@@ -1,14 +1,14 @@
 module kiln.gfx.vulkan.Bundle;
 
-import kiln.gfx.vulkan.InstancePluginInjection;
-import kiln.gfx.vulkan.DebugMessengerPluginInjection;
+import kiln.gfx.vulkan.InstancePlugin;
+import kiln.gfx.vulkan.DebugMessengerPlugin;
 
 namespace kiln::gfx::vulkan {
 
 auto Bundle::operator()(app::Builder& builder) -> void
 {
-    builder.inject_plugin(InstancePluginInjection{});
-    builder.inject_plugin(DebugMessengerPluginInjection{});
+    builder.inject_plugin(make_instance_plugin);
+    builder.inject_plugin(make_debug_messenger_plugin);
 }
 
 }   // namespace kiln::gfx::vulkan

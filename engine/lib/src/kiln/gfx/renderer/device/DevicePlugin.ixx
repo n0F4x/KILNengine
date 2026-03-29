@@ -7,6 +7,7 @@ export module kiln.gfx.renderer.device.DevicePlugin;
 
 import vulkan_hpp;
 
+import kiln.app.memory.MemoryPlugin;
 import kiln.app.plugin.PluginInterface;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.DeviceBuilder;
@@ -50,6 +51,9 @@ private:
     vulkan::DeviceBuilder m_device_builder;
 };
 
+export [[nodiscard]]
+auto make_device_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin;
+
 }   // namespace kiln::gfx::renderer
 
 namespace kiln::gfx::renderer {
@@ -66,6 +70,11 @@ auto DevicePlugin::operator->(this Self_T& self)
     -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*
 {
     return &self.DevicePlugin::m_device_builder;
+}
+
+auto make_device_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin
+{
+    return DevicePlugin{ memory_plugin.builder_local_arena().pool_allocator() };
 }
 
 }   // namespace kiln::gfx::renderer

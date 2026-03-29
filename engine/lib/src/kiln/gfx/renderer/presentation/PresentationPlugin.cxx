@@ -2,7 +2,7 @@ module;
 
 #include <span>
 
-module kiln.gfx.renderer.presentation.PresentationPluginInjection;
+module kiln.gfx.renderer.presentation.PresentationPlugin;
 
 import vulkan_hpp;
 
@@ -16,7 +16,7 @@ import kiln.wsi.vulkan_queue_family_supports_presenting;
 
 namespace kiln::gfx::renderer {
 
-auto PresentationPluginInjection::operator()(
+auto make_presentation_plugin(
     vulkan::InstancePlugin& instance_plugin,
     const wsi::Plugin&      wsi_plugin,
     DevicePlugin&           device_plugin

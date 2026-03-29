@@ -5,5 +5,4 @@ target_sources(${PROJECT_NAME} PUBLIC
         memory.cppm
         Arena.ixx
         MemoryPlugin.ixx
-        MemoryPluginInjection.ixx
 )

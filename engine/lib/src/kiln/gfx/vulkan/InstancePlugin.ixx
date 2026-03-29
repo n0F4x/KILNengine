@@ -11,6 +11,7 @@ import vulkan_hpp;
 
 import kiln.app.plugin.PluginInterface;
 import kiln.config.Config;
+import kiln.config.Plugin;
 import kiln.gfx.vulkan.context;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.util.StringLiteral;
@@ -44,6 +45,9 @@ private:
     InstanceBuilder m_instance_builder;
 };
 
+export [[nodiscard]]
+auto make_instance_plugin(const config::Plugin& config_plugin) -> InstancePlugin;
+
 }   // namespace kiln::gfx::vulkan
 
 namespace kiln::gfx::vulkan {
@@ -65,6 +69,11 @@ auto InstancePlugin::operator->(this Self_T& self)
     -> util::const_like_t<InstanceBuilder, Self_T>*
 {
     return &self.m_instance_builder;
+}
+
+auto make_instance_plugin(const config::Plugin& config_plugin) -> InstancePlugin
+{
+    return InstancePlugin{ config_plugin.config() };
 }
 
 }   // namespace kiln::gfx::vulkan

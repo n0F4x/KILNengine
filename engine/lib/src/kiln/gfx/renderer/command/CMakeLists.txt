@@ -1,7 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
         CommandBufferBase.cxx
         CommandPoolBase.cxx
-        CommandPluginInjection.cxx
+        CommandPlugin.cxx
         GraphicsCommandBuffer.cxx
         GraphicsQueueRef.cxx
         queue_requests.cxx
@@ -22,7 +22,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandPoolBase.ixx
         CommandPoolFlags.ixx
         CommandPlugin.ixx
-        CommandPluginInjection.ixx
         DependencyInfo.ixx
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx
@@ -30,7 +29,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         queue_requests.ixx
         QueueProvider.ixx
         QueueProviderPlugin.ixx
-        QueueProviderPluginInjection.ixx
         QueueRefBase.ixx
         SubmitInfo.ixx
         TransferCommandBuffer.ixx

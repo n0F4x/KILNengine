@@ -12,7 +12,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         DepthAttachment.ixx
         GraphicsPipeline.ixx
         PipelinePlugin.ixx
-        PipelinePluginInjection.ixx
         RenderPass.ixx
         ShaderModule.ixx
 )

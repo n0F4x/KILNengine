@@ -1,5 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
-        PresentationPluginInjection.cxx
+        PresentationPlugin.cxx
         RenderSurface.cxx
         Swapchain.cxx
 )
@@ -11,7 +11,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         presentation.cppm
         PresentationPlugin.ixx
         PresentationPluginFailedError.ixx
-        PresentationPluginInjection.ixx
         RenderSurface.ixx
         Swapchain.ixx
 )

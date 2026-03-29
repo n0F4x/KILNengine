@@ -118,24 +118,57 @@ public:
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
+
     explicit PluginTree(const allocator_type& allocator);
+
 
     [[nodiscard]]
     auto contains(uint64_t plugin_hash) const noexcept -> bool;
 
-    template <decays_to_plugin_injection_c PluginInjection_T>
-    auto plug_in(
-        PluginInjection_T&&        plugin_injection,
-        std::pmr::memory_resource& transient_memory_resource =
-            *std::pmr::get_default_resource()
-    ) -> std::decay_t<PluginInjection_T>&;
 
-    template <decays_to_meta_plugin_injection_c PluginInjection_T>
-    auto plug_in_meta(
+    template <decays_to_plugin_c Plugin_T>
+    auto insert_plugin(
+        Plugin_T&&                 plugin,
+        std::pmr::memory_resource& transient_memory_resource =
+            *std::pmr::get_default_resource()
+    ) -> void;
+
+    template <plugin_c Plugin_T, typename... Args_T>
+        requires std::constructible_from<Plugin_T, Args_T&&...>
+    auto emplace_plugin(
+        std::pmr::memory_resource& transient_memory_resource,
+        Args_T&&... args
+    ) -> void;
+
+    template <plugin_injection_c PluginInjection_T>
+    auto inject_plugin(
         PluginInjection_T&&        plugin_injection,
         std::pmr::memory_resource& transient_memory_resource =
             *std::pmr::get_default_resource()
-    ) -> std::decay_t<PluginInjection_T>&;
+    ) -> void;
+
+
+    template <decays_to_meta_plugin_c MetaPlugin_T>
+    auto insert_meta_plugin(
+        MetaPlugin_T&&             meta_plugin,
+        std::pmr::memory_resource& transient_memory_resource =
+            *std::pmr::get_default_resource()
+    ) -> void;
+
+    template <meta_plugin_c MetaPlugin_T, typename... Args_T>
+        requires std::constructible_from<MetaPlugin_T, Args_T&&...>
+    auto emplace_meta_plugin(
+        std::pmr::memory_resource& transient_memory_resource,
+        Args_T&&... args
+    ) -> void;
+
+    template <meta_plugin_injection_c PluginInjection_T>
+    auto inject_meta_plugin(
+        PluginInjection_T&&        plugin_injection,
+        std::pmr::memory_resource& transient_memory_resource =
+            *std::pmr::get_default_resource()
+    ) -> void;
+
 
     auto build_plugins(
         App&                       app,
@@ -163,10 +196,10 @@ private:
 
 
     template <typename PluginInjection_T>
-    auto plug_in_maybe_meta(
+    auto inject_maybe_meta_plugin(
         PluginInjection_T&&        plugin_injection,
         std::pmr::memory_resource& transient_memory_resource
-    ) -> std::decay_t<PluginInjection_T>&;
+    ) -> void;
 
     template <typename Plugin_T>
     auto check_for_duplicated_plugin() const -> void;
@@ -322,33 +355,89 @@ auto PluginTree::contains(const uint64_t plugin_hash) const noexcept -> bool
     );
 }
 
-template <decays_to_plugin_injection_c PluginInjection_T>
-auto PluginTree::plug_in(
+template <decays_to_plugin_c Plugin_T>
+auto PluginTree::insert_plugin(
+    Plugin_T&&                 plugin,
+    std::pmr::memory_resource& transient_memory_resource
+) -> void
+{
+    emplace_plugin<std::remove_cvref_t<Plugin_T>>(
+        transient_memory_resource, std::forward<Plugin_T>(plugin)
+    );
+}
+
+template <plugin_c Plugin_T, typename... Args_T>
+    requires std::constructible_from<Plugin_T, Args_T&&...>
+auto PluginTree::emplace_plugin(
+    std::pmr::memory_resource& transient_memory_resource,
+    Args_T&&... args
+) -> void
+{
+    inject_maybe_meta_plugin(
+        [x_plugin =
+             Plugin_T(std::forward<Args_T>(args)...)] mutable -> std::decay_t<Plugin_T>
+        {
+            return std::move(x_plugin);   //
+        },
+        transient_memory_resource
+    );
+}
+
+template <plugin_injection_c PluginInjection_T>
+auto PluginTree::inject_plugin(
     PluginInjection_T&&        plugin_injection,
     std::pmr::memory_resource& transient_memory_resource
-) -> std::decay_t<PluginInjection_T>&
+) -> void
 {
-    return plug_in_maybe_meta(
+    inject_maybe_meta_plugin(
         std::forward<PluginInjection_T>(plugin_injection), transient_memory_resource
     );
 }
 
-template <decays_to_meta_plugin_injection_c PluginInjection_T>
-auto PluginTree::plug_in_meta(
+template <decays_to_meta_plugin_c MetaPlugin_T>
+auto PluginTree::insert_meta_plugin(
+    MetaPlugin_T&&             meta_plugin,
+    std::pmr::memory_resource& transient_memory_resource
+) -> void
+{
+    emplace_meta_plugin<std::remove_cvref_t<MetaPlugin_T>>(
+        transient_memory_resource, std::forward<MetaPlugin_T>(meta_plugin)
+    );
+}
+
+template <meta_plugin_c MetaPlugin_T, typename... Args_T>
+    requires std::constructible_from<MetaPlugin_T, Args_T&&...>
+auto PluginTree::emplace_meta_plugin(
+    std::pmr::memory_resource& transient_memory_resource,
+    Args_T&&... args
+) -> void
+{
+    inject_maybe_meta_plugin(
+        [x_meta_plugin = MetaPlugin_T(std::forward<Args_T>(args)...)] mutable
+            -> std::decay_t<MetaPlugin_T>
+        {
+            return std::move(x_meta_plugin);   //
+        },
+        transient_memory_resource
+    );
+}
+
+template <meta_plugin_injection_c PluginInjection_T>
+auto PluginTree::inject_meta_plugin(
     PluginInjection_T&&        plugin_injection,
     std::pmr::memory_resource& transient_memory_resource
-) -> std::decay_t<PluginInjection_T>&
+) -> void
 {
-    return plug_in_maybe_meta(
+    inject_maybe_meta_plugin(
         std::forward<PluginInjection_T>(plugin_injection), transient_memory_resource
     );
 }
 
 template <typename PluginInjection_T>
-auto PluginTree::plug_in_maybe_meta(
+auto PluginTree::inject_maybe_meta_plugin(
     PluginInjection_T&&        plugin_injection,
     std::pmr::memory_resource& transient_memory_resource
-) -> std::decay_t<PluginInjection_T>&
+) -> void
 {
     using Plugin = util::result_of_t<PluginInjection_T>;
     constexpr static uint64_t plugin_hash{ hash_plugin<Plugin>() };
@@ -357,20 +446,12 @@ auto PluginTree::plug_in_maybe_meta(
     check_required_dependencies<PluginInjection_T>();
     check_for_cyclic_dependencies<PluginInjection_T>(transient_memory_resource);
 
-    internal::ErasedPluginInjection& erased_result{
+    const internal::ErasedPluginInjection& erased_result{
         push_back(std::forward<PluginInjection_T>(plugin_injection))
-    };
-    std::decay_t<PluginInjection_T>& result{
-        util::any_cast<internal::PluginInjectionLambda<std::decay_t<PluginInjection_T>>>(
-            erased_result.underlying_function()
-        )
-            .plugin_injection
     };
 
     reestablish_internal_ordering_of_plugins(erased_result, transient_memory_resource);
     resolve(plugin_hash);
-
-    return result;
 }
 
 template <typename Plugin_T>

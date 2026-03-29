@@ -11,7 +11,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         Allocation.ixx
         Allocator.ixx
         AllocatorPlugin.ixx
-        AllocatorPluginInjection.ixx
         Buffer.ixx
         MemoryTypeID.ixx
         MemoryView.ixx
