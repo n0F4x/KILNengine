@@ -380,7 +380,11 @@ auto PluginTree::plug_in(std::pmr::memory_resource& transient_memory_resource) -
 {
     constexpr static uint64_t plugin_hash{ hash_plugin<Plugin_T>() };
 
-    check_for_duplicated_plugin<Plugin_T>();
+    if (contains(plugin_hash))
+    {
+        return;
+    }
+
     check_required_dependencies<Plugin_T>();
     check_for_cyclic_dependencies<Plugin_T>(transient_memory_resource);
 
