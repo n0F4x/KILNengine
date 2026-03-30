@@ -12,10 +12,8 @@ module demo;
 import kiln;
 
 [[nodiscard]]
-auto create_window(
-    const kiln::config::Config& config,
-    const kiln::wsi::Context&   wsi_context
-) -> kiln::wsi::Window
+auto create_window(const kiln::app::Config& config, const kiln::wsi::Context& wsi_context)
+    -> kiln::wsi::Window
 {
     constexpr static kiln::wsi::WindowedWindowSettings screen_settings{
         .content_size{ .width = 640, .height = 480 }
@@ -148,7 +146,7 @@ Demo::Demo(Demo&& other, const allocator_type& allocator)
 Demo::Demo(
     const std::allocator_arg_t,
     const allocator_type&                     allocator,
-    const kiln::config::Config&               config,
+    const kiln::app::Config&                  config,
     const vk::raii::Instance&                 vulkan_instance,
     const kiln::wsi::Context&                 wsi_context,
     const kiln::gfx::renderer::Device&        render_device,
@@ -348,9 +346,19 @@ auto Demo::shut_down() -> void
     m_render_device_ref.get().logical_device().waitIdle();
 }
 
+auto DemoPlugin::create_plugin(
+    kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
+    const kiln::gfx::renderer::PipelinePlugin&
+) -> DemoPlugin
+{
+    queue_provider_plugin.require_graphics_queue();
+
+    return DemoPlugin{};
+}
+
 auto DemoPlugin::operator()(
     kiln::app::Arena&                         arena,
-    const kiln::config::Config&               config,
+    const kiln::app::Config&                  config,
     const vk::raii::Instance&                 vulkan_instance,
     const kiln::wsi::Context&                 wsi_context,
     const kiln::gfx::renderer::Device&        render_device,
@@ -366,14 +374,4 @@ auto DemoPlugin::operator()(
         render_device,
         render_queue_provider,
     };
-}
-
-auto demo_plugin_injection(
-    kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
-    const kiln::gfx::renderer::PipelinePlugin&
-) -> DemoPlugin
-{
-    queue_provider_plugin.require_graphics_queue();
-
-    return DemoPlugin{};
 }

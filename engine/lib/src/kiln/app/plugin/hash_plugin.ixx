@@ -14,23 +14,20 @@ import kiln.util.type_traits.result_of;
 
 namespace kiln::app {
 
-template <typename T>
-concept maybe_meta_plugin_c = plugin_c<T> || meta_plugin_c<T>;
-
 template <typename MetaPlugin_T>
 struct MetaWrap {};
 
-export template <maybe_meta_plugin_c MaybeMetaPlugin_T>
+export template <typename MaybeMetaPlugin_T>
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue
 consteval auto hash_plugin() -> uint64_t
 {
-    if constexpr (plugin_c<MaybeMetaPlugin_T>)
+    if constexpr (requires { &MaybeMetaPlugin_T::operator(); })
     {
         return util::
             hash_u64<util::result_of_t<decltype(&MaybeMetaPlugin_T::operator())>>();
     }
-    else if (meta_plugin_c<MaybeMetaPlugin_T>)
+    else
     {
         if constexpr (std::same_as<MaybeMetaPlugin_T, MemoryPlugin>)
         {

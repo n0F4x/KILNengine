@@ -22,6 +22,11 @@ struct QueueInfo {
 
 export class QueueProviderPlugin : public app::PluginInterface {
 public:
+    [[nodiscard]]
+    static auto
+        create_plugin(DevicePlugin& device_plugin, const CommandPlugin& command_plugin)
+            -> QueueProviderPlugin;
+
     explicit QueueProviderPlugin(DevicePlugin& device_plugin);
 
     auto require_graphics_queue() -> void;
@@ -34,12 +39,5 @@ private:
 
     QueueInfo m_graphics_queue_info;
 };
-
-export [[nodiscard]]
-auto make_queue_provider_plugin(DevicePlugin& device_plugin, const CommandPlugin&)
-    -> QueueProviderPlugin
-{
-    return QueueProviderPlugin{ device_plugin };
-}
 
 }   // namespace kiln::gfx::renderer

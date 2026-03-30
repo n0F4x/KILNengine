@@ -14,6 +14,12 @@ import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
+auto QueueProviderPlugin::create_plugin(DevicePlugin& device_plugin, const CommandPlugin&)
+    -> QueueProviderPlugin
+{
+    return QueueProviderPlugin{ device_plugin };
+}
+
 QueueProviderPlugin::QueueProviderPlugin(DevicePlugin& device_plugin)
     : m_device_plugin_ref{ device_plugin }
 {

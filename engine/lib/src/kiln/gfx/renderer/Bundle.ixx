@@ -35,15 +35,15 @@ Bundle::Bundle(const CreateInfo& create_info) : m_headless{ create_info.headless
 
 auto Bundle::operator()(app::Builder& builder) const -> void
 {
-    builder.inject_plugin(make_device_plugin);
-    builder.inject_meta_plugin(make_command_plugin);
-    builder.inject_plugin(make_queue_provider_plugin);
-    builder.inject_plugin(make_allocator_plugin);
+    builder.use_plugin<DevicePlugin>();
+    builder.use_meta_plugin<CommandPlugin>();
+    builder.use_plugin<QueueProviderPlugin>();
+    builder.use_plugin<AllocatorPlugin>();
     if (!m_headless)
     {
-        builder.inject_meta_plugin(make_presentation_plugin);
+        builder.use_meta_plugin<PresentationPlugin>();
     }
-    builder.inject_meta_plugin(make_pipeline_plugin);
+    builder.use_meta_plugin<PipelinePlugin>();
 }
 
 }   // namespace kiln::gfx::renderer

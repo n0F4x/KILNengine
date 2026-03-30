@@ -2,24 +2,18 @@ module;
 
 #include <utility>
 
-export module kiln.config.Plugin;
+export module kiln.app.config.ConfigPlugin;
 
 import kiln.app.plugin.PluginInterface;
-import kiln.config.Config;
+import kiln.app.config.Config;
 import kiln.config.Version;
 import kiln.util.StringLiteral;
 
-namespace kiln::config {
+namespace kiln::app {
 
-export class Plugin : public app::PluginInterface {
+export class ConfigPlugin : public PluginInterface {
 public:
-    constexpr explicit Plugin(
-        const util::StringLiteral app_name,
-        const Version&            app_version = {}
-    )
-        : m_config{ app_name, app_version }
-    {
-    }
+    constexpr explicit ConfigPlugin(const Config& config) : m_config{ config } {}
 
     [[nodiscard]]
     constexpr auto config() const noexcept -> const Config&
@@ -37,4 +31,4 @@ private:
     Config m_config;
 };
 
-}   // namespace kiln::config
+}   // namespace kiln::app

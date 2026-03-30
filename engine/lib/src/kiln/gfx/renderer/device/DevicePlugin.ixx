@@ -22,6 +22,9 @@ public:
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
+    [[nodiscard]]
+    static auto create_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin;
+
 
     DevicePlugin() = default;
     explicit DevicePlugin(const allocator_type& allocator);
@@ -51,12 +54,14 @@ private:
     vulkan::DeviceBuilder m_device_builder;
 };
 
-export [[nodiscard]]
-auto make_device_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin;
-
 }   // namespace kiln::gfx::renderer
 
 namespace kiln::gfx::renderer {
+
+auto DevicePlugin::create_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin
+{
+    return DevicePlugin{ memory_plugin.builder_local_arena().pool_allocator() };
+}
 
 template <typename Self_T>
 auto DevicePlugin::operator*(this Self_T&& self)
@@ -70,11 +75,6 @@ auto DevicePlugin::operator->(this Self_T& self)
     -> util::const_like_t<vulkan::DeviceBuilder, Self_T>*
 {
     return &self.DevicePlugin::m_device_builder;
-}
-
-auto make_device_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin
-{
-    return DevicePlugin{ memory_plugin.builder_local_arena().pool_allocator() };
 }
 
 }   // namespace kiln::gfx::renderer

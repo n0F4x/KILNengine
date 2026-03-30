@@ -13,6 +13,12 @@ namespace kiln::gfx::renderer {
 export class AllocatorPlugin : public app::PluginInterface {
 public:
     [[nodiscard]]
+    static auto create_plugin(
+        vulkan::InstancePlugin& instance_plugin,
+        DevicePlugin&           device_plugin
+    ) -> AllocatorPlugin;
+
+    [[nodiscard]]
     static auto operator()(const vk::raii::Instance& instance, const Device& device)
         -> Allocator
     {
@@ -20,19 +26,13 @@ public:
     }
 };
 
-export [[nodiscard]]
-auto make_allocator_plugin(
-    vulkan::InstancePlugin& instance_plugin,
-    DevicePlugin&           device_plugin
-) -> AllocatorPlugin;
-
 }   // namespace kiln::gfx::renderer
 
 module :private;
 
 namespace kiln::gfx::renderer {
 
-auto make_allocator_plugin(
+auto AllocatorPlugin::create_plugin(
     vulkan::InstancePlugin& instance_plugin,
     DevicePlugin&           device_plugin
 ) -> AllocatorPlugin

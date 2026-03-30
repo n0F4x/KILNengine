@@ -7,13 +7,14 @@ import kiln.wsi.Plugin;
 
 namespace kiln::gfx::renderer {
 
-export class PresentationPlugin : public app::PluginInterface {};
-
-export [[nodiscard]]
-auto make_presentation_plugin(
-    vulkan::InstancePlugin& instance_plugin,
-    const wsi::Plugin&      wsi_plugin,
-    DevicePlugin&           device_plugin
-) -> PresentationPlugin;
+export class PresentationPlugin : public app::PluginInterface {
+public:
+    [[nodiscard]]
+    static auto create_plugin(
+        vulkan::InstancePlugin& instance_plugin,
+        const wsi::Plugin&      wsi_plugin,
+        DevicePlugin&           device_plugin
+    ) -> PresentationPlugin;
+};
 
 }   // namespace kiln::gfx::renderer

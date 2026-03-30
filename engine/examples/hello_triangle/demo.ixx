@@ -19,7 +19,7 @@ public:
     Demo(
         std::allocator_arg_t,
         const allocator_type&                     allocator,
-        const kiln::config::Config&               config,
+        const kiln::app::Config&                  config,
         const vk::raii::Instance&                 vulkan_instance,
         const kiln::wsi::Context&                 wsi_context,
         const kiln::gfx::renderer::Device&        render_device,
@@ -57,18 +57,19 @@ private:
 };
 
 export struct DemoPlugin : kiln::app::PluginInterface {
+    [[nodiscard]]
+    static auto create_plugin(
+        kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
+        const kiln::gfx::renderer::PipelinePlugin&
+    ) -> DemoPlugin;
+
+    [[nodiscard]]
     static auto operator()(
         kiln::app::Arena&                         arena,
-        const kiln::config::Config&               config,
+        const kiln::app::Config&                  config,
         const vk::raii::Instance&                 vulkan_instance,
         const kiln::wsi::Context&                 wsi_context,
         const kiln::gfx::renderer::Device&        render_device,
         const kiln::gfx::renderer::QueueProvider& render_queue_provider
     ) -> Demo;
 };
-
-export [[nodiscard]]
-auto demo_plugin_injection(
-    kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
-    const kiln::gfx::renderer::PipelinePlugin&
-) -> DemoPlugin;

@@ -8,6 +8,12 @@ namespace kiln::wsi {
 
 export class Plugin : public app::PluginInterface {
 public:
+    [[nodiscard]]
+    static auto create_plugin() -> Plugin
+    {
+        return Plugin{};
+    }
+
     template <typename Self_T>
     [[nodiscard]]
     auto context(this Self_T& self) -> util::const_like_t<Context, Self_T>

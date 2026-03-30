@@ -9,7 +9,7 @@ import vulkan_hpp;
 namespace kiln::gfx::vulkan {
 
 [[nodiscard]]
-auto builder_create_info(const config::Config& config) noexcept
+auto builder_create_info(const app::Config& config) noexcept
     -> InstanceBuilder::CreateInfo
 {
     return InstanceBuilder::CreateInfo{
@@ -30,10 +30,7 @@ auto builder_create_info(const config::Config& config) noexcept
     };
 }
 
-InstancePlugin::InstancePlugin(
-    const config::Config&    config,
-    const vk::raii::Context& context
-)
+InstancePlugin::InstancePlugin(const app::Config& config, const vk::raii::Context& context)
     : m_instance_builder{ builder_create_info(config), context }
 {
 }

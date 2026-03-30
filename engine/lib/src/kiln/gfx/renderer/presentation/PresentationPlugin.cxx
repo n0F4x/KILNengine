@@ -16,7 +16,7 @@ import kiln.wsi.vulkan_queue_family_supports_presenting;
 
 namespace kiln::gfx::renderer {
 
-auto make_presentation_plugin(
+auto PresentationPlugin::create_plugin(
     vulkan::InstancePlugin& instance_plugin,
     const wsi::Plugin&      wsi_plugin,
     DevicePlugin&           device_plugin

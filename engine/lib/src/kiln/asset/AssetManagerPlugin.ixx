@@ -8,6 +8,13 @@ namespace kiln::asset {
 
 export class AssetManagerPlugin : public app::PluginInterface {
 public:
+    [[nodiscard]]
+    static auto create_plugin() -> AssetManagerPlugin
+    {
+        return AssetManagerPlugin{};
+    }
+
+    [[nodiscard]]
     static auto operator()(app::Arena& arena) -> AssetManager
     {
         return AssetManager{ arena.pool_allocator() };

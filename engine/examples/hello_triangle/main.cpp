@@ -11,11 +11,10 @@ auto run(kiln::app::App& app) -> void;
 auto main() -> int
 {
     kiln::app::App app =   //
-        kiln::app::create()
-            .insert_plugin(kiln::config::Plugin{ "Hello triangle!" })
-            .insert_plugin(kiln::wsi::Plugin{})
+        kiln::app::create("Hello triangle!")
+            .use_plugin<kiln::wsi::Plugin>()
             .apply_bundle(kiln::gfx::Bundle{})
-            .inject_plugin(demo_plugin_injection)
+            .use_plugin<DemoPlugin>()
             .build();
 
     std::println(

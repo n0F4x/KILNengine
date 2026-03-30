@@ -1,19 +1,16 @@
 module;
 
-#include <concepts>
 #include <type_traits>
 
 export module kiln.app.plugin.plugin_c;
 
 import kiln.app.context.context_variable_c;
-import kiln.app.plugin.PluginInterface;
-import kiln.util.concepts.naked;
+import kiln.app.plugin.meta_plugin_c;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.containers.OptionalRef;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.result_of;
-import kiln.util.type_traits.Signature;
 
 namespace kiln::app {
 
@@ -31,9 +28,8 @@ struct IsPotentiallyOptionalContextVariableRef {
 };
 
 export template <typename T>
-concept plugin_c =
-    util::naked_c<T>                           //
-    && std::derived_from<T, PluginInterface>   //
+concept plugin_c =     //
+    meta_plugin_c<T>   //
     && requires {
            requires context_variable_c<util::result_of_t<decltype(&T::operator())>>
                         && util::type_list_all_of_c<

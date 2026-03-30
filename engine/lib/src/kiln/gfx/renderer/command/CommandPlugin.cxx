@@ -4,7 +4,7 @@ import vulkan_hpp;
 
 namespace kiln::gfx::renderer {
 
-auto make_command_plugin(
+auto CommandPlugin::create_plugin(
     vulkan::InstancePlugin& instance_plugin,
     DevicePlugin&           device_plugin
 ) -> CommandPlugin

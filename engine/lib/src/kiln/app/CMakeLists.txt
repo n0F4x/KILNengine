@@ -1,3 +1,4 @@
+add_subdirectory(config)
 add_subdirectory(context)
 add_subdirectory(memory)
 add_subdirectory(plugin)

@@ -3,7 +3,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         config.cppm
-        engine_name.ixx
-        engine_version.ixx
-        Version.ixx
+        Config.ixx
+        ConfigPlugin.ixx
 )

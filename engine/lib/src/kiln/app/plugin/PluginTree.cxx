@@ -126,11 +126,10 @@ PluginTree::PluginTree(const allocator_type& allocator)
 
 auto PluginTree::build_plugins(
     App&                       app,
+    PluginStack&&              plugin_stack,
     std::pmr::memory_resource& transient_memory_resource
 ) && -> void
 {
-    PluginStack plugin_stack{ &transient_memory_resource };
-
     for (internal::ErasedPluginInjection& plugin_injection : m_plugin_injections)
     {
         std::move(plugin_injection)(plugin_stack);

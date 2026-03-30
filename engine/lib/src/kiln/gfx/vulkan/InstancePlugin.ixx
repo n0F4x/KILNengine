@@ -10,8 +10,8 @@ export module kiln.gfx.vulkan.InstancePlugin;
 import vulkan_hpp;
 
 import kiln.app.plugin.PluginInterface;
-import kiln.config.Config;
-import kiln.config.Plugin;
+import kiln.app.config.Config;
+import kiln.app.config.ConfigPlugin;
 import kiln.gfx.vulkan.context;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.util.StringLiteral;
@@ -25,8 +25,11 @@ public:
     [[nodiscard]]
     consteval static auto minimum_version() noexcept -> uint32_t;
 
+    [[nodiscard]]
+    static auto create_plugin(const app::ConfigPlugin& config_plugin) -> InstancePlugin;
+
     explicit InstancePlugin(
-        const config::Config&                           config,
+        const app::Config&                              config,
         [[kiln_lifetimebound]] const vk::raii::Context& context = vulkan::context()
     );
 
@@ -45,9 +48,6 @@ private:
     InstanceBuilder m_instance_builder;
 };
 
-export [[nodiscard]]
-auto make_instance_plugin(const config::Plugin& config_plugin) -> InstancePlugin;
-
 }   // namespace kiln::gfx::vulkan
 
 namespace kiln::gfx::vulkan {
@@ -55,6 +55,12 @@ namespace kiln::gfx::vulkan {
 consteval auto InstancePlugin::minimum_version() noexcept -> uint32_t
 {
     return InstanceBuilder::minimum_version();
+}
+
+auto InstancePlugin::create_plugin(const app::ConfigPlugin& config_plugin)
+    -> InstancePlugin
+{
+    return InstancePlugin{ config_plugin.config() };
 }
 
 template <typename Self_T>
@@ -69,11 +75,6 @@ auto InstancePlugin::operator->(this Self_T& self)
     -> util::const_like_t<InstanceBuilder, Self_T>*
 {
     return &self.m_instance_builder;
-}
-
-auto make_instance_plugin(const config::Plugin& config_plugin) -> InstancePlugin
-{
-    return InstancePlugin{ config_plugin.config() };
 }
 
 }   // namespace kiln::gfx::vulkan

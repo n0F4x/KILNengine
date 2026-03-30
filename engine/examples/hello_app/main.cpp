@@ -7,6 +7,11 @@ import kiln.util.contracts;
 struct GraphicsSystemIntegration {};
 
 struct GraphicsSystemIntegrationPlugin : kiln::app::PluginInterface {
+    static auto create_plugin() -> GraphicsSystemIntegrationPlugin
+    {
+        return GraphicsSystemIntegrationPlugin{};
+    }
+
     static auto operator()() -> GraphicsSystemIntegration
     {
         return GraphicsSystemIntegration{};
@@ -18,6 +23,16 @@ struct WindowSystem {
 };
 
 struct WindowPlugin : kiln::app::PluginInterface {
+    static auto create_plugin(
+        const kiln::util::OptionalRef<GraphicsSystemIntegrationPlugin>
+            graphics_system_integration_plugin
+    ) -> WindowPlugin
+    {
+        return WindowPlugin{
+            .supports_graphics = graphics_system_integration_plugin.has_value(),
+        };
+    }
+
     bool supports_graphics          = false;
     bool graphics_support_requested = false;
 
@@ -33,22 +48,24 @@ struct WindowPlugin : kiln::app::PluginInterface {
     }
 };
 
-auto make_window_plugin(
-    const kiln::util::OptionalRef<GraphicsSystemIntegrationPlugin>
-        graphics_system_integration_plugin
-) -> WindowPlugin
-{
-    return WindowPlugin{
-        .supports_graphics = graphics_system_integration_plugin.has_value(),
-    };
-}
-
 struct RenderSystem {
     GraphicsSystemIntegration& graphics_system;
     WindowSystem*              window_system{};
 };
 
 struct RendererPlugin : kiln::app::PluginInterface {
+    static auto create_plugin(const kiln::util::OptionalRef<WindowPlugin> window_plugin)
+        -> RendererPlugin
+    {
+        if (window_plugin.has_value() && window_plugin->supports_graphics)
+        {
+            window_plugin->graphics_support_requested = true;
+            return RendererPlugin{ .headless = false };
+        }
+
+        return RendererPlugin{ .headless = true };
+    }
+
     bool headless = true;
 
     auto operator()(
@@ -63,26 +80,14 @@ struct RendererPlugin : kiln::app::PluginInterface {
     }
 };
 
-auto make_renderer_plugin(const kiln::util::OptionalRef<WindowPlugin> window_plugin)
-    -> RendererPlugin
-{
-    if (window_plugin.has_value() && window_plugin->supports_graphics)
-    {
-        window_plugin->graphics_support_requested = true;
-        return RendererPlugin{ .headless = false };
-    }
-
-    return RendererPlugin{ .headless = true };
-}
-
 auto main() -> int
 {
     using namespace kiln;
 
     app::App app = app::create()
-                       .insert_plugin(GraphicsSystemIntegrationPlugin{})
-                       .inject_plugin(make_renderer_plugin)
-                       .inject_plugin(make_window_plugin)
+                       .use_plugin<GraphicsSystemIntegrationPlugin>()
+                       .use_plugin<RendererPlugin>()
+                       .use_plugin<WindowPlugin>()
                        .build();
 
     // Renderer is never headless when both window and graphics plugins are present
