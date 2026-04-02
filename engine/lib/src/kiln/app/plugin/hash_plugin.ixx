@@ -6,7 +6,7 @@ module;
 export module kiln.app.plugin.hash_plugin;
 
 import kiln.app.memory.Arena;
-import kiln.app.memory.MemoryPlugin;
+import kiln.app.memory.ArenaPlugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.plugin_c;
 import kiln.util.reflection;
@@ -29,7 +29,7 @@ consteval auto hash_plugin() -> uint64_t
     }
     else
     {
-        if constexpr (std::same_as<MaybeMetaPlugin_T, MemoryPlugin>)
+        if constexpr (std::same_as<MaybeMetaPlugin_T, ArenaPlugin>)
         {
             return util::hash_u64<Arena>();
         }

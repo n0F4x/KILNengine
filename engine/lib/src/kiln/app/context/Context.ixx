@@ -33,7 +33,7 @@ public:
         -> bool;
 
 
-    Context(std::allocator_arg_t, const allocator_type&, Arena& arena);
+    explicit Context(Arena& arena);
 
 
     template <context_variable_c ContextVariable_T>
@@ -89,8 +89,8 @@ constexpr auto Context::is_always_available(
     return context_variable_type_hash == util::hash_u64<Arena>();
 }
 
-inline Context::Context(std::allocator_arg_t, const allocator_type& allocator, Arena& arena)
-    : m_generic_stack{ allocator },
+Context::Context(Arena& arena)
+    : m_generic_stack{ arena.pool_allocator() },
       m_arena_ref{ arena }
 {
 }

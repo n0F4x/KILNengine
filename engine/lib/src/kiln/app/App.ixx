@@ -28,7 +28,7 @@ private:
         m_arena.pool_allocator(),
         m_arena.pool_allocator().resource()
     };
-    Context m_context{ std::allocator_arg, &*m_context_memory_resource, m_arena };
+    Context m_context{ m_arena };
 };
 
 }   // namespace kiln::app

@@ -12,7 +12,7 @@ import kiln.app.App;
 import kiln.app.config.Config;
 import kiln.app.config.ConfigPlugin;
 import kiln.app.memory.Arena;
-import kiln.app.memory.MemoryPlugin;
+import kiln.app.memory.ArenaPlugin;
 import kiln.app.plugin.meta_plugin_c;
 import kiln.app.plugin.plugin_c;
 import kiln.app.plugin.PluginTree;
@@ -44,10 +44,9 @@ public:
     auto build() && -> App;
 
 private:
-    Arena m_app_arena;
-    Arena m_builder_arena;
+    Arena m_arena;
 
-    PluginTree m_plugin_tree{ m_builder_arena.pool_allocator() };
+    PluginTree m_plugin_tree{ m_arena.pool_allocator() };
 };
 
 }   // namespace kiln::app
@@ -57,12 +56,10 @@ namespace kiln::app {
 Builder::Builder(const Config& config)
 {
     std::pmr::monotonic_buffer_resource transient_memory_resource{
-        m_builder_arena.make_transient_resource()
+        m_arena.make_transient_resource()
     };
 
-    m_plugin_tree.insert_meta_plugin(
-        MemoryPlugin{ m_app_arena, m_builder_arena }, transient_memory_resource
-    );
+    m_plugin_tree.insert_meta_plugin(ArenaPlugin{ m_arena }, transient_memory_resource);
     m_plugin_tree.insert_plugin(ConfigPlugin{ config }, transient_memory_resource);
 }
 
@@ -70,7 +67,7 @@ template <plugin_c Plugin_T, typename Self_T>
 auto Builder::use_plugin(this Self_T&& self) -> Self_T&&
 {
     std::pmr::monotonic_buffer_resource transient_memory_resource{
-        self.Builder::m_builder_arena.make_transient_resource()
+        self.Builder::m_arena.make_transient_resource()
     };
 
     self.Builder::m_plugin_tree.template plug_in<Plugin_T>(transient_memory_resource);
@@ -82,7 +79,7 @@ template <explicitly_meta_plugin Plugin_T, typename Self_T>
 auto Builder::use_meta_plugin(this Self_T&& self) -> Self_T&&
 {
     std::pmr::monotonic_buffer_resource transient_memory_resource{
-        self.Builder::m_builder_arena.make_transient_resource()
+        self.Builder::m_arena.make_transient_resource()
     };
 
     self.Builder::m_plugin_tree.template plug_in<Plugin_T>(transient_memory_resource);
@@ -100,15 +97,13 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
 
 auto Builder::build() && -> App
 {
-    App result{ std::move(m_app_arena) };
+    App    result{ std::move(m_arena) };
+    Arena& arena{ result.context().at<Arena>() };
 
-    /*
-     * We use the builder's pool allocator as plugins also use that
-     */
-    PluginStack plugin_stack{ m_builder_arena.pool_allocator().resource() };
+    PluginStack plugin_stack{ arena.pool_allocator().resource() };
 
     std::pmr::monotonic_buffer_resource transient_memory_resource{
-        result.context().at<Arena>().make_transient_resource()
+        arena.make_transient_resource()
     };
     std::move(m_plugin_tree)
         .build_plugins(result, std::move(plugin_stack), transient_memory_resource);

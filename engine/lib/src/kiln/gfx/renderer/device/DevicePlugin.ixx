@@ -7,7 +7,7 @@ export module kiln.gfx.renderer.device.DevicePlugin;
 
 import vulkan_hpp;
 
-import kiln.app.memory.MemoryPlugin;
+import kiln.app.memory.ArenaPlugin;
 import kiln.app.plugin.PluginInterface;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.DeviceBuilder;
@@ -23,7 +23,7 @@ public:
         std::pmr::polymorphic_allocator<>;
 
     [[nodiscard]]
-    static auto create_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin;
+    static auto create_plugin(app::ArenaPlugin& arena_plugin) -> DevicePlugin;
 
 
     DevicePlugin() = default;
@@ -58,9 +58,9 @@ private:
 
 namespace kiln::gfx::renderer {
 
-auto DevicePlugin::create_plugin(const app::MemoryPlugin& memory_plugin) -> DevicePlugin
+auto DevicePlugin::create_plugin(app::ArenaPlugin& arena_plugin) -> DevicePlugin
 {
-    return DevicePlugin{ memory_plugin.builder_local_arena().pool_allocator() };
+    return DevicePlugin{ arena_plugin.arena().pool_allocator() };
 }
 
 template <typename Self_T>
