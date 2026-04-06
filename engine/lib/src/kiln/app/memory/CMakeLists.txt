@@ -4,5 +4,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         memory.cppm
         Arena.ixx
-        ArenaPlugin.ixx
+        ArenaBuilder.ixx
 )

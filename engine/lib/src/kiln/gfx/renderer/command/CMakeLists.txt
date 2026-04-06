@@ -1,12 +1,11 @@
 target_sources(${PROJECT_NAME} PRIVATE
         CommandBufferBase.cxx
+        CommandContextBuilder.cxx
         CommandPoolBase.cxx
-        CommandPlugin.cxx
         GraphicsCommandBuffer.cxx
         GraphicsQueueRef.cxx
         queue_requests.cxx
         QueueProvider.cxx
-        QueueProviderPlugin.cxx
         QueueRefBase.cxx
         TransferCommandBuffer.cxx
         TransferQueueRef.cxx
@@ -19,16 +18,17 @@ target_sources(${PROJECT_NAME} PUBLIC
         command.cppm
         CommandBufferBase.ixx
         CommandBufferUsageFlags.ixx
+        CommandContext.ixx
+        CommandContextBuilder.ixx
         CommandPoolBase.ixx
         CommandPoolFlags.ixx
-        CommandPlugin.ixx
         DependencyInfo.ixx
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx
         GraphicsQueueRef.ixx
         queue_requests.ixx
         QueueProvider.ixx
-        QueueProviderPlugin.ixx
+        QueueProviderBuilder.ixx
         QueueRefBase.ixx
         SubmitInfo.ixx
         TransferCommandBuffer.ixx

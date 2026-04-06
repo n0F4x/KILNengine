@@ -7,7 +7,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         asset_id_from_string.ixx
         AssetID.ixx
         AssetManager.ixx
-        AssetManagerPlugin.ixx
+        AssetManagerBuilder.ixx
         AssetPool.ixx
         SharedAssetHandle.ixx
         WeakAssetHandle.ixx

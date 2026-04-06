@@ -1,5 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
-        PresentationPlugin.cxx
+        PresentationContextBuilder.cxx
         RenderSurface.cxx
         Swapchain.cxx
 )
@@ -9,8 +9,9 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         presentation.cppm
-        PresentationPlugin.ixx
-        PresentationPluginFailedError.ixx
+        PresentationContext.ixx
+        PresentationContextBuilder.ixx
+        PresentationContextBuilderFailedError.ixx
         RenderSurface.ixx
         Swapchain.ixx
 )

@@ -16,7 +16,7 @@ import kiln.wsi.vulkan_queue_family_supports_presenting;
 namespace kiln::gfx::renderer {
 
 GraphicsQueueRequest::GraphicsQueueRequest(
-    const vk::raii::Instance&    instance,
+    const vulkan::Instance&      instance,
     const wsi::Context&          wsi_context,
     QueueRequestResultCallback&& result_callback
 )
@@ -121,7 +121,7 @@ auto GraphicsQueueRequest::is_suitable(
              & vk::QueueFlagBits::eGraphics
         && wsi::vulkan_queue_family_supports_presenting(
                m_wsi_context_ref,
-               m_instance_ref,
+               m_instance_ref.get().get(),
                physical_device,
                vulkan::QueueFamilyIndex{ family_index }
         );

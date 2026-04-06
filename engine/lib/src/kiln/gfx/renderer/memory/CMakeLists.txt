@@ -10,7 +10,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         memory.cppm
         Allocation.ixx
         Allocator.ixx
-        AllocatorPlugin.ixx
+        AllocatorBuilder.ixx
         Buffer.ixx
         MemoryTypeID.ixx
         MemoryView.ixx

@@ -7,6 +7,8 @@ module;
 
 export module kiln.asset.AssetManager;
 
+import kiln.app.context.ContextBuilderInterface;
+import kiln.app.memory.Arena;
 import kiln.asset.asset_c;
 import kiln.asset.AssetID;
 import kiln.asset.AssetPool;
@@ -17,9 +19,16 @@ import kiln.util.reflection;
 
 namespace kiln::asset {
 
+namespace internal {
+
+export class AssetManagerBuilder;
+
+}   // namespace internal
+
 export class AssetManager {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
+    using Builder        = internal::AssetManagerBuilder;
 
 
     AssetManager() = default;
@@ -47,6 +56,19 @@ private:
 
     std::pmr::unordered_map<uint64_t, ErasedAssetPool> m_asset_pools;
 };
+
+namespace internal {
+
+export class AssetManagerBuilder : public app::ContextBuilderInterface {
+public:
+    [[nodiscard]]
+    static auto build(app::Arena& arena) -> AssetManager
+    {
+        return AssetManager{ arena.pool_allocator() };
+    }
+};
+
+}   // namespace internal
 
 }   // namespace kiln::asset
 

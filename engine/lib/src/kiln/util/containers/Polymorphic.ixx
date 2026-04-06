@@ -243,7 +243,7 @@ public:
     explicit Polymorphic(U&& value)
         requires(
             !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-            && !util::specialization_of_c<U, std::in_place_type_t>
+            && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
             && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
             && storable<std::remove_cvref_t<U>>()
         );
@@ -251,7 +251,7 @@ public:
     explicit Polymorphic(std::allocator_arg_t, const allocator_type& allocator, U&& value)
         requires(
             !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-            && !util::specialization_of_c<U, std::in_place_type_t>
+            && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
             && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
             && storable<std::remove_cvref_t<U>>()
         );
@@ -1081,9 +1081,9 @@ auto EraseMechanism<T, is_move_only_T, 0, alignment_T>::move_construct(
 
 template <typename T, bool is_move_only_T, std::size_t alignment_T>
 auto EraseMechanism<T, is_move_only_T, 0, alignment_T>::move_construct(
-    std::pmr::polymorphic_allocator<T>&       destination_allocator,
-    const std::pmr::polymorphic_allocator<T>& source_allocator,
-    Storage&&                                 source_storage
+    [[maybe_unused]] std::pmr::polymorphic_allocator<T>&       destination_allocator,
+    [[maybe_unused]] const std::pmr::polymorphic_allocator<T>& source_allocator,
+    Storage&&                                                  source_storage
 ) noexcept -> Storage
     requires(is_move_only_T)
 {
@@ -1179,10 +1179,10 @@ auto EraseMechanism<T, is_move_only_T, 0, alignment_T>::type_hash() const -> uin
 
 template <typename T, bool is_move_only_T, std::size_t alignment_T>
 constexpr auto EraseMechanism<T, is_move_only_T, 0, alignment_T>::swap(
-    std::pmr::polymorphic_allocator<T>& lhs_allocator,
-    Storage&                            lhs_storage,
-    std::pmr::polymorphic_allocator<T>& rhs_allocator,
-    Storage&                            rhs_storage,
+    [[maybe_unused]] std::pmr::polymorphic_allocator<T>& lhs_allocator,
+    Storage&                                             lhs_storage,
+    [[maybe_unused]] std::pmr::polymorphic_allocator<T>& rhs_allocator,
+    Storage&                                             rhs_storage,
     const EraseMechanism&
 ) -> void
 {
@@ -1286,7 +1286,7 @@ template <typename U>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
     requires(
         !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-        && !util::specialization_of_c<U, std::in_place_type_t>
+        && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
         && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
         && storable<std::remove_cvref_t<U>>()
     )
@@ -1307,7 +1307,7 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 )
     requires(
         !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-        && !util::specialization_of_c<U, std::in_place_type_t>
+        && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
         && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
         && storable<std::remove_cvref_t<U>>()
     )

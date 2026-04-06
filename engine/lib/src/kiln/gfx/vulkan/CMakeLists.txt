@@ -5,11 +5,9 @@ add_subdirectory(structure_chain)
 
 target_sources(${PROJECT_NAME} PRIVATE
         Bundle.cxx
-        DebugMessengerPlugin.cxx
-        DeviceBuilder.cxx
+        DebugMessenger.cxx
         global_definitions.cpp
-        InstanceBuilder.cxx
-        InstancePlugin.cxx
+        Instance.cxx
         PhysicalDeviceFilter.cxx
         vma_global_definitions.cxx
 )
@@ -21,16 +19,12 @@ target_sources(${PROJECT_NAME} PUBLIC
         vulkan.cppm
         Bundle.ixx
         context.ixx
-        DebugMessengerPlugin.ixx
-        Device.ixx
-        DeviceBuilder.ixx
-        ErasedQueueRequest.ixx
+        DebugMessenger.ixx
+        Instance.ixx
         InstanceBuilder.ixx
-        InstancePlugin.ixx
         PhysicalDeviceCapabilities.ixx
         PhysicalDeviceFilter.ixx
         Profile.ixx
         QueueFamilyIndex.ixx
         QueueFamilyInfo.ixx
-        QueueRequestInterface.ixx
 )

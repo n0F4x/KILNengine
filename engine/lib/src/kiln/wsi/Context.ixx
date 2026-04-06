@@ -1,18 +1,28 @@
 module;
 
 #include <cassert>
-#include <cstdint>
 
 #include <GLFW/glfw3.h>
 
 export module kiln.wsi.Context;
 
+import kiln.app.context.ContextBuilderInterface;
+import kiln.util.type_traits.const_like;
 import kiln.wsi.Error;
 
 namespace kiln::wsi {
 
+namespace internal {
+
+export class ContextBuilder;
+
+}   // namespace internal
+
 export class Context {
 public:
+    using Builder = internal::ContextBuilder;
+
+
     Context();
     Context(const Context&);
     Context(Context&&) noexcept;
@@ -24,6 +34,29 @@ public:
 private:
     inline static uint32_t active_context_count{};
 };
+
+namespace internal {
+
+export class ContextBuilder : public app::ContextBuilderInterface {
+public:
+    template <typename Self_T>
+    [[nodiscard]]
+    auto context(this Self_T& self) -> util::const_like_t<Context, Self_T>
+    {
+        return self.ContextBuilder::m_context;
+    }
+
+    [[nodiscard]]
+    auto build() const -> Context
+    {
+        return m_context;
+    }
+
+private:
+    Context m_context;
+};
+
+}   // namespace internal
 
 }   // namespace kiln::wsi
 

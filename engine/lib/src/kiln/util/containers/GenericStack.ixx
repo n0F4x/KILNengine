@@ -106,7 +106,11 @@ public:
     template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
     auto insert(Item_T&& item) -> Item_T&;
     template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
+        requires(std::is_constructible_v<Item_T, Args_T && ...>)
     auto emplace(Args_T&&... args) -> Item_T&;
+    template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
+        requires(std::is_constructible_v<Item_T, Args_T && ...>)
+    auto try_emplace(Args_T&&... args) -> std::pair<Item_T&, bool>;
 
 private:
     // TODO: Use different containers for types and items
@@ -242,22 +246,40 @@ auto BasicGenericStack<Any_T>::insert(Item_T&& item) -> Item_T&
 template <move_only_any_c Any_T>
     requires(Any_T::size() == 0)
 template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
+    requires(std::is_constructible_v<Item_T, Args_T && ...>)
 auto BasicGenericStack<Any_T>::emplace(Args_T&&... args) -> Item_T&
 {
-    PRECOND(!contains<Item_T>());
+    auto&& [item, success]{ try_emplace<Item_T>(std::forward<Args_T>(args)...) };
+    PRECOND(success);
+    return item;
+}
 
-    return any_cast<Item_T>(
-        m_types_and_items
-            .emplace_back(
-                std::piecewise_construct,
-                std::tuple{ hash_u64<Item_T>() },
-                std::forward_as_tuple(
-                    std::in_place_type<Item_T>,
-                    std::forward<Args_T>(args)...
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
+    requires(std::is_constructible_v<Item_T, Args_T && ...>)
+auto BasicGenericStack<Any_T>::try_emplace(Args_T&&... args) -> std::pair<Item_T&, bool>
+{
+    if (const OptionalRef<Item_T> found{ find<Item_T>() }; found.has_value())
+    {
+        return std::pair<Item_T&, bool>{ *found, false };
+    }
+
+    return std::pair<Item_T&, bool>{
+        any_cast<Item_T>(
+            m_types_and_items
+                .emplace_back(
+                    std::piecewise_construct,
+                    std::tuple{ hash_u64<Item_T>() },
+                    std::forward_as_tuple(
+                        std::in_place_type<Item_T>,
+                        std::forward<Args_T>(args)...
+                    )
                 )
-            )
-            .second   //
-    );
+                .second   //
+        ),
+        true,
+    };
 }
 
 template <move_only_any_c Any_T>

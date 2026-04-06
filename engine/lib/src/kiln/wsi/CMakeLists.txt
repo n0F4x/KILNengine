@@ -10,10 +10,10 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         wsi.cppm
         Context.ixx
+        ContextBuilder.ixx
         Error.ixx
         FullScreenWindowSettings.ixx
         monitor.ixx
-        Plugin.ixx
         Size.ixx
         vulkan_instance_extensions.ixx
         vulkan_queue_family_supports_presenting.ixx

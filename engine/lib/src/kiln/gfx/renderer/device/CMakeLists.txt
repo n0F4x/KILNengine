@@ -1,6 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Device.cxx
-        DevicePlugin.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -9,6 +8,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         device.cppm
         Device.ixx
-        DevicePlugin.ixx
-        DevicePluginFailedError.ixx
+        DeviceBuilder.ixx
+        DeviceBuildFailedError.ixx
+        ErasedQueueRequest.ixx
+        QueueRequestInterface.ixx
 )

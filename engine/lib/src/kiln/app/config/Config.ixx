@@ -1,18 +1,30 @@
+module;
+
+#include <utility>
+
 export module kiln.app.config.Config;
 
 import kiln.config.engine_name;
 import kiln.config.engine_version;
 import kiln.config.Version;
+import kiln.app.context.context_c;
+import kiln.app.context.ContextBuilderInterface;
 import kiln.util.StringLiteral;
 
 namespace kiln::app {
 
+namespace internal {
+
+export class ConfigBuilder;
+
+}   // namespace internal
+
 export class Config {
 public:
-    Config() = default;
+    using Builder = internal::ConfigBuilder;
 
     constexpr explicit Config(
-        const util::StringLiteral app_name,
+        const util::StringLiteral app_name    = "",
         const config::Version&    app_version = {}
     )
         : m_app_name{ app_name },
@@ -48,5 +60,31 @@ private:
     util::StringLiteral m_app_name{ "" };
     config::Version     m_app_version{};
 };
+
+namespace internal {
+
+export class ConfigBuilder : public ContextBuilderInterface {
+public:
+    constexpr explicit ConfigBuilder(const Config& config = Config{}) : m_config{ config }
+    {
+    }
+
+    [[nodiscard]]
+    constexpr auto config() const noexcept -> const Config&
+    {
+        return m_config;
+    }
+
+    [[nodiscard]]
+    constexpr auto build() && noexcept -> Config
+    {
+        return std::move(m_config);
+    }
+
+private:
+    Config m_config;
+};
+
+}   // namespace internal
 
 }   // namespace kiln::app

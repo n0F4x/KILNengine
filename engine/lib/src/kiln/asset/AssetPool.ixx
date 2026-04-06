@@ -94,7 +94,7 @@ auto AssetPool<Asset_T>::try_emplace(const AssetID id, Args_T&&... args)
         return std::pair{ std::move(found_handle), false };
     }
 
-    contained_handle = std::make_shared<Asset_T>(std::forward<Args_T>(args)...);
+    contained_handle = make_shared_asset_handle<Asset_T>(std::forward<Args_T>(args)...);
 
     return std::pair{ contained_handle.lock(), true };
 }

@@ -11,7 +11,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         ColorAttachment.ixx
         DepthAttachment.ixx
         GraphicsPipeline.ixx
-        PipelinePlugin.ixx
+        PipelineContext.ixx
+        PipelineContextBuilder.ixx
         RenderPass.ixx
         ShaderModule.ixx
 )

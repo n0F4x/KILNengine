@@ -15,12 +15,15 @@ public:
     using allocator_type =   // NOLINT(*-identifier-naming)
         std::pmr::polymorphic_allocator<>;
 
+    class Builder;
+
+
     Demo(Demo&&, const allocator_type& allocator);
     Demo(
         std::allocator_arg_t,
         const allocator_type&                     allocator,
         const kiln::app::Config&                  config,
-        const vk::raii::Instance&                 vulkan_instance,
+        const kiln::gfx::vulkan::Instance&        vulkan_instance,
         const kiln::wsi::Context&                 wsi_context,
         const kiln::gfx::renderer::Device&        render_device,
         const kiln::gfx::renderer::QueueProvider& render_queue_provider
@@ -56,18 +59,21 @@ private:
     std::pmr::vector<vk::raii::Fence>     m_render_finished_fences;
 };
 
-export struct DemoPlugin : kiln::app::PluginInterface {
+class Demo::Builder : public kiln::app::ContextBuilderInterface {
+public:
     [[nodiscard]]
-    static auto create_plugin(
-        kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
-        const kiln::gfx::renderer::PipelinePlugin&
-    ) -> DemoPlugin;
+    static auto create(
+        kiln::gfx::renderer::QueueProviderBuilder&        queue_provider_plugin,
+        const kiln::gfx::renderer::CommandContextBuilder& command_context_builder,
+        const kiln::gfx::renderer::PresentationContextBuilder& presentation_context_builder,
+        const kiln::gfx::renderer::PipelineContextBuilder&
+    ) -> Builder;
 
     [[nodiscard]]
-    static auto operator()(
+    static auto build(
         kiln::app::Arena&                         arena,
         const kiln::app::Config&                  config,
-        const vk::raii::Instance&                 vulkan_instance,
+        const kiln::gfx::vulkan::Instance&        vulkan_instance,
         const kiln::wsi::Context&                 wsi_context,
         const kiln::gfx::renderer::Device&        render_device,
         const kiln::gfx::renderer::QueueProvider& render_queue_provider

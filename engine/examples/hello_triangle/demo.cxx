@@ -147,7 +147,7 @@ Demo::Demo(
     const std::allocator_arg_t,
     const allocator_type&                     allocator,
     const kiln::app::Config&                  config,
-    const vk::raii::Instance&                 vulkan_instance,
+    const kiln::gfx::vulkan::Instance&        vulkan_instance,
     const kiln::wsi::Context&                 wsi_context,
     const kiln::gfx::renderer::Device&        render_device,
     const kiln::gfx::renderer::QueueProvider& render_queue_provider
@@ -156,7 +156,9 @@ Demo::Demo(
       m_graphics_queue{ *render_queue_provider.graphics_queue() },
       m_window{ create_window(config, wsi_context) },
       m_surface{
-          kiln::gfx::vulkan::check_result(m_window.create_vulkan_surface(vulkan_instance)),
+          kiln::gfx::vulkan::check_result(
+              m_window.create_vulkan_surface(vulkan_instance.get())
+          ),
           render_device,
           m_number_of_frames,
           true,
@@ -346,20 +348,22 @@ auto Demo::shut_down() -> void
     m_render_device_ref.get().logical_device().waitIdle();
 }
 
-auto DemoPlugin::create_plugin(
-    kiln::gfx::renderer::QueueProviderPlugin& queue_provider_plugin,
-    const kiln::gfx::renderer::PipelinePlugin&
-) -> DemoPlugin
+auto Demo::Builder::create(
+    kiln::gfx::renderer::QueueProviderBuilder& queue_provider_plugin,
+    const kiln::gfx::renderer::CommandContextBuilder&,
+    const kiln::gfx::renderer::PresentationContextBuilder&,
+    const kiln::gfx::renderer::PipelineContextBuilder&
+) -> Builder
 {
     queue_provider_plugin.require_graphics_queue();
 
-    return DemoPlugin{};
+    return Builder{};
 }
 
-auto DemoPlugin::operator()(
+auto Demo::Builder::build(
     kiln::app::Arena&                         arena,
     const kiln::app::Config&                  config,
-    const vk::raii::Instance&                 vulkan_instance,
+    const kiln::gfx::vulkan::Instance&        vulkan_instance,
     const kiln::wsi::Context&                 wsi_context,
     const kiln::gfx::renderer::Device&        render_device,
     const kiln::gfx::renderer::QueueProvider& render_queue_provider

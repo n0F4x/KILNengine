@@ -25,9 +25,11 @@ auto vulkan_queue_family_supports_presenting(
     const gfx::vulkan::QueueFamilyIndex queue_family_index
 ) -> bool
 {
-    const int result{ glfwGetPhysicalDevicePresentationSupport(
-        *instance, *physical_device, queue_family_index.underlying()
-    ) };
+    const int result{
+        glfwGetPhysicalDevicePresentationSupport(
+            *instance, *physical_device, queue_family_index.underlying()
+        )   //
+    };
     if (result != GLFW_TRUE)
     {
         const char* error_description{};
