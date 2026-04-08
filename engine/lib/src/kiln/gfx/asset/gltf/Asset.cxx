@@ -12,7 +12,8 @@ module;
 
 module kiln.gfx.asset.gltf.Asset;
 
-import kiln.gfx.asset.ByteViewType;
+import kiln.gfx.asset.IndexArrayView;
+import kiln.gfx.asset.VertexArrayView;
 import kiln.util.contracts;
 import kiln.util.Overloaded;
 
@@ -45,42 +46,42 @@ Asset::Asset(
     : AssetPrecondition{ allocator, custom_buffers },
       m_asset{ std::move(asset) },
       m_buffers{ std::move(custom_buffers) },
-      m_buffer_views{ make_buffer_views(m_asset, m_buffers, allocator) }
+      m_vertex_array_views{ allocator },
+      m_index_array_views{ allocator }
 {
+    std::size_t number_of_vertex_array_views{};
+    std::size_t number_of_index_array_views{};
+    for (const fastgltf::BufferView& buffer_view : asset.bufferViews)
+    {
+        if (buffer_view.target.has_value())
+        {
+            if (*buffer_view.target == fastgltf::BufferTarget::ArrayBuffer)
+            {
+                ++number_of_vertex_array_views;
+            }
+            else if (*buffer_view.target == fastgltf::BufferTarget::ElementArrayBuffer)
+            {
+                ++number_of_index_array_views;
+            }
+        }
+    }
+    m_vertex_array_views.reserve(number_of_vertex_array_views);
+    m_index_array_views.reserve(number_of_index_array_views);
 }
 
 auto Asset::get_allocator() const noexcept -> allocator_type
 {
-    return m_buffer_views.get_allocator();
+    return m_buffers.get_allocator();
 }
 
-auto Asset::byte_views() const noexcept -> std::span<const ByteView>
+auto Asset::vertex_array_views() const noexcept -> std::span<const VertexArrayView>
 {
-    return m_buffer_views;
+    return m_vertex_array_views;
 }
 
-[[nodiscard]]
-// ReSharper disable once CppNotAllPathsReturnValue
-auto buffer_view_type_from(const fastgltf::BufferTarget buffer_target) -> ByteViewType
+auto Asset::index_array_views() const noexcept -> std::span<const IndexArrayView>
 {
-    switch (buffer_target)
-    {
-        case fastgltf::BufferTarget::ArrayBuffer:        return ByteViewType::eVertex;
-        case fastgltf::BufferTarget::ElementArrayBuffer: return ByteViewType::eIndex;
-    }
-}
-
-[[nodiscard]]
-auto buffer_view_type_from(const fastgltf::Optional<fastgltf::BufferTarget>& buffer_target)
-    -> ByteViewType
-{
-    return buffer_target
-        .transform(
-            static_cast<auto (*)(fastgltf::BufferTarget)->ByteViewType>(
-                buffer_view_type_from
-            )
-        )
-        .value_or(ByteViewType::eUnknown);
+    return m_index_array_views;
 }
 
 [[nodiscard]]
@@ -112,29 +113,50 @@ auto bytes_ref_from(
     );
 }
 
-auto Asset::make_buffer_views(
-    const fastgltf::Asset&          asset,
-    const std::pmr::vector<Buffer>& custom_buffers,
-    const allocator_type&           allocator
-) -> std::pmr::vector<ByteView>
+auto Asset::fill_vertex_array_views(
+    std::pmr::vector<VertexArrayView>& out,
+    const fastgltf::Asset&             asset,
+    const std::pmr::vector<Buffer>&    custom_buffers
+) -> void
 {
-    std::pmr::vector<ByteView> result{ allocator };
-    result.reserve(asset.bufferViews.size());
-
     for (const fastgltf::BufferView& buffer_view : asset.bufferViews)
     {
-        result.push_back(
-            ByteView{
-                .type        = buffer_view_type_from(buffer_view.target),
-                .bytes       = bytes_ref_from(buffer_view, asset, custom_buffers),
-                .byte_length = buffer_view.byteLength,
-                .byte_offset = buffer_view.byteOffset,
-                .byte_stride = static_cast<uint32_t>(buffer_view.byteStride.value_or(0)),
-            }
-        );
+        if (buffer_view.target.has_value()
+            && *buffer_view.target == fastgltf::BufferTarget::ArrayBuffer)
+        {
+            out.push_back(
+                VertexArrayView{
+                    .bytes       = bytes_ref_from(buffer_view, asset, custom_buffers),
+                    .byte_length = buffer_view.byteLength,
+                    .byte_offset = buffer_view.byteOffset,
+                    .byte_stride =
+                        static_cast<uint32_t>(buffer_view.byteStride.value_or(0)),
+                }
+            );
+        }
     }
+}
 
-    return result;
+auto Asset::fill_index_array_views(
+    std::pmr::vector<IndexArrayView>& out,
+    const fastgltf::Asset&            asset,
+    const std::pmr::vector<Buffer>&   custom_buffers
+) -> void
+{
+    for (const fastgltf::BufferView& buffer_view : asset.bufferViews)
+    {
+        if (buffer_view.target.has_value()
+            && *buffer_view.target == fastgltf::BufferTarget::ElementArrayBuffer)
+        {
+            out.push_back(
+                IndexArrayView{
+                    .bytes       = bytes_ref_from(buffer_view, asset, custom_buffers),
+                    .byte_length = buffer_view.byteLength,
+                    .byte_offset = buffer_view.byteOffset,
+                }
+            );
+        }
+    }
 }
 
 }   // namespace kiln::gfx::asset::gltf

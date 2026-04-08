@@ -12,6 +12,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         asset.cppm
         Buffer.ixx
         Bundle.ixx
-        ByteView.ixx
-        ByteViewType.ixx
+        IndexArrayView.ixx
+        VertexArrayView.ixx
 )

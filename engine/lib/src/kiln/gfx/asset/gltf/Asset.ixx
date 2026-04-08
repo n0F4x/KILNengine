@@ -9,7 +9,8 @@ module;
 export module kiln.gfx.asset.gltf.Asset;
 
 import kiln.gfx.asset.Buffer;
-import kiln.gfx.asset.ByteView;
+import kiln.gfx.asset.IndexArrayView;
+import kiln.gfx.asset.VertexArrayView;
 
 namespace kiln::gfx::asset::gltf {
 
@@ -39,20 +40,27 @@ public:
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
     [[nodiscard]]
-    auto byte_views() const noexcept -> std::span<const ByteView>;
+    auto vertex_array_views() const noexcept -> std::span<const VertexArrayView>;
+    [[nodiscard]]
+    auto index_array_views() const noexcept -> std::span<const IndexArrayView>;
 
 private:
-    fastgltf::Asset            m_asset;
-    std::pmr::vector<Buffer>   m_buffers;
-    std::pmr::vector<ByteView> m_buffer_views;
+    fastgltf::Asset                   m_asset;
+    std::pmr::vector<Buffer>          m_buffers;
+    std::pmr::vector<VertexArrayView> m_vertex_array_views;
+    std::pmr::vector<IndexArrayView>  m_index_array_views;
 
 
-    [[nodiscard]]
-    static auto make_buffer_views(
-        const fastgltf::Asset&          asset,
-        const std::pmr::vector<Buffer>& custom_buffers,
-        const allocator_type&           allocator
-    ) -> std::pmr::vector<ByteView>;
+    static auto fill_vertex_array_views(
+        std::pmr::vector<VertexArrayView>& out,
+        const fastgltf::Asset&             asset,
+        const std::pmr::vector<Buffer>&    custom_buffers
+    ) -> void;
+    static auto fill_index_array_views(
+        std::pmr::vector<IndexArrayView>& out,
+        const fastgltf::Asset&            asset,
+        const std::pmr::vector<Buffer>&   custom_buffers
+    ) -> void;
 };
 
 }   // namespace kiln::gfx::asset::gltf
