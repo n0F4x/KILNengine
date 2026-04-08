@@ -1,7 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Asset.cxx
         Bundle.cxx
-        Loader.cxx
+        Parser.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -11,5 +11,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         gltf.cppm
         Asset.ixx
         Bundle.ixx
-        Loader.ixx
+        Parser.ixx
 )

@@ -13,19 +13,15 @@ auto main(const int argc, const char* const argv[]) -> int
     }
 
     kiln::app::App app =   //
-        kiln::app::create("Simple scene")
-            .use_context<kiln::res::ResourceManager>()
-            .apply_bundle(kiln::gfx::Bundle{})
-            .build();
+        kiln::app::create("Simple scene").apply_bundle(kiln::gfx::Bundle{}).build();
 
     return !app.contexts()
-                .at<kiln::gfx::asset::gltf::Loader>()
+                .at<kiln::gfx::asset::gltf::Parser>()
                 .load(
                     std::filesystem::path{ std::source_location::current().file_name() }
-                            .parent_path()
-                            .parent_path()
-                        / "res" / argv[1],
-                    app.contexts().at<kiln::res::ResourceManager>()
+                        .parent_path()
+                        .parent_path()
+                    / "res" / argv[1]
                 )
                 .has_value();
 }

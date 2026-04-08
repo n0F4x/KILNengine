@@ -49,7 +49,10 @@ public:
 }   // namespace internal
 
 export template <naked_c Invocable_T>
-class FunctionWrapper;
+class FunctionWrapper : public Invocable_T {
+public:
+    using Invocable_T::operator();
+};
 
 export template <function_c Invocable_T>
     requires naked_c<Invocable_T>

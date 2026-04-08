@@ -1,6 +1,7 @@
 add_subdirectory(gltf)
 
 target_sources(${PROJECT_NAME} PRIVATE
+        Buffer.cxx
         Bundle.cxx
 )
 
@@ -9,6 +10,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         asset.cppm
-        BufferView.ixx
+        Buffer.ixx
         Bundle.ixx
+        ByteView.ixx
+        ByteViewType.ixx
 )
