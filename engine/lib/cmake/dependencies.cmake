@@ -53,3 +53,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
         VMA_DYNAMIC_VULKAN_FUNCTIONS=0
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC GPUOpen::VulkanMemoryAllocator)
+
+# fastgltf
+find_package(fastgltf)
+target_link_libraries(${PROJECT_NAME} PUBLIC fastgltf::fastgltf)

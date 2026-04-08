@@ -100,6 +100,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.requires("glfw/3.4", transitive_headers=True)
         self.requires("vulkan-headers/1.4.313.0", transitive_headers=True)
         self.requires("vulkan-memory-allocator/3.3.0", transitive_headers=True)
+        self.requires("fastgltf/0.9.0", transitive_headers=True)
 
         if self._enable_tests:
             self.test_requires("catch2/3.12.0")
