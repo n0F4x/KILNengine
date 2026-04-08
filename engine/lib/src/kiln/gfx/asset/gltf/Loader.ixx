@@ -5,18 +5,18 @@ module;
 
 #include <fastgltf/core.hpp>
 
-export module kiln.gfx.model.GltfLoader;
+export module kiln.gfx.asset.gltf.Loader;
 
-import kiln.gfx.model.GltfAsset;
+import kiln.gfx.asset.gltf.Asset;
 import kiln.res.ResourceManager;
 
-namespace kiln::gfx {
+namespace kiln::gfx::asset::gltf {
 
-export class GltfLoader {
+export class Loader {
 public:
     [[nodiscard]]
     auto load(const std::filesystem::path& filepath, res::ResourceManager& resource_manager)
-        -> std::optional<GltfAsset>;
+        -> std::optional<Asset>;
 
 private:
     fastgltf::Parser m_parser;

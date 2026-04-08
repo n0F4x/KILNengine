@@ -5,12 +5,16 @@ module;
 
 #include <fastgltf/core.hpp>
 
-module kiln.gfx.model.GltfLoader;
+#include "kiln/util/contract_macros.hpp"
 
-namespace kiln::gfx {
+module kiln.gfx.asset.gltf.Loader;
 
-auto GltfLoader::load(const std::filesystem::path& filepath, res::ResourceManager&)
-    -> std::optional<GltfAsset>
+import kiln.util.contracts;
+
+namespace kiln::gfx::asset::gltf {
+
+auto Loader::load(const std::filesystem::path& filepath, res::ResourceManager&)
+    -> std::optional<Asset>
 {
     fastgltf::GltfFileStream file{ filepath };
     if (!file.isOpen())
@@ -26,7 +30,9 @@ auto GltfLoader::load(const std::filesystem::path& filepath, res::ResourceManage
         return std::nullopt;
     }
 
-    return GltfAsset{ std::move(asset.get()) };
+    PRECOND(fastgltf::validate(asset.get()) == fastgltf::Error::None);
+
+    return Asset{ std::move(asset.get()) };
 }
 
-}   // namespace kiln::gfx
+}   // namespace kiln::gfx::asset::gltf

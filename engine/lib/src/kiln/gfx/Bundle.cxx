@@ -1,6 +1,6 @@
 module kiln.gfx.Bundle;
 
-import kiln.gfx.model.ModelBundle;
+import kiln.gfx.asset.Bundle;
 import kiln.gfx.renderer.Bundle;
 import kiln.gfx.vulkan.Bundle;
 
@@ -10,7 +10,7 @@ auto Bundle::operator()(app::Builder& builder) -> void
 {
     builder.apply_bundle(vulkan::Bundle{});
     builder.apply_bundle(renderer::Bundle{});
-    builder.apply_bundle(ModelBundle{});
+    builder.apply_bundle(asset::Bundle{});
 }
 
 }   // namespace kiln::gfx

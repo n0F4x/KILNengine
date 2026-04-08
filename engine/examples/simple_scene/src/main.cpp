@@ -19,7 +19,7 @@ auto main(const int argc, const char* const argv[]) -> int
             .build();
 
     return !app.contexts()
-                .at<kiln::gfx::GltfLoader>()
+                .at<kiln::gfx::asset::gltf::Loader>()
                 .load(
                     std::filesystem::path{ std::source_location::current().file_name() }
                             .parent_path()
