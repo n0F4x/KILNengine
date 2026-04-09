@@ -1,6 +1,7 @@
 module;
 
 #include <filesystem>
+#include <memory_resource>
 #include <optional>
 #include <vector>
 
@@ -15,8 +16,10 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::asset::gltf {
 
-auto Parser::load(const std::filesystem::path& filepath)
-    -> std::optional<Asset>
+auto Parser::load(
+    const std::filesystem::path& filepath,
+    const Asset::allocator_type& allocator
+) -> std::optional<Asset>
 {
     fastgltf::GltfFileStream file{ filepath };
     if (!file.isOpen())
@@ -29,7 +32,7 @@ auto Parser::load(const std::filesystem::path& filepath)
      * It's better to provide our own allocation for that.
      */
 
-    std::pmr::vector<Buffer> custom_buffers;
+    std::pmr::vector<Buffer> custom_buffers{ allocator };
 
     m_parser.setUserPointer(&custom_buffers);
     m_parser.setBufferAllocationCallback(
@@ -61,7 +64,9 @@ auto Parser::load(const std::filesystem::path& filepath)
 
     PRECOND(fastgltf::validate(asset.get()) == fastgltf::Error::None);
 
-    return Asset{ std::move(asset.get()), std::move(custom_buffers) };
+    return Asset{
+        std::allocator_arg, allocator, std::move(asset.get()), std::move(custom_buffers)
+    };
 }
 
 }   // namespace kiln::gfx::asset::gltf

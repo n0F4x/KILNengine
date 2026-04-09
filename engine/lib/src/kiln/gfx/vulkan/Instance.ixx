@@ -27,13 +27,16 @@ public:
     using Builder = internal::InstanceBuilder;
 
 
-    explicit Instance(vk::raii::Instance&& instance);
+    explicit Instance(uint32_t api_version, vk::raii::Instance&& instance);
 
 
     [[nodiscard]]
     auto get() const noexcept -> const vk::raii::Instance&;
+    [[nodiscard]]
+    auto api_version() const noexcept -> uint32_t;
 
 private:
+    uint32_t           m_api_version;
     vk::raii::Instance m_instance;
 };
 

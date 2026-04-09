@@ -14,7 +14,10 @@ namespace kiln::gfx::asset::gltf {
 export class Parser {
 public:
     [[nodiscard]]
-    auto load(const std::filesystem::path& filepath) -> std::optional<Asset>;
+    auto load(
+        const std::filesystem::path& filepath,
+        const Asset::allocator_type& allocator = std::pmr::get_default_resource()
+    ) -> std::optional<Asset>;
 
 private:
     fastgltf::Parser m_parser;

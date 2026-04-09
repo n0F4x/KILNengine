@@ -31,7 +31,7 @@ public:
 
 
     Allocator(
-        const vk::raii::Instance& instance,
+        const vulkan::Instance& instance,
         [[kiln_lifetimebound]]
         const Device& device
     );

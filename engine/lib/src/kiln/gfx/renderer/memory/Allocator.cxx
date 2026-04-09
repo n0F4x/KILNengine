@@ -10,6 +10,7 @@ module kiln.gfx.renderer.memory.Allocator;
 import vulkan_hpp;
 
 import kiln.gfx.renderer.memory.MemoryTypeID;
+import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.StringLiteral;
@@ -64,12 +65,20 @@ auto collect_vulkan_functions(
 
 [[nodiscard]]
 auto vma_allocator_create_flags(
+    const uint32_t                            vma_vulkan_api_version,
     const vulkan::PhysicalDeviceCapabilities& device_capabilities
 ) noexcept -> VmaAllocatorCreateFlags
 {
     VmaAllocatorCreateFlags flags{};
 
-    if (std::ranges::contains(
+    flags |= VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+
+    if (vma_vulkan_api_version == vk::ApiVersion10
+        && (std::ranges::contains(
+            device_capabilities.extensions(),
+            util::StringLiteral{ vk::KHRGetMemoryRequirements2ExtensionName }
+        ))
+        && std::ranges::contains(
             device_capabilities.extensions(),
             util::StringLiteral{ vk::KHRDedicatedAllocationExtensionName }
         ))
@@ -77,7 +86,8 @@ auto vma_allocator_create_flags(
         flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
     }
 
-    if (std::ranges::contains(
+    if (vma_vulkan_api_version == vk::ApiVersion10
+        && std::ranges::contains(
             device_capabilities.extensions(),
             util::StringLiteral{ vk::KHRBindMemory2ExtensionName }
         ))
@@ -110,7 +120,12 @@ auto vma_allocator_create_flags(
         buffer_device_address_features{
             .bufferDeviceAddress = vk::True,
         };
-    if (device_capabilities.contains_features(buffer_device_address_features))
+    if ((vma_vulkan_api_version < vk::ApiVersion12
+         && std::ranges::contains(
+             device_capabilities.extensions(),
+             util::StringLiteral{ vk::KHRBufferDeviceAddressExtensionName }
+         ))
+        || device_capabilities.contains_features(buffer_device_address_features))
     {
         flags |= VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     }
@@ -130,43 +145,48 @@ auto vma_allocator_create_flags(
     constexpr static vk::PhysicalDeviceMaintenance4Features maintenance4_features{
         .maintenance4 = vk::True,
     };
-    if (std::ranges::contains(
-            device_capabilities.extensions(),
-            util::StringLiteral{ vk::KHRMaintenance4ExtensionName }
-        )
-        && device_capabilities.contains_features(maintenance4_features))
+    if (device_capabilities.contains_features(maintenance4_features))
     {
         flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
     }
 
-    constexpr static vk::PhysicalDeviceMaintenance5FeaturesKHR maintenance5_features{
+    constexpr static vk::PhysicalDeviceMaintenance5Features maintenance5_features{
         .maintenance5 = vk::True,
     };
+    if (device_capabilities.contains_features(maintenance5_features))
+    {
+        flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
+    }
+
     if (std::ranges::contains(
             device_capabilities.extensions(),
-            util::StringLiteral{ vk::KHRMaintenance5ExtensionName }
-        )
-        && device_capabilities.contains_features(maintenance5_features))
+            // TODO: use vk::KHRExternalMemoryWin32ExtensionName
+            util::StringLiteral{ "VK_KHR_external_memory_win32" }
+        ))
     {
-        flags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
+        flags |= VMA_ALLOCATOR_CREATE_KHR_EXTERNAL_MEMORY_WIN32_BIT;
     }
 
     return flags;
 }
 
 [[nodiscard]]
-auto create_allocator(const vk::raii::Instance& instance, const Device& device)
+auto create_allocator(const vulkan::Instance& instance, const Device& device)
     -> std::unique_ptr<VmaAllocator_T, decltype(&vmaDestroyAllocator)>
 {
     const VmaVulkanFunctions vulkan_functions{
-        collect_vulkan_functions(instance, device.logical_device())
+        collect_vulkan_functions(instance.get(), device.logical_device())
+    };
+    const uint32_t vma_vulkan_api_version{
+        std::min(instance.api_version(), device.capabilities().version())
     };
     const VmaAllocatorCreateInfo create_info{
-        .flags            = vma_allocator_create_flags(device.capabilities()),
+        .flags = vma_allocator_create_flags(vma_vulkan_api_version, device.capabilities()),
         .physicalDevice   = *device.physical_device(),
         .device           = *device.logical_device(),
         .pVulkanFunctions = &vulkan_functions,
-        .instance         = *instance,
+        .instance         = *instance.get(),
+        .vulkanApiVersion = vma_vulkan_api_version,
     };
 
     VmaAllocator allocator{};
@@ -177,7 +197,7 @@ auto create_allocator(const vk::raii::Instance& instance, const Device& device)
     };
 }
 
-Allocator::Allocator(const vk::raii::Instance& instance, const Device& device)
+Allocator::Allocator(const vulkan::Instance& instance, const Device& device)
     : m_device{ device },
       m_handle{ create_allocator(instance, device) }
 {
@@ -263,7 +283,7 @@ auto AllocatorBuilder::create(
 auto AllocatorBuilder::build(const vulkan::Instance& instance, const Device& device)
     -> Allocator
 {
-    return Allocator{ instance.get(), device };
+    return Allocator{ instance, device };
 }
 
 }   // namespace internal

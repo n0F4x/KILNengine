@@ -67,6 +67,9 @@ Asset::Asset(
     }
     m_vertex_array_views.reserve(number_of_vertex_array_views);
     m_index_array_views.reserve(number_of_index_array_views);
+
+    fill_vertex_array_views(m_vertex_array_views, m_asset, m_buffers);
+    fill_index_array_views(m_index_array_views, m_asset, m_buffers);
 }
 
 auto Asset::get_allocator() const noexcept -> allocator_type
@@ -113,6 +116,17 @@ auto bytes_ref_from(
     );
 }
 
+[[nodiscard]]
+constexpr auto byte_stride_from(const fastgltf::Optional<std::size_t>& byte_stride)
+    -> std::optional<uint32_t>
+{
+    if (byte_stride.has_value())
+    {
+        return static_cast<uint32_t>(*byte_stride);
+    }
+    return std::nullopt;
+}
+
 auto Asset::fill_vertex_array_views(
     std::pmr::vector<VertexArrayView>& out,
     const fastgltf::Asset&             asset,
@@ -127,10 +141,9 @@ auto Asset::fill_vertex_array_views(
             out.push_back(
                 VertexArrayView{
                     .bytes       = bytes_ref_from(buffer_view, asset, custom_buffers),
-                    .byte_length = buffer_view.byteLength,
-                    .byte_offset = buffer_view.byteOffset,
-                    .byte_stride =
-                        static_cast<uint32_t>(buffer_view.byteStride.value_or(0)),
+                    .byte_length = static_cast<uint32_t>(buffer_view.byteLength),
+                    .byte_offset = static_cast<uint32_t>(buffer_view.byteOffset),
+                    .byte_stride = byte_stride_from(buffer_view.byteStride),
                 }
             );
         }

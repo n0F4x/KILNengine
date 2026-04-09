@@ -18,11 +18,20 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::vulkan {
 
-Instance::Instance(vk::raii::Instance&& instance) : m_instance{ std::move(instance) } {}
+Instance::Instance(const uint32_t api_version, vk::raii::Instance&& instance)
+    : m_api_version{ api_version },
+      m_instance{ std::move(instance) }
+{
+}
 
 auto Instance::get() const noexcept -> const vk::raii::Instance&
 {
     return m_instance;
+}
+
+auto Instance::api_version() const noexcept -> uint32_t
+{
+    return m_api_version;
 }
 
 namespace internal {
@@ -209,7 +218,10 @@ auto InstanceBuilder::build() const -> Instance
                                      : m_extension_names.front().address(),
     };
 
-    return Instance{ check_result(m_context.get().createInstance(instance_create_info)) };
+    return Instance{
+        application_info.apiVersion,
+        check_result(m_context.get().createInstance(instance_create_info)),
+    };
 }
 
 }   // namespace internal
