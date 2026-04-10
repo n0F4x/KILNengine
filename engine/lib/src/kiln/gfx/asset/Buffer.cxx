@@ -48,7 +48,7 @@ auto Buffer::operator=(Buffer&& other) -> Buffer&
 {
     PRECOND(get_allocator() == other.get_allocator());
 
-    clear();
+    reset();
     swap(other);
 
     return *this;
@@ -69,7 +69,7 @@ auto Buffer::bytes() const noexcept -> std::span<const std::byte>
     return std::span{ m_handle, m_size };
 }
 
-auto Buffer::clear() -> void
+auto Buffer::reset() -> void
 {
     if (m_handle != nullptr)
     {

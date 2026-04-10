@@ -7,7 +7,7 @@ module;
 #include <spdlog/logger.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include <vulkan/vk_platform.h>
+#include <vulkan/vk_platform.h> // used for VKAPI_ATTR and VKAPI_CALL
 
 module kiln.gfx.vulkan.DebugMessenger;
 

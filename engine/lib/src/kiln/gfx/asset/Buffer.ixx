@@ -37,7 +37,7 @@ public:
     [[nodiscard]]
     auto bytes() const noexcept -> std::span<const std::byte>;
 
-    auto clear() -> void;
+    auto reset() -> void;
     // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
     auto swap(Buffer& other) -> void;
 

@@ -4,14 +4,11 @@ module;
 
 #include <vk_mem_alloc.h>
 
-#include "kiln/util/lifetimebound.hpp"
-
 export module kiln.gfx.renderer.memory.Allocation;
 
 import vulkan_hpp;
 
 import kiln.gfx.renderer.memory.MemoryTypeID;
-import kiln.gfx.renderer.memory.MemoryView;
 
 namespace kiln::gfx::renderer {
 
@@ -30,27 +27,26 @@ public:
     auto operator=(const Allocation&) -> Allocation& = delete;
     auto operator=(Allocation&&) noexcept -> Allocation&;
 
+
+    [[nodiscard]]
+    auto get() noexcept -> VmaAllocation;
+    [[nodiscard]]
+    auto allocator() noexcept -> VmaAllocator;
     [[nodiscard]]
     auto memory_type_id() const noexcept -> MemoryTypeID;
     [[nodiscard]]
-    auto memory_view() const noexcept [[kiln_lifetimebound]] -> MemoryView;
-    [[nodiscard]]
     auto memory_properties() const noexcept -> vk::MemoryPropertyFlags;
+    [[nodiscard]]
+    auto size() const noexcept -> vk::DeviceSize;
 
     auto reset() noexcept -> void;
 
     [[nodiscard]]
-    auto map() const noexcept -> std::span<std::byte>;
-    auto unmap() const noexcept -> void;
+    auto map() -> std::span<std::byte>;
+    auto unmap() -> void;
 
-    auto invalidate(vk::DeviceSize offset, vk::DeviceSize size) const -> void;
+    auto invalidate(vk::DeviceSize offset, vk::DeviceSize size) -> void;
     auto flush(vk::DeviceSize offset, vk::DeviceSize size) const -> void;
-
-protected:
-    [[nodiscard]]
-    auto allocation() const noexcept -> VmaAllocation;
-    [[nodiscard]]
-    auto allocator() const noexcept -> VmaAllocator;
 
 private:
     VmaAllocator  m_allocator;

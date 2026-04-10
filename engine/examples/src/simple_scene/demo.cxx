@@ -79,7 +79,7 @@ auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> vo
         std::println("Model loaded from {}", model_filepath.generic_string());
     }
 
-    const auto& gpu_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
+    auto& gpu_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
     [[maybe_unused]]
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
         .usage = vk::BufferUsageFlagBits2::eTransferDst
@@ -93,7 +93,7 @@ auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> vo
     constexpr static VmaAllocationCreateInfo allocation_create_info{
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
-    auto [buffer, allocation, info]{
+    auto [buffer, info]{
         gpu_allocator.create_buffer(buffer_create_info, allocation_create_info)
     };
 }

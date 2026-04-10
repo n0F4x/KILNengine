@@ -7,11 +7,11 @@ module;
 #include <variant>
 #include <vector>
 
-#include <vulkan/vulkan.h>
-
 #include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.presentation.Swapchain;
+
+import vulkan_hpp;
 
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.result.Result;
@@ -272,7 +272,8 @@ auto Swapchain::present(
         vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
             // TODO: use C++ method when it handles out of date result
             queue.get().getDispatcher()->vkQueuePresentKHR(
-                *queue.get(), reinterpret_cast<const VkPresentInfoKHR*>(&present_info)
+                *queue.get(),
+                reinterpret_cast<const vk::PresentInfoKHR::NativeType*>(&present_info)
             )
         );
 

@@ -203,10 +203,15 @@ Allocator::Allocator(const vulkan::Instance& instance, const Device& device)
 {
 }
 
+auto Allocator::get() -> VmaAllocator
+{
+    return m_handle.get();
+}
+
 auto Allocator::create_buffer(
     const vk::BufferCreateInfo&    buffer_create_info,
     const VmaAllocationCreateInfo& allocation_create_info
-) const -> std::tuple<Buffer, Allocation, VmaAllocationInfo>
+) -> std::tuple<Buffer, VmaAllocationInfo>
 {
     VkBuffer          buffer;
     VmaAllocation     allocation{};
@@ -222,19 +227,18 @@ auto Allocator::create_buffer(
 
     vulkan::check_result(result);
 
-    return std::make_tuple(
+    return std::tuple{
         Buffer{
-            vk::raii::Buffer{ m_device.get().logical_device(), buffer },
-            buffer_create_info.size,
-    },
-        Allocation{
-            m_handle.get(),
-            allocation,
-            MemoryTypeID{ allocation_info.memoryType },
-            allocation_info.size,
-        },
+               vk::raii::Buffer{ m_device.get().logical_device(), buffer },
+               buffer_create_info.size,
+               Allocation{
+                m_handle.get(),
+                allocation,
+                MemoryTypeID{ allocation_info.memoryType },
+                allocation_info.size,
+            }, },
         allocation_info
-    );
+    };
 }
 
 namespace internal {

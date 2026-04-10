@@ -12,8 +12,8 @@ namespace kiln::gfx::renderer {
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto TransferCommandBuffer::enqueue_buffer_copy(
-    const Buffer& source,
-    const Buffer& destination
+    Buffer& source,
+    Buffer& destination
 ) -> void
 {
     PRECOND(source.size() == destination.size());

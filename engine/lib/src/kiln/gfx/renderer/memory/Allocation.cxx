@@ -1,16 +1,19 @@
 module;
 
-#include <cassert>
 #include <span>
 #include <utility>
 
-#include <vulkan/vulkan.hpp>
-
 #include <vk_mem_alloc.h>
+
+#include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.memory.Allocation;
 
+import vulkan_hpp;
+
 import kiln.gfx.renderer.memory.MemoryTypeID;
+import kiln.gfx.vulkan.result.check_result;
+import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
@@ -57,45 +60,21 @@ auto Allocation::operator=(Allocation&& other) noexcept -> Allocation&
     return *this;
 }
 
-auto Allocation::allocation() const noexcept -> VmaAllocation
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Allocation::get() noexcept -> VmaAllocation
 {
     return m_allocation;
 }
 
-auto Allocation::allocator() const noexcept -> VmaAllocator
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Allocation::allocator() noexcept -> VmaAllocator
 {
     return m_allocator;
-}
-
-auto Allocation::reset() noexcept -> void
-{
-    if (m_allocation != nullptr)
-    {
-        assert(m_allocator != nullptr);
-        vmaFreeMemory(m_allocator, m_allocation);
-    }
-
-    m_size           = 0;
-    m_memory_type_id = MemoryTypeID::invalid_value();
-    m_allocation     = nullptr;
-    m_allocator      = nullptr;
 }
 
 auto Allocation::memory_type_id() const noexcept -> MemoryTypeID
 {
     return m_memory_type_id;
-}
-
-auto Allocation::memory_view() const noexcept -> MemoryView
-{
-    VmaAllocationInfo info;
-    vmaGetAllocationInfo(m_allocator, m_allocation, &info);
-
-    return MemoryView{
-        .memory = info.deviceMemory,
-        .offset = info.offset,
-        .size   = info.size,
-    };
 }
 
 auto Allocation::memory_properties() const noexcept -> vk::MemoryPropertyFlags
@@ -105,41 +84,52 @@ auto Allocation::memory_properties() const noexcept -> vk::MemoryPropertyFlags
     return vk::MemoryPropertyFlags{ result };
 }
 
-auto Allocation::map() const noexcept -> std::span<std::byte>
+auto Allocation::size() const noexcept -> vk::DeviceSize
 {
-    assert(memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible);
+    return m_size;
+}
+
+auto Allocation::reset() noexcept -> void
+{
+    if (m_allocation != nullptr)
+    {
+        vmaFreeMemory(m_allocator, m_allocation);
+    }
+
+    m_size           = 0;
+    m_memory_type_id = MemoryTypeID::invalid_value();
+    m_allocation     = nullptr;
+    m_allocator      = nullptr;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Allocation::map() -> std::span<std::byte>
+{
+    PRECOND(memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible);
 
     void* mapped_data{};
-    vmaMapMemory(m_allocator, m_allocation, &mapped_data);
+    vulkan::check_result(vmaMapMemory(m_allocator, m_allocation, &mapped_data));
 
     return std::span{ static_cast<std::byte*>(mapped_data), m_size };
 }
 
-auto Allocation::unmap() const noexcept -> void
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Allocation::unmap() -> void
 {
     vmaUnmapMemory(m_allocator, m_allocation);
 }
 
-auto Allocation::invalidate(const vk::DeviceSize offset, const vk::DeviceSize size) const
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto Allocation::invalidate(const vk::DeviceSize offset, const vk::DeviceSize size)
     -> void
 {
-    vk::detail::resultCheck(
-        static_cast<vk::Result>(
-            vmaInvalidateAllocation(m_allocator, m_allocation, offset, size)
-        ),
-        "vmaInvalidateAllocation failed"
-    );
+    vulkan::check_result(vmaInvalidateAllocation(m_allocator, m_allocation, offset, size));
 }
 
 auto Allocation::flush(const vk::DeviceSize offset, const vk::DeviceSize size) const
     -> void
 {
-    vk::detail::resultCheck(
-        static_cast<vk::Result>(
-            vmaFlushAllocation(m_allocator, m_allocation, offset, size)
-        ),
-        "vmaFlushAllocation failed"
-    );
+    vulkan::check_result(vmaFlushAllocation(m_allocator, m_allocation, offset, size));
 }
 
 }   // namespace kiln::gfx::renderer

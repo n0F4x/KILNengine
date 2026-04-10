@@ -1,6 +1,9 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Allocation.cxx
         Allocator.cxx
+        Buffer.cxx
+        RingBuffer.cxx
+        StreamingService.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -13,5 +16,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         AllocatorBuilder.ixx
         Buffer.ixx
         MemoryTypeID.ixx
-        MemoryView.ixx
+        RingBuffer.ixx
+        StreamingService.ixx
 )

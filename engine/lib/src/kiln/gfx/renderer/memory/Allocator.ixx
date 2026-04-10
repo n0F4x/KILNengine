@@ -36,11 +36,16 @@ public:
         const Device& device
     );
 
+
+    [[nodiscard]]
+    auto get() -> VmaAllocator;
+
+
     [[nodiscard]]
     auto create_buffer(
         const vk::BufferCreateInfo&    buffer_create_info,
         const VmaAllocationCreateInfo& allocation_create_info
-    ) const -> std::tuple<Buffer, Allocation, VmaAllocationInfo>;
+    ) -> std::tuple<Buffer, VmaAllocationInfo>;
 
 private:
     std::reference_wrapper<const Device>                            m_device;
