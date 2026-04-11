@@ -4,6 +4,6 @@ import kiln.gfx.renderer.device.Device;
 
 namespace kiln::gfx::renderer {
 
-export using internal::DeviceBuilder;
+export using DeviceBuilder = Device::Builder;
 
 }   // namespace kiln::gfx::renderer

@@ -351,13 +351,13 @@ auto Demo::shut_down() -> void
 }
 
 auto Demo::Builder::create(
-    kiln::gfx::renderer::QueueProviderBuilder& queue_provider_plugin,
+    kiln::gfx::renderer::DeviceBuilder& device_builder,
     const kiln::gfx::renderer::CommandContextBuilder&,
     const kiln::gfx::renderer::PresentationContextBuilder&,
     const kiln::gfx::renderer::PipelineContextBuilder&
 ) -> Builder
 {
-    queue_provider_plugin.require_graphics_queue();
+    device_builder.request_graphics_queue();
 
     return Builder{};
 }

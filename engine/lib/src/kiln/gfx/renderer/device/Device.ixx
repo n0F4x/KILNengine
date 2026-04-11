@@ -5,41 +5,56 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <string>
-#include <tuple>
 #include <utility>
-#include <vector>
 
 export module kiln.gfx.renderer.device.Device;
 
 import vulkan_hpp;
 
 import kiln.app.context.ContextBuilderInterface;
+import kiln.app.memory.Arena;
 import kiln.app.memory.ArenaBuilder;
-import kiln.gfx.renderer.device.ErasedQueueRequest;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.PhysicalDeviceFilter;
-import kiln.gfx.vulkan.structure_chain.feature_struct_c;
 import kiln.gfx.vulkan.QueueFamilyInfo;
+import kiln.gfx.vulkan.QueueInfo;
+import kiln.gfx.vulkan.structure_chain.feature_struct_c;
+import kiln.util.containers.OptionalRef;
 import kiln.util.StringLiteral;
+import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
-namespace internal {
-
-export class DeviceBuilder;
-
-}   // namespace internal
+struct QueueInfos {
+    std::optional<vulkan::QueueInfo> graphics_queue_info;
+    std::optional<vulkan::QueueInfo> host_to_device_transfer_queue_info;
+};
 
 export class Device {
 public:
-    using Builder = internal::DeviceBuilder;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
+    class Builder;
+    using QueueInfos = QueueInfos;
 
-    Device(
-        vk::raii::PhysicalDevice           physical_device,
-        vk::raii::Device                   logical_device,
-        vulkan::PhysicalDeviceCapabilities capabilities
+
+    Device(Device&&, const allocator_type& allocator);
+
+    explicit Device(
+        vk::raii::PhysicalDevice&&           physical_device,
+        vk::raii::Device&&                   logical_device,
+        vulkan::PhysicalDeviceCapabilities&& capabilities,
+        const QueueInfos&                    queue_infos
     );
+    explicit Device(
+        std::allocator_arg_t,
+        const allocator_type&                allocator,
+        vk::raii::PhysicalDevice&&           physical_device,
+        vk::raii::Device&&                   logical_device,
+        vulkan::PhysicalDeviceCapabilities&& capabilities,
+        const QueueInfos&                    queue_infos
+    );
+
 
     [[nodiscard]]
     auto name() const -> std::string;
@@ -49,40 +64,47 @@ public:
     auto logical_device() const noexcept -> const vk::raii::Device&;
     [[nodiscard]]
     auto capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&;
+    [[nodiscard]]
+    auto graphics_queue_info() const noexcept
+        -> util::OptionalRef<const vulkan::QueueInfo>;
+    [[nodiscard]]
+    auto host_to_device_transfer_queue_info() const noexcept
+        -> util::OptionalRef<const vulkan::QueueInfo>;
 
 private:
     vk::raii::PhysicalDevice           m_physical_device;
     vk::raii::Device                   m_logical_device;
     vulkan::PhysicalDeviceCapabilities m_capabilities;
+    QueueInfos                         m_queue_infos;
 };
 
-namespace internal {
+struct QueueRequests {
+    bool graphics_queue_requested{};
+    bool host_to_device_transfer_queue_requested{};
+};
 
-export class DeviceBuilder : public app::ContextBuilderInterface {
+class Device::Builder : public app::ContextBuilderInterface {
 public:
-    // required for interfacing with the standard
-    using allocator_type =   // NOLINT(*-identifier-naming)
-        std::pmr::polymorphic_allocator<>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
     [[nodiscard]]
-    static auto create(app::ArenaBuilder& arena_builder) -> DeviceBuilder;
+    static auto create(app::ArenaBuilder& arena_builder) -> Builder;
 
 
-    DeviceBuilder() = default;
-    explicit DeviceBuilder(const allocator_type& allocator);
-    DeviceBuilder(const DeviceBuilder&, const allocator_type& allocator);
-    DeviceBuilder(DeviceBuilder&&, const allocator_type& allocator);
+    Builder(const Builder&, const allocator_type& allocator);
+    Builder(Builder&&, const allocator_type& allocator);
 
-    explicit DeviceBuilder(vulkan::PhysicalDeviceFilter&& physical_device_selector);
-    explicit DeviceBuilder(
+    explicit Builder() = default;
+    explicit Builder(const allocator_type& allocator);
+    explicit Builder(vulkan::PhysicalDeviceFilter&& physical_device_selector);
+    explicit Builder(
         std::allocator_arg_t,
         const allocator_type&          allocator,
         vulkan::PhysicalDeviceFilter&& physical_device_selector
     );
 
 
-    // required for interfacing with the standard
     [[nodiscard]]
     auto get_allocator() const -> allocator_type;
 
@@ -102,10 +124,6 @@ public:
     auto enable_features_if_available(this Self_T&&, const FeaturesStruct_T& features)
         -> Self_T&&;
 
-    template <typename Self_T, typename QueueRequest_T>
-        requires(ErasedQueueRequest::storable<QueueRequest_T>())
-    auto request_queue(this Self_T&&, QueueRequest_T&& queue_request) -> Self_T&&;
-
     template <typename Self_T>
     auto require_and_enable_capabilities(
         this Self_T&&,
@@ -115,27 +133,38 @@ public:
     template <typename Self_T, typename... Args_T>
     auto add_custom_requirement(this Self_T&&, Args_T&&... args) -> Self_T&&;
 
+    auto request_graphics_queue() -> void;
+    auto request_host_to_device_transfer_queue() -> void;
+
     [[nodiscard]]
-    auto build(const vulkan::Instance& instance) const -> Device;
+    auto build(
+        app::Arena&             memory_arena,
+        const vulkan::Instance& instance,
+        const wsi::Context&     wsi_context
+    ) && -> Device;
 
 private:
-    vulkan::PhysicalDeviceFilter         m_physical_device_filter;
-    vulkan::PhysicalDeviceCapabilities   m_optional_capabilities;
-    std::pmr::vector<ErasedQueueRequest> m_queue_requests;
+    vulkan::PhysicalDeviceFilter       m_physical_device_filter;
+    vulkan::PhysicalDeviceCapabilities m_optional_capabilities;
+    QueueRequests                      m_queue_requests;
+
 
     [[nodiscard]]
-    auto create_queue_family_infos(const vk::raii::PhysicalDevice& physical_device) const
-        -> std::vector<vulkan::QueueFamilyInfo>;
+    auto create_queue_family_infos(
+        const vulkan::Instance&                  instance,
+        const wsi::Context&                      wsi_context,
+        const vk::raii::PhysicalDevice&          physical_device,
+        QueueInfos&                              out_queue_infos,
+        const std::pmr::polymorphic_allocator<>& allocator
+    ) const -> std::pmr::vector<vulkan::QueueFamilyInfo>;
 };
-
-}   // namespace internal
 
 }   // namespace kiln::gfx::renderer
 
-namespace kiln::gfx::renderer::internal {
+namespace kiln::gfx::renderer {
 
 template <typename Self_T>
-auto DeviceBuilder::require_minimum_version(this Self_T&& self, const uint32_t version)
+auto Device::Builder::require_minimum_version(this Self_T&& self, const uint32_t version)
     -> Self_T&&
 {
     self.m_physical_device_filter.require_minimum_version(version);
@@ -144,7 +173,7 @@ auto DeviceBuilder::require_minimum_version(this Self_T&& self, const uint32_t v
 }
 
 template <typename Self_T>
-auto DeviceBuilder::enable_extension(
+auto Device::Builder::enable_extension(
     this Self_T&&             self,
     const util::StringLiteral extension_name
 ) -> Self_T&&
@@ -155,7 +184,7 @@ auto DeviceBuilder::enable_extension(
 }
 
 template <typename Self_T>
-auto DeviceBuilder::enable_extension_if_available(
+auto Device::Builder::enable_extension_if_available(
     this Self_T&&             self,
     const util::StringLiteral extension_name
 ) -> Self_T&&
@@ -172,7 +201,7 @@ auto DeviceBuilder::enable_extension_if_available(
 }
 
 template <typename Self_T, vulkan::feature_struct_c FeaturesStruct_T>
-auto DeviceBuilder::enable_features(this Self_T&& self, const FeaturesStruct_T& features)
+auto Device::Builder::enable_features(this Self_T&& self, const FeaturesStruct_T& features)
     -> Self_T&&
 {
     self.m_optional_capabilities.erase_features(features);
@@ -181,7 +210,7 @@ auto DeviceBuilder::enable_features(this Self_T&& self, const FeaturesStruct_T& 
 }
 
 template <typename Self_T, vulkan::feature_struct_c FeaturesStruct_T>
-auto DeviceBuilder::enable_features_if_available(
+auto Device::Builder::enable_features_if_available(
     this Self_T&&           self,
     const FeaturesStruct_T& features
 ) -> Self_T&&
@@ -194,23 +223,8 @@ auto DeviceBuilder::enable_features_if_available(
     return std::forward<Self_T>(self);
 }
 
-template <typename Self_T, typename QueueRequest_T>
-    requires(ErasedQueueRequest::storable<QueueRequest_T>())
-auto DeviceBuilder::request_queue(this Self_T&& self, QueueRequest_T&& queue_request)
-    -> Self_T&&
-{
-    self.DeviceBuilder::m_physical_device_filter.add_custom_requirement(
-        [queue_request](const vk::raii::PhysicalDevice& physical_device) -> bool
-        {
-            return queue_request.is_suitable(physical_device);   //
-        }
-    );
-    self.DeviceBuilder::m_queue_requests.emplace_back(std::move(queue_request));
-    return std::forward<Self_T>(self);
-}
-
 template <typename Self_T>
-auto DeviceBuilder::require_and_enable_capabilities(
+auto Device::Builder::require_and_enable_capabilities(
     this Self_T&&                             self,
     const vulkan::PhysicalDeviceCapabilities& capabilities
 ) -> Self_T&&
@@ -222,11 +236,11 @@ auto DeviceBuilder::require_and_enable_capabilities(
 }
 
 template <typename Self_T, typename... Args_T>
-auto DeviceBuilder::add_custom_requirement(this Self_T&& self, Args_T&&... args)
+auto Device::Builder::add_custom_requirement(this Self_T&& self, Args_T&&... args)
     -> Self_T&&
 {
     self.m_physical_device_filter.add_custom_requirement(std::forward<Args_T>(args)...);
     return std::forward<Self_T>(self);
 }
 
-}   // namespace kiln::gfx::renderer::internal
+}   // namespace kiln::gfx::renderer

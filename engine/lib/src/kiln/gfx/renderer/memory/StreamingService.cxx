@@ -3,6 +3,7 @@ module;
 #include <forward_list>
 #include <memory_resource>
 #include <span>
+#include <vector>
 
 #include <vk_mem_alloc.h>
 
@@ -22,13 +23,13 @@ namespace kiln::gfx::renderer {
 
 StreamingService::StreamingService(
     const Device&          device,
-    const TransferQueueRef upload_queue
+    const TransferQueueRef host_to_device_transfer_queue
 )
     : StreamingService{
           std::allocator_arg,
           std::pmr::get_default_resource(),
           device,
-          upload_queue,
+          host_to_device_transfer_queue,
       }
 {
 }
@@ -37,13 +38,13 @@ StreamingService::StreamingService(
     std::allocator_arg_t,
     const allocator_type&  allocator,
     const Device&          device,
-    const TransferQueueRef upload_queue
+    const TransferQueueRef host_to_device_transfer_queue
 )
     : m_memory_resource{ std::allocator_arg, allocator, allocator.resource() },
-      m_upload_queue{ upload_queue },
-      m_upload_command_pool{ device, upload_queue.family_index() },
-      m_standby_upload_command_buffers{ &*m_memory_resource },
-      m_in_flight_upload_command_buffers{ &*m_memory_resource },
+      m_host_to_device_transfer_queue{ host_to_device_transfer_queue },
+      m_staging_command_pool{ device, host_to_device_transfer_queue.family_index() },
+      m_standby_staging_command_buffers{ &*m_memory_resource },
+      m_in_flight_staging_command_buffers{ &*m_memory_resource },
       m_staging_buffers{ &*m_memory_resource }
 {
 }
@@ -124,9 +125,9 @@ auto StreamingService::flush(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    if (m_recording_upload_command_buffer.has_value())
+    if (m_recording_staging_command_buffer.has_value())
     {
-        m_recording_upload_command_buffer->first.end();
+        m_recording_staging_command_buffer->first.end();
 
         std::pmr::vector<vk::SemaphoreSubmitInfo> signal_semaphores{
             &transient_memory_resource
@@ -136,8 +137,8 @@ auto StreamingService::flush(
         signal_semaphores.push_back(
             vk::SemaphoreSubmitInfo{
                 .semaphore =
-                    m_recording_upload_command_buffer->second.binary_timeline_semaphore,
-                .value     = m_recording_upload_command_buffer->second.waited_on_value,
+                    m_recording_staging_command_buffer->second.binary_timeline_semaphore,
+                .value     = m_recording_staging_command_buffer->second.waited_on_value,
                 .stageMask = vk::PipelineStageFlagBits2::eCopy,
             }
         );
@@ -147,16 +148,16 @@ auto StreamingService::flush(
             .signal_semaphores = signal_semaphores,
             .fence             = submit_info.fence,
         };
-        m_upload_queue.submit(
-            m_recording_upload_command_buffer->first, submit_info_with_our_semaphore
+        m_host_to_device_transfer_queue.submit(
+            m_recording_staging_command_buffer->first, submit_info_with_our_semaphore
         );
 
-        recycle_executed_upload_command_buffers(transient_memory_resource);
+        recycle_executed_staging_command_buffers(transient_memory_resource);
 
-        m_in_flight_upload_command_buffers.push_back(
-            std::move(*m_recording_upload_command_buffer)
+        m_in_flight_staging_command_buffers.push_back(
+            std::move(*m_recording_staging_command_buffer)
         );
-        m_recording_upload_command_buffer.reset();
+        m_recording_staging_command_buffer.reset();
     }
 }
 
@@ -164,37 +165,37 @@ auto StreamingService::ready_command_buffer_for_staging(
     const vk::raii::Device& logical_device
 ) -> TransferCommandBuffer&
 {
-    if (!m_recording_upload_command_buffer.has_value())
+    if (!m_recording_staging_command_buffer.has_value())
     {
-        if (m_standby_upload_command_buffers.empty())
+        if (m_standby_staging_command_buffers.empty())
         {
-            m_recording_upload_command_buffer = std::pair{
-                m_upload_command_pool.allocate_primary(CommandBufferUsageFlags::eReusable),
+            m_recording_staging_command_buffer = std::pair{
+                m_staging_command_pool.allocate_primary(CommandBufferUsageFlags::eReusable),
                 UploadMetaData{ create_timeline_semaphore(logical_device) },
             };
         }
         else
         {
-            m_recording_upload_command_buffer =
-                std::move(m_standby_upload_command_buffers.back());
-            m_standby_upload_command_buffers.pop_back();
+            m_recording_staging_command_buffer =
+                std::move(m_standby_staging_command_buffers.back());
+            m_standby_staging_command_buffers.pop_back();
         }
 
-        m_recording_upload_command_buffer->first.begin();
+        m_recording_staging_command_buffer->first.begin();
     }
 
-    return m_recording_upload_command_buffer->first;
+    return m_recording_staging_command_buffer->first;
 }
 
-auto StreamingService::recycle_executed_upload_command_buffers(
+auto StreamingService::recycle_executed_staging_command_buffers(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    std::pmr::forward_list<decltype(m_in_flight_upload_command_buffers)::iterator>
+    std::pmr::forward_list<decltype(m_in_flight_staging_command_buffers)::iterator>
         finished_queue{ &transient_memory_resource };
 
-    for (auto iter{ m_in_flight_upload_command_buffers.begin() };
-         iter != m_in_flight_upload_command_buffers.end();
+    for (auto iter{ m_in_flight_staging_command_buffers.begin() };
+         iter != m_in_flight_staging_command_buffers.end();
          ++iter)
     {
         if (iter->second.binary_timeline_semaphore.getCounterValue()
@@ -207,23 +208,26 @@ auto StreamingService::recycle_executed_upload_command_buffers(
 
     for (const auto& iter : finished_queue)
     {
-        m_standby_upload_command_buffers.push_back(std::move(*iter));
-        m_in_flight_upload_command_buffers.erase(iter);
+        m_standby_staging_command_buffers.push_back(std::move(*iter));
+        m_in_flight_staging_command_buffers.erase(iter);
     }
 }
 
 auto StreamingService::Builder::create(
-    DeviceBuilder&        device_builder,
-    QueueProviderBuilder& queue_provider_builder
+    vulkan::InstanceBuilder& instance_builder,
+    DeviceBuilder&           device_builder
 ) -> Builder
 {
+    instance_builder.target_api_version(vk::ApiVersion14);
+    device_builder.require_minimum_version(vk::ApiVersion14);
+
     device_builder.enable_features(
         vk::PhysicalDeviceTimelineSemaphoreFeatures{
             .timelineSemaphore = vk::True,
         }
     );
 
-    queue_provider_builder.require_host_to_device_transfer_queue();
+    device_builder.request_host_to_device_transfer_queue();
 
     return Builder{};
 }

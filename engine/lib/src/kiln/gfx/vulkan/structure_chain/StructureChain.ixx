@@ -1,6 +1,7 @@
 module;
 
 #include <algorithm>
+#include <memory_resource>
 #include <ranges>
 #include <utility>
 #include <vector>
@@ -50,14 +51,25 @@ using ErasedStruct = util::BasicAny<util::DefaultAnyTraits<
 export template <util::naked_c RootStruct_T>
 class StructureChain {
 public:
-    using NextPtr = decltype(RootStruct_T::pNext);
+    using allocator_type = std::pmr::polymorphic_allocator<>;
+    using NextPtr        = decltype(RootStruct_T::pNext);
 
-    StructureChain() = default;
+
     StructureChain(const StructureChain&);
+    StructureChain(const StructureChain&, const allocator_type& allocator);
     StructureChain(StructureChain&&) noexcept;
+    StructureChain(StructureChain&&, const allocator_type& allocator);
+
+    explicit StructureChain() = default;
+    explicit StructureChain(const allocator_type& allocator);
+
 
     auto operator=(const StructureChain&) -> StructureChain&;
     auto operator=(StructureChain&&) noexcept -> StructureChain&;
+
+
+    [[nodiscard]]
+    auto get_allocator() const noexcept -> allocator_type;
 
     template <typename Self_T>
     [[nodiscard]]
@@ -529,11 +541,39 @@ StructureChain<RootStruct_T>::StructureChain(const StructureChain& other)
 }
 
 template <util::naked_c RootStruct_T>
+StructureChain<RootStruct_T>::StructureChain(
+    const StructureChain& other,
+    const allocator_type& allocator
+)
+    : m_root_struct{ other.m_root_struct },
+      m_chain{ other.m_chain, allocator }
+{
+    connect();
+}
+
+template <util::naked_c RootStruct_T>
 StructureChain<RootStruct_T>::StructureChain(StructureChain&& other) noexcept
     : m_root_struct{ std::move(other.m_root_struct) },
       m_chain{ std::move(other.m_chain) }
 {
     connect();
+}
+
+template <util::naked_c RootStruct_T>
+StructureChain<RootStruct_T>::StructureChain(
+    StructureChain&&      other,
+    const allocator_type& allocator
+)
+    : m_root_struct{ std::move(other.m_root_struct) },
+      m_chain{ std::move(other.m_chain), allocator }
+{
+    connect();
+}
+
+template <util::naked_c RootStruct_T>
+StructureChain<RootStruct_T>::StructureChain(const allocator_type& allocator)
+    : m_chain{ allocator }
+{
 }
 
 template <util::naked_c RootStruct_T>
@@ -568,6 +608,12 @@ auto StructureChain<RootStruct_T>::operator=(StructureChain&& other) noexcept
     connect();
 
     return *this;
+}
+
+template <util::naked_c RootStruct_T>
+auto StructureChain<RootStruct_T>::get_allocator() const noexcept -> allocator_type
+{
+    return m_chain.keys().get_allocator();
 }
 
 template <util::naked_c RootStruct_T>

@@ -63,7 +63,7 @@ class Demo::Builder : public kiln::app::ContextBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(
-        kiln::gfx::renderer::QueueProviderBuilder&        queue_provider_plugin,
+        kiln::gfx::renderer::DeviceBuilder&        device_builder,
         const kiln::gfx::renderer::CommandContextBuilder& command_context_builder,
         const kiln::gfx::renderer::PresentationContextBuilder& presentation_context_builder,
         const kiln::gfx::renderer::PipelineContextBuilder&

@@ -2,6 +2,7 @@ module;
 
 #include <concepts>
 #include <cstdint>
+#include <memory_resource>
 #include <utility>
 #include <vector>
 
@@ -21,6 +22,18 @@ export class PhysicalDeviceFilter {
 public:
     using CustomRequirement =
         util::CopyableFunction<bool(const vk::raii::PhysicalDevice&) const>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
+
+
+    PhysicalDeviceFilter(const PhysicalDeviceFilter&, const allocator_type& allocator);
+    PhysicalDeviceFilter(PhysicalDeviceFilter&&, const allocator_type& allocator);
+
+    explicit PhysicalDeviceFilter() = default;
+    explicit PhysicalDeviceFilter(const allocator_type& allocator);
+
+
+    [[nodiscard]]
+    auto get_allocator() const noexcept -> allocator_type;
 
     [[nodiscard]]
     auto required_capabilities() const noexcept -> const PhysicalDeviceCapabilities&;
@@ -46,9 +59,9 @@ public:
     auto is_adequate(const vk::raii::PhysicalDevice& physical_device) const -> bool;
 
 private:
-    PhysicalDeviceCapabilities     m_required_capabilities;
-    vk::QueueFlags                 m_queue_flags;
-    std::vector<CustomRequirement> m_custom_requirements;
+    PhysicalDeviceCapabilities          m_required_capabilities;
+    vk::QueueFlags                      m_queue_flags;
+    std::pmr::vector<CustomRequirement> m_custom_requirements;
 
     [[nodiscard]]
     auto supports_queues_flags(const vk::raii::PhysicalDevice& physical_device) const

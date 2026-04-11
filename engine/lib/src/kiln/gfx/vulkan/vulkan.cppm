@@ -14,3 +14,5 @@ export import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 export import kiln.gfx.vulkan.PhysicalDeviceFilter;
 export import kiln.gfx.vulkan.Profile;
 export import kiln.gfx.vulkan.QueueFamilyIndex;
+export import kiln.gfx.vulkan.QueueFamilyInfo;
+export import kiln.gfx.vulkan.QueueInfo;

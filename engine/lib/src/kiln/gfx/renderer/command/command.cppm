@@ -10,7 +10,6 @@ export import kiln.gfx.renderer.command.DependencyInfo;
 export import kiln.gfx.renderer.command.GraphicsCommandBuffer;
 export import kiln.gfx.renderer.command.GraphicsCommandPool;
 export import kiln.gfx.renderer.command.GraphicsQueueRef;
-export import kiln.gfx.renderer.command.queue_requests;
 export import kiln.gfx.renderer.command.QueueProvider;
 export import kiln.gfx.renderer.command.QueueProviderBuilder;
 export import kiln.gfx.renderer.command.QueueRefBase;

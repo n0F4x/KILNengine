@@ -8,7 +8,9 @@ target_sources(${PROJECT_NAME} PRIVATE
         DebugMessenger.cxx
         global_definitions.cpp
         Instance.cxx
+        PhysicalDeviceCapabilities.cxx
         PhysicalDeviceFilter.cxx
+        QueueFamilyInfo.cxx
         vma_global_definitions.cxx
 )
 
@@ -27,4 +29,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         Profile.ixx
         QueueFamilyIndex.ixx
         QueueFamilyInfo.ixx
+        QueueInfo.ixx
 )

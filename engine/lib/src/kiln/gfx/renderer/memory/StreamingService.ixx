@@ -13,7 +13,6 @@ import vulkan_hpp;
 
 import kiln.app.Builder;
 import kiln.gfx.renderer.command.QueueProvider;
-import kiln.gfx.renderer.command.QueueProviderBuilder;
 import kiln.gfx.renderer.command.SubmitInfo;
 import kiln.gfx.renderer.command.TransferCommandPool;
 import kiln.gfx.renderer.command.TransferCommandBuffer;
@@ -22,6 +21,7 @@ import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;
+import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.util.containers.Indirect;
 
 namespace kiln::gfx::renderer {
@@ -33,12 +33,15 @@ public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
-    explicit StreamingService(const Device& device, TransferQueueRef upload_queue);
+    explicit StreamingService(
+        const Device&    device,
+        TransferQueueRef host_to_device_transfer_queue
+    );
     explicit StreamingService(
         std::allocator_arg_t,
         const allocator_type& allocator,
         const Device&         device,
-        TransferQueueRef      upload_queue
+        TransferQueueRef      host_to_device_transfer_queue
     );
 
 
@@ -61,14 +64,14 @@ private:
     };
 
     util::Indirect<std::pmr::unsynchronized_pool_resource> m_memory_resource;
-    TransferQueueRef                                       m_upload_queue;
-    TransferCommandPool                                    m_upload_command_pool;
+    TransferQueueRef    m_host_to_device_transfer_queue;
+    TransferCommandPool m_staging_command_pool;
     std::pmr::vector<std::pair<TransferCommandBuffer, UploadMetaData>>
-        m_standby_upload_command_buffers;
+        m_standby_staging_command_buffers;
     std::optional<std::pair<TransferCommandBuffer, UploadMetaData>>
-        m_recording_upload_command_buffer;
+        m_recording_staging_command_buffer;
     std::pmr::list<std::pair<TransferCommandBuffer, UploadMetaData>>
-                                   m_in_flight_upload_command_buffers;
+                                   m_in_flight_staging_command_buffers;
     std::pmr::forward_list<Buffer> m_staging_buffers;
 
 
@@ -76,7 +79,7 @@ private:
     auto ready_command_buffer_for_staging(const vk::raii::Device& logical_device)
         -> TransferCommandBuffer&;
 
-    auto recycle_executed_upload_command_buffers(
+    auto recycle_executed_staging_command_buffers(
         std::pmr::memory_resource& transient_memory_resource
     ) -> void;
 };
@@ -84,10 +87,9 @@ private:
 class StreamingService::Builder {
 public:
     [[nodiscard]]
-    static auto create(
-        DeviceBuilder&        device_builder,
-        QueueProviderBuilder& queue_provider_builder
-    ) -> Builder;
+    static auto
+        create(vulkan::InstanceBuilder& instance_builder, DeviceBuilder& device_builder)
+            -> Builder;
 };
 
 }   // namespace kiln::gfx::renderer

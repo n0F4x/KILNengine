@@ -7,6 +7,37 @@ module kiln.gfx.vulkan.PhysicalDeviceFilter;
 
 namespace kiln::gfx::vulkan {
 
+PhysicalDeviceFilter::PhysicalDeviceFilter(
+    const PhysicalDeviceFilter& other,
+    const allocator_type&       allocator
+)
+    : m_required_capabilities{ other.m_required_capabilities, allocator },
+      m_queue_flags{ other.m_queue_flags },
+      m_custom_requirements{ other.m_custom_requirements, allocator }
+{
+}
+
+PhysicalDeviceFilter::PhysicalDeviceFilter(
+    PhysicalDeviceFilter&& other,
+    const allocator_type&  allocator
+)
+    : m_required_capabilities{ std::move(other.m_required_capabilities), allocator },
+      m_queue_flags{ other.m_queue_flags },
+      m_custom_requirements{ std::move(other.m_custom_requirements), allocator }
+{
+}
+
+PhysicalDeviceFilter::PhysicalDeviceFilter(const allocator_type& allocator)
+    : m_required_capabilities{ allocator },
+      m_custom_requirements{ allocator }
+{
+}
+
+auto PhysicalDeviceFilter::get_allocator() const noexcept -> allocator_type
+{
+    return m_required_capabilities.get_allocator();
+}
+
 auto PhysicalDeviceFilter::required_capabilities() const noexcept
     -> const PhysicalDeviceCapabilities&
 {

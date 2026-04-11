@@ -2,6 +2,7 @@ module;
 
 #include <memory_resource>
 #include <span>
+#include <utility>
 
 #include "kiln/util/contract_macros.hpp"
 

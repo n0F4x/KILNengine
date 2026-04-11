@@ -25,6 +25,7 @@ ContextBuildTree::ContextBuildTree(Arena&& arena, const Config& config)
       m_builder_hashes{ arena.pool_allocator() },
       m_builder_dependencies{ arena.pool_allocator() },
       m_injections{ arena.pool_allocator() },
+      m_injection_hashes{ arena.pool_allocator() },
       m_injection_dependencies{ arena.pool_allocator() },
       m_contained_hashes{ arena.pool_allocator() }
 {
@@ -239,9 +240,9 @@ auto ContextBuildTree::find_context_builder(const uint64_t hash) const
 }
 
 auto ContextBuildTree::fix_order_of_builders(
-    const uint64_t                   latest_hash,
-    const std::pmr::deque<uint64_t>& resolved_builder_dependencies,
-    std::pmr::memory_resource&       transient_memory_resource
+    const uint64_t                  latest_hash,
+    const std::span<const uint64_t> resolved_builder_dependencies,
+    std::pmr::memory_resource&      transient_memory_resource
 ) -> void
 {
     /*
@@ -285,12 +286,15 @@ auto ContextBuildTree::fix_order_of_builders(
 
     std::pmr::vector<decltype(first_dependent_builder_descriptor_iter)>
         to_be_shifted_builder_descriptor_iters{ &transient_memory_resource };
-    to_be_shifted_builder_descriptor_iters.reserve(resolved_builder_dependencies.size());
+    to_be_shifted_builder_descriptor_iters.reserve(
+        resolved_builder_dependencies.size() + 1
+    );
     for (auto iter{ std::next(first_dependent_builder_descriptor_iter) };   //
          iter != m_builder_dependencies.cend();
          ++iter)
     {
-        if (std::ranges::binary_search(resolved_builder_dependencies, iter->hash()))
+        if (iter->hash() == latest_hash
+            || std::ranges::binary_search(resolved_builder_dependencies, iter->hash()))
         {
             to_be_shifted_builder_descriptor_iters.push_back(iter);
         }
@@ -335,9 +339,9 @@ auto ContextBuildTree::mark_builder_as_resolved(const uint64_t hash) -> void
 }
 
 auto ContextBuildTree::fix_order_of_injections(
-    const uint64_t                   latest_hash,
-    const std::pmr::deque<uint64_t>& resolved_injection_dependencies,
-    std::pmr::memory_resource&       transient_memory_resource
+    const uint64_t                  latest_hash,
+    const std::span<const uint64_t> resolved_injection_dependencies,
+    std::pmr::memory_resource&      transient_memory_resource
 ) -> void
 {
     /*
@@ -365,6 +369,14 @@ auto ContextBuildTree::fix_order_of_injections(
             )
         )   //
     };
+    auto first_dependent_injection_hash_iter{
+        std::next(
+            m_injection_hashes.begin(),
+            std::distance(
+                m_injection_dependencies.begin(), first_dependent_injection_descriptor_iter
+            )
+        )   //
+    };
 
 
     /*
@@ -374,13 +386,14 @@ auto ContextBuildTree::fix_order_of_injections(
     std::pmr::vector<decltype(first_dependent_injection_descriptor_iter)>
         to_be_shifted_injection_descriptor_iters{ &transient_memory_resource };
     to_be_shifted_injection_descriptor_iters.reserve(
-        resolved_injection_dependencies.size()
+        resolved_injection_dependencies.size() + 1
     );
     for (auto iter{ std::next(first_dependent_injection_descriptor_iter) };   //
          iter != m_injection_dependencies.cend();
          ++iter)
     {
-        if (std::ranges::binary_search(resolved_injection_dependencies, iter->hash()))
+        if (iter->hash() == latest_hash
+            || std::ranges::binary_search(resolved_injection_dependencies, iter->hash()))
         {
             to_be_shifted_injection_descriptor_iters.push_back(iter);
         }
@@ -407,6 +420,11 @@ auto ContextBuildTree::fix_order_of_injections(
             first_dependent_injection_iter,
             std::next(m_injections.begin(), index),
             std::next(m_injections.begin(), index + 1)
+        );
+        first_dependent_injection_hash_iter = std::rotate(
+            first_dependent_injection_hash_iter,
+            std::next(m_injection_hashes.begin(), index),
+            std::next(m_injection_hashes.begin(), index + 1)
         );
     }
 }
@@ -576,13 +594,21 @@ auto ContextBuildTree::fix_build_order(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    for (const uint64_t hash : m_builder_hashes)
+    std::pmr::vector<std::pair<uint64_t, std::span<const uint64_t>>>
+        build_hashes_and_dependencies{ &transient_memory_resource };
+    build_hashes_and_dependencies.reserve(m_builder_dependencies.size());
+    for (const DependencyDescriptor& dependency_descriptor : m_builder_dependencies)
     {
-        fix_order_of_builders(
-            hash,
-            collect_all_resolved_build_dependency_hashes(hash, &transient_memory_resource),
-            transient_memory_resource
+        build_hashes_and_dependencies.push_back(
+            std::pair{ dependency_descriptor.hash(),
+                       dependency_descriptor.resolved_dependencies() }
         );
+    }
+
+
+    for (const auto [hash, resolved_dependencies] : build_hashes_and_dependencies)
+    {
+        fix_order_of_builders(hash, resolved_dependencies, transient_memory_resource);
     }
 }
 

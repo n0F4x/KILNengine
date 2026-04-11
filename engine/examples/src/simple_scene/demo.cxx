@@ -25,16 +25,15 @@ struct MetaContext {
     struct Builder : kiln::app::ContextBuilderInterface {
         [[nodiscard]]
         static auto create(
-            kiln::gfx::vulkan::InstanceBuilder&        instance_builder,
-            kiln::gfx::renderer::DeviceBuilder&        device_builder,
-            kiln::gfx::renderer::QueueProviderBuilder& queue_provider_builder
+            kiln::gfx::vulkan::InstanceBuilder& instance_builder,
+            kiln::gfx::renderer::DeviceBuilder& device_builder
         ) -> Builder
         {
             instance_builder.target_api_version(vk::ApiVersion14);
             device_builder.enable_features(
                 vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
             );
-            queue_provider_builder.require_graphics_queue();
+            device_builder.request_graphics_queue();
 
             return Builder{};
         }

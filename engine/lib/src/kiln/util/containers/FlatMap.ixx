@@ -16,12 +16,34 @@ namespace kiln::util {
 export template <typename Key_T, typename Value_T>
 class FlatMap final {
 public:
+    using key_container_type = std::pmr::vector<Key_T>;
+    using mapped_container_type = std::pmr::vector<Value_T>;
     template <bool is_const_T>
     class Iterator;
     using ConstIterator = Iterator<true>;
 
     using reference       = std::pair<const Key_T&, Value_T&>;
     using const_reference = std::pair<const Key_T&, const Value_T&>;
+
+    FlatMap(const FlatMap& other, const std::pmr::polymorphic_allocator<>& allocator)
+        : m_keys{ other.m_keys, allocator },
+          m_values{ other.m_values, allocator }
+    {
+    }
+
+    FlatMap(FlatMap&& other, const std::pmr::polymorphic_allocator<>& allocator)
+        : m_keys{ std::move(other.m_keys), allocator },
+          m_values{ std::move(other.m_values), allocator }
+    {
+    }
+
+    FlatMap() = default;
+
+    explicit FlatMap(const std::pmr::polymorphic_allocator<>& allocator)
+        : m_keys{ allocator },
+          m_values{ allocator }
+    {
+    }
 
     template <typename Self_T>
     [[nodiscard]]
@@ -77,7 +99,7 @@ public:
         const auto key_iter   = std::ranges::find(self.m_keys, key);
         const auto value_iter = std::next(
             self.m_values.begin(),
-            static_cast<std::ranges::range_difference_t<std::vector<Value_T>>>(
+            static_cast<std::ranges::range_difference_t<mapped_container_type>>(
                 std::ranges::distance(self.m_keys.begin(), key_iter)
             )
         );
@@ -122,9 +144,21 @@ public:
         return erase(find(key));
     }
 
+    [[nodiscard]]
+    auto keys() const noexcept -> const key_container_type&
+    {
+        return m_keys;
+    }
+
+    [[nodiscard]]
+    auto values() const noexcept -> const mapped_container_type&
+    {
+        return m_values;
+    }
+
 private:
-    std::vector<Key_T>   m_keys;
-    std::vector<Value_T> m_values;
+    key_container_type   m_keys;
+    mapped_container_type m_values;
 };
 
 template <typename Key_T, typename Value_T>
@@ -134,11 +168,11 @@ class FlatMap<Key_T, Value_T>::Iterator {
     template <bool>
     friend class Iterator;
 
-    using KeyIterator   = std::vector<Key_T>::const_iterator;
+    using KeyIterator   = key_container_type::const_iterator;
     using ValueIterator = std::conditional_t<
         is_const_T,
-        typename std::vector<Value_T>::const_iterator,
-        typename std::vector<Value_T>::iterator>;
+        typename mapped_container_type::const_iterator,
+        typename mapped_container_type::iterator>;
     using Reference = std::conditional_t<
         is_const_T,
         typename FlatMap::const_reference,

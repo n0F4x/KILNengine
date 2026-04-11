@@ -4,6 +4,6 @@ import kiln.gfx.renderer.command.QueueProvider;
 
 namespace kiln::gfx::renderer {
 
-export using QueueProviderBuilder = internal::QueueProviderBuilder;
+export using QueueProviderBuilder = QueueProvider::Builder;
 
 }   // namespace kiln::gfx::renderer

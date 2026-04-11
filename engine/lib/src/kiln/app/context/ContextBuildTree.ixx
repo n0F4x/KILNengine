@@ -139,6 +139,7 @@ private:
     std::pmr::vector<uint64_t>             m_builder_hashes;
     std::pmr::vector<DependencyDescriptor> m_builder_dependencies;
     std::pmr::vector<ErasedInjection>      m_injections;
+    std::pmr::vector<uint64_t>             m_injection_hashes;
     std::pmr::vector<DependencyDescriptor> m_injection_dependencies;
     std::pmr::vector<uint64_t>             m_contained_hashes;
 
@@ -210,14 +211,17 @@ private:
         Args_T&&... args
     ) -> void;
     template <typename Builder_T>
+    auto collect_all_missing_build_dependency_hashes(std::pmr::deque<uint64_t>& out)
+        -> void;
+    template <typename Builder_T>
     [[nodiscard]]
     auto collect_all_missing_and_resolved_build_dependency_hashes(
         const std::pmr::polymorphic_allocator<uint64_t>& allocator
     ) -> std::pair<std::pmr::deque<uint64_t>, uint32_t>;
     auto fix_order_of_builders(
-        uint64_t                         latest_hash,
-        const std::pmr::deque<uint64_t>& resolved_builder_dependencies,
-        std::pmr::memory_resource&       transient_memory_resource
+        uint64_t                   latest_hash,
+        std::span<const uint64_t>  resolved_builder_dependencies,
+        std::pmr::memory_resource& transient_memory_resource
     ) -> void;
     template <typename Builder_T>
     [[nodiscard]]
@@ -250,9 +254,9 @@ private:
         const std::pmr::polymorphic_allocator<uint64_t>& allocator
     ) -> std::pair<std::pmr::deque<uint64_t>, uint32_t>;
     auto fix_order_of_injections(
-        uint64_t                         latest_hash,
-        const std::pmr::deque<uint64_t>& resolved_injection_dependencies,
-        std::pmr::memory_resource&       transient_memory_resource
+        uint64_t                   latest_hash,
+        std::span<const uint64_t>  resolved_injection_dependencies,
+        std::pmr::memory_resource& transient_memory_resource
     ) -> void;
     template <typename Builder_T>
     [[nodiscard]]
@@ -635,15 +639,13 @@ auto ContextBuildTree::resolve_build_dependencies(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_missing_and_resolved_build_dependency_hashes(
-    const std::pmr::polymorphic_allocator<uint64_t>& allocator
-) -> std::pair<std::pmr::deque<uint64_t>, uint32_t>
+auto ContextBuildTree::collect_all_missing_build_dependency_hashes(
+    std::pmr::deque<uint64_t>& out
+) -> void
 {
-    std::pair<std::pmr::deque<uint64_t>, uint32_t> result{ allocator, 0 };
-
     util::for_each(
         util::arguments_of_t<decltype(&Builder_T::build)>{},
-        [&]<typename Dependency_T>(this auto x_self) -> void
+        [this, &out]<typename Dependency_T>() -> void
         {
             using StrippedDependency = strip_dependency_t<Dependency_T>;
 
@@ -651,21 +653,30 @@ auto ContextBuildTree::collect_all_missing_and_resolved_build_dependency_hashes(
                 hash_context<StrippedDependency>()
             };
 
-            if (const auto iter{ std::ranges::lower_bound(result.first, dependency_hash) };
-                (iter == result.first.cend() || *iter != dependency_hash)
-                && !contains(dependency_hash))
+            if (const auto iter{ std::ranges::lower_bound(out, dependency_hash) };
+                (iter == out.cend() || *iter != dependency_hash)
+                && !std::ranges::contains(m_builder_hashes, dependency_hash))
             {
-                result.first.insert(iter, dependency_hash);
+                out.insert(iter, dependency_hash);
             }
 
-            if constexpr (requires { &StrippedDependency::build; })
+            if constexpr (requires { typename StrippedDependency::Builder; })
             {
-                util::for_each(
-                    util::arguments_of_t<decltype(&StrippedDependency::build)>{}, x_self
-                );
+                collect_all_missing_build_dependency_hashes<
+                    typename StrippedDependency::Builder>(out);
             }
         }
     );
+}
+
+template <typename Builder_T>
+auto ContextBuildTree::collect_all_missing_and_resolved_build_dependency_hashes(
+    const std::pmr::polymorphic_allocator<uint64_t>& allocator
+) -> std::pair<std::pmr::deque<uint64_t>, uint32_t>
+{
+    std::pair<std::pmr::deque<uint64_t>, uint32_t> result{ allocator, 0 };
+
+    collect_all_missing_build_dependency_hashes<Builder_T>(result.first);
 
     result.second = static_cast<uint32_t>(result.first.size());
 
@@ -712,15 +723,16 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
                     )   //
                 };
                 (iter == out.cend() || *iter != dependency_hash)
-                && contains(dependency_hash))
+                && std::ranges::contains(m_builder_hashes, dependency_hash))
             {
                 out.insert(iter, dependency_hash);
             }
 
-            if constexpr (requires { &StrippedDependency::build; })
+            if constexpr (requires { typename StrippedDependency::Builder; })
             {
                 util::for_each(
-                    util::arguments_of_t<decltype(&StrippedDependency::build)>{}, x_self
+                    util::arguments_of_t<decltype(&StrippedDependency::Builder::build)>{},
+                    x_self
                 );
             }
         }
@@ -737,17 +749,16 @@ auto ContextBuildTree::emplace_builder(
 
     m_builders.emplace_back(std::in_place_type<Builder_T>, std::forward<Args_T>(args)...);
     m_builder_hashes.push_back(hash_builder<Builder_T>());
-    m_builder_dependencies.emplace_back(
-        hash_builder<Builder_T>(),
-        collect_all_missing_and_resolved_build_dependency_hashes<Builder_T>(
-            &transient_memory_resource
-        )
-    );
+    const DependencyDescriptor& dependency_descriptor =
+        m_builder_dependencies.emplace_back(
+            hash_builder<Builder_T>(),
+            collect_all_missing_and_resolved_build_dependency_hashes<Builder_T>(
+                &transient_memory_resource
+            )
+        );
 
     fix_order_of_builders(
-        hash,
-        collect_all_resolved_build_dependency_hashes<Builder_T>(&transient_memory_resource),
-        transient_memory_resource
+        hash, dependency_descriptor.resolved_dependencies(), transient_memory_resource
     );
     mark_builder_as_resolved(hash);
 }
@@ -830,19 +841,17 @@ auto ContextBuildTree::emplace_injection(
             );
         }
     );
-    m_injection_dependencies.emplace_back(
-        hash,
-        collect_all_missing_injection_dependency_hashes<Builder_T>(
-            &transient_memory_resource
-        )
-    );
+    m_injection_hashes.push_back(hash);
+    const DependencyDescriptor& dependency_descriptor =
+        m_injection_dependencies.emplace_back(
+            hash,
+            collect_all_missing_injection_dependency_hashes<Builder_T>(
+                &transient_memory_resource
+            )
+        );
 
     fix_order_of_injections(
-        hash,
-        collect_all_resolved_injection_dependency_hashes<Builder_T>(
-            &transient_memory_resource
-        ),
-        transient_memory_resource
+        hash, dependency_descriptor.resolved_dependencies(), transient_memory_resource
     );
     mark_injection_as_resolved(hash);
 }
@@ -866,7 +875,7 @@ auto ContextBuildTree::collect_all_missing_injection_dependency_hashes(
 
             if (const auto iter{ std::ranges::lower_bound(result.first, dependency_hash) };
                 (iter == result.first.cend() || *iter != dependency_hash)
-                && !contains(dependency_hash))
+                && !std::ranges::contains(m_injection_hashes, dependency_hash))
             {
                 result.first.insert(iter, dependency_hash);
             }
@@ -907,7 +916,7 @@ auto ContextBuildTree::collect_all_resolved_injection_dependency_hashes(
 
             if (const auto iter{ std::ranges::lower_bound(result, dependency_hash) };
                 (iter == result.cend() || *iter != dependency_hash)
-                && contains(dependency_hash))
+                && std::ranges::contains(m_injection_hashes, dependency_hash))
             {
                 result.insert(iter, dependency_hash);
             }

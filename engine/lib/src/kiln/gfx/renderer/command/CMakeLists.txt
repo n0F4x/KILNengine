@@ -4,7 +4,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         CommandPoolBase.cxx
         GraphicsCommandBuffer.cxx
         GraphicsQueueRef.cxx
-        queue_requests.cxx
         QueueProvider.cxx
         QueueRefBase.cxx
         TransferCommandBuffer.cxx
@@ -26,7 +25,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx
         GraphicsQueueRef.ixx
-        queue_requests.ixx
         QueueProvider.ixx
         QueueProviderBuilder.ixx
         QueueRefBase.ixx

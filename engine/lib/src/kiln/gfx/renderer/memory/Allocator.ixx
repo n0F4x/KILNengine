@@ -14,6 +14,7 @@ import vulkan_hpp;
 
 import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.renderer.device.Device;
+import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.vulkan.Instance;
