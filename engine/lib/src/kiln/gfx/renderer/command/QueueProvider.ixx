@@ -66,6 +66,7 @@ public:
     explicit QueueProviderBuilder(DeviceBuilder& device_builder);
 
     auto require_graphics_queue() -> void;
+    auto require_host_to_device_transfer_queue() -> void;
 
     [[nodiscard]]
     auto build(const Device& device) const -> QueueProvider;

@@ -1,25 +1,21 @@
 module;
 
-#include <span>
 #include <utility>
 
 #include <vk_mem_alloc.h>
-
-#include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.memory.Allocation;
 
 import vulkan_hpp;
 
 import kiln.gfx.renderer.memory.MemoryTypeID;
-import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
 Allocation::Allocation(
-    const VmaAllocator   allocator,
-    const VmaAllocation  allocation,
+    const VmaAllocator   allocator, // NOLINT(*-misplaced-const)
+    const VmaAllocation  allocation, // NOLINT(*-misplaced-const)
     const MemoryTypeID   memory_type_id,
     const vk::DeviceSize size
 ) noexcept
@@ -100,36 +96,6 @@ auto Allocation::reset() noexcept -> void
     m_memory_type_id = MemoryTypeID::invalid_value();
     m_allocation     = nullptr;
     m_allocator      = nullptr;
-}
-
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto Allocation::map() -> std::span<std::byte>
-{
-    PRECOND(memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible);
-
-    void* mapped_data{};
-    vulkan::check_result(vmaMapMemory(m_allocator, m_allocation, &mapped_data));
-
-    return std::span{ static_cast<std::byte*>(mapped_data), m_size };
-}
-
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto Allocation::unmap() -> void
-{
-    vmaUnmapMemory(m_allocator, m_allocation);
-}
-
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto Allocation::invalidate(const vk::DeviceSize offset, const vk::DeviceSize size)
-    -> void
-{
-    vulkan::check_result(vmaInvalidateAllocation(m_allocator, m_allocation, offset, size));
-}
-
-auto Allocation::flush(const vk::DeviceSize offset, const vk::DeviceSize size) const
-    -> void
-{
-    vulkan::check_result(vmaFlushAllocation(m_allocator, m_allocation, offset, size));
 }
 
 }   // namespace kiln::gfx::renderer

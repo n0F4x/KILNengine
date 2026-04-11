@@ -2,17 +2,23 @@ module;
 
 #include <algorithm>
 #include <memory>
+#include <span>
 
 #include <vk_mem_alloc.h>
+
+#include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.memory.Allocator;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.device.Device;
+import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.MemoryTypeID;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.result.check_result;
+import kiln.util.contracts;
 import kiln.util.StringLiteral;
 
 namespace kiln::gfx::renderer {
@@ -211,7 +217,7 @@ auto Allocator::get() -> VmaAllocator
 auto Allocator::create_buffer(
     const vk::BufferCreateInfo&    buffer_create_info,
     const VmaAllocationCreateInfo& allocation_create_info
-) -> std::tuple<Buffer, VmaAllocationInfo>
+) -> Buffer
 {
     VkBuffer          buffer;
     VmaAllocation     allocation{};
@@ -227,18 +233,91 @@ auto Allocator::create_buffer(
 
     vulkan::check_result(result);
 
-    return std::tuple{
-        Buffer{
-               vk::raii::Buffer{ m_device.get().logical_device(), buffer },
-               buffer_create_info.size,
-               Allocation{
-                m_handle.get(),
-                allocation,
-                MemoryTypeID{ allocation_info.memoryType },
-                allocation_info.size,
-            }, },
-        allocation_info
+    return Buffer{
+        vk::raii::Buffer{ m_device.get().logical_device(), buffer },
+        buffer_create_info.size,
+        Allocation{
+                         m_handle.get(),
+                         allocation, MemoryTypeID{ allocation_info.memoryType },
+                         allocation_info.size,
+                         },
     };
+}
+
+auto Allocator::host_copy(
+    const std::span<const std::byte> source,
+    Allocation&                      destination,
+    const vk::DeviceSize             destination_offset,
+    const vk::DeviceSize             destination_size
+) -> void
+{
+    PRECOND(source.size_bytes() == destination_size);
+    PRECOND(destination.memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible);
+    PRECOND(destination.size() - destination_offset >= destination_size);
+
+    vmaCopyMemoryToAllocation(
+        m_handle.get(),
+        source.data(),
+        destination.get(),
+        destination_offset,
+        destination_size
+    );
+}
+
+auto Allocator::host_copy(const std::span<const std::byte> source, Buffer& destination)
+    -> void
+{
+    PRECOND(source.size_bytes() == destination.size());
+    host_copy(source, destination.allocation(), 0, destination.size());
+}
+
+auto Allocator::map(Allocation& allocation) -> std::span<std::byte>
+{
+    PRECOND(allocation.memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible);
+
+    void* mapped_data{};
+    vulkan::check_result(vmaMapMemory(m_handle.get(), allocation.get(), &mapped_data));
+
+    return std::span{ static_cast<std::byte*>(mapped_data), allocation.size() };
+}
+
+auto Allocator::map(Buffer& buffer) -> std::span<std::byte>
+{
+    return map(buffer.allocation()).subspan(0, buffer.size());
+}
+
+auto Allocator::unmap(Allocation& allocation) -> void
+{
+    vmaUnmapMemory(m_handle.get(), allocation.get());
+}
+
+auto Allocator::unmap(Buffer& buffer) -> void
+{
+    unmap(buffer.allocation());
+}
+
+auto Allocator::invalidate(Allocation& allocation) -> void
+{
+    vulkan::check_result(
+        vmaInvalidateAllocation(m_handle.get(), allocation.get(), 0, vk::WholeSize)
+    );
+}
+
+auto Allocator::invalidate(Buffer& buffer) -> void
+{
+    invalidate(buffer.allocation());
+}
+
+auto Allocator::flush(Allocation& allocation) -> void
+{
+    vulkan::check_result(
+        vmaFlushAllocation(m_handle.get(), allocation.get(), 0, vk::WholeSize)
+    );
+}
+
+auto Allocator::flush(Buffer& buffer) -> void
+{
+    flush(buffer.allocation());
 }
 
 namespace internal {

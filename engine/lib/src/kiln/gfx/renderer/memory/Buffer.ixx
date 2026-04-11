@@ -19,8 +19,10 @@ public:
     auto get() noexcept -> vk::Buffer;
     [[nodiscard]]
     auto size() const noexcept -> vk::DeviceSize;
-
-    auto reset() noexcept -> void;
+    [[nodiscard]]
+    auto allocation() noexcept -> Allocation&;
+    [[nodiscard]]
+    auto allocation() const noexcept -> const Allocation&;
 
 private:
     vk::raii::Buffer m_buffer;

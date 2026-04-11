@@ -82,6 +82,11 @@ auto QueueProviderBuilder::require_graphics_queue() -> void
     m_graphics_queue_info.requested = true;
 }
 
+auto QueueProviderBuilder::require_host_to_device_transfer_queue() -> void
+{
+    // TODO
+}
+
 auto QueueProviderBuilder::build(const Device& device) const -> QueueProvider
 {
     const QueueProvider::Queues queues{

@@ -28,11 +28,14 @@ auto Buffer::size() const noexcept -> vk::DeviceSize
     return m_size;
 }
 
-auto Buffer::reset() noexcept -> void
+auto Buffer::allocation() noexcept -> Allocation&
 {
-    m_allocation.reset();
-    m_size = 0;
-    m_buffer.clear();
+    return m_allocation;
+}
+
+auto Buffer::allocation() const noexcept -> const Allocation&
+{
+    return m_allocation;
 }
 
 }   // namespace kiln::gfx::renderer

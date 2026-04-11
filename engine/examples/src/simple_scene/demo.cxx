@@ -16,6 +16,7 @@ import kiln.gfx.Bundle;
 import kiln.gfx.renderer.command.QueueProviderBuilder;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocator;
+import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace demo {
@@ -93,7 +94,7 @@ auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> vo
     constexpr static VmaAllocationCreateInfo allocation_create_info{
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
-    auto [buffer, info]{
+    kiln::gfx::renderer::Buffer buffer{
         gpu_allocator.create_buffer(buffer_create_info, allocation_create_info)
     };
 }

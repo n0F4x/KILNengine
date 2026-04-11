@@ -1,7 +1,5 @@
 module;
 
-#include <span>
-
 #include <vk_mem_alloc.h>
 
 export module kiln.gfx.renderer.memory.Allocation;
@@ -39,21 +37,14 @@ public:
     [[nodiscard]]
     auto size() const noexcept -> vk::DeviceSize;
 
-    auto reset() noexcept -> void;
-
-    [[nodiscard]]
-    auto map() -> std::span<std::byte>;
-    auto unmap() -> void;
-
-    auto invalidate(vk::DeviceSize offset, vk::DeviceSize size) -> void;
-    auto flush(vk::DeviceSize offset, vk::DeviceSize size) const -> void;
-
 private:
     VmaAllocator  m_allocator;
     VmaAllocation m_allocation;
 
     MemoryTypeID   m_memory_type_id;
     vk::DeviceSize m_size;
+
+    auto reset() noexcept -> void;
 };
 
 }   // namespace kiln::gfx::renderer
