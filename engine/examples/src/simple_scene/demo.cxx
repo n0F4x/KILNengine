@@ -9,11 +9,8 @@ module simple_scene;
 
 import vulkan_hpp;
 
-import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.asset.gltf.Asset;
 import kiln.gfx.asset.gltf.Parser;
-import kiln.gfx.Bundle;
-import kiln.gfx.renderer.command.QueueProviderBuilder;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.renderer.memory.Allocator;
@@ -21,37 +18,6 @@ import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace demo {
-
-struct MetaContext {
-    struct Builder : kiln::app::ContextBuilderInterface {
-        [[nodiscard]]
-        static auto create(
-            kiln::gfx::vulkan::InstanceBuilder& instance_builder,
-            kiln::gfx::renderer::DeviceBuilder& device_builder
-        ) -> Builder
-        {
-            instance_builder.target_api_version(vk::ApiVersion14);
-            device_builder.enable_features(
-                vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
-            );
-            device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
-
-            return Builder{};
-        }
-
-        [[nodiscard]]
-        static auto build() -> MetaContext
-        {
-            return MetaContext{};
-        }
-    };
-};
-
-auto Bundle::operator()(kiln::app::Builder& builder) -> void
-{
-    builder.apply_bundle(kiln::gfx::Bundle{});
-    builder.use_context<MetaContext>();
-}
 
 [[nodiscard]]
 auto mega_buffer_size_from(const kiln::gfx::asset::gltf::Asset& asset) -> uint32_t
@@ -70,17 +36,25 @@ auto mega_buffer_size_from(const kiln::gfx::asset::gltf::Asset& asset) -> uint32
     return result;
 }
 
-auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> void
+Demo::Demo(
+    kiln::gfx::renderer::Allocator&        gpu_allocator,
+    kiln::gfx::renderer::StreamingService& gpu_streaming_service,
+    kiln::gfx::asset::gltf::Parser&        gltf_parser
+)
+    : m_gpu_allocator{ gpu_allocator },
+      m_gpu_streaming_service{ gpu_streaming_service },
+      m_gltf_parser{ gltf_parser }
 {
-    const std::optional asset{
-        app.contexts().at<kiln::gfx::asset::gltf::Parser>().load(model_filepath)
-    };
+}
+
+auto Demo::run(const std::filesystem::path& model_filepath) const -> void
+{
+    const std::optional asset{ m_gltf_parser.get().load(model_filepath) };
     if (asset.has_value())
     {
         std::println("Model loaded from {}", model_filepath.generic_string());
     }
 
-    auto& gpu_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
     [[maybe_unused]]
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
         .usage = vk::BufferUsageFlagBits2::eTransferDst
@@ -95,8 +69,31 @@ auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> vo
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
     kiln::gfx::renderer::Buffer buffer{
-        gpu_allocator.create_buffer(buffer_create_info, allocation_create_info)
+        m_gpu_allocator.get().create_buffer(buffer_create_info, allocation_create_info)
     };
+}
+
+auto Demo::Builder::create(
+    kiln::gfx::vulkan::InstanceBuilder& instance_builder,
+    kiln::gfx::renderer::DeviceBuilder& device_builder
+) -> Builder
+{
+    instance_builder.target_api_version(vk::ApiVersion14);
+    device_builder.enable_features(
+        vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
+    );
+    device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+
+    return Builder{};
+}
+
+auto Demo::Builder::build(
+    kiln::gfx::renderer::Allocator& gpu_allocator,
+    const kiln::gfx::renderer::PresentationContext&,
+    kiln::gfx::asset::gltf::Parser& gltf_parser
+) -> Demo
+{
+    return Demo{ gpu_allocator, gltf_parser };
 }
 
 }   // namespace demo

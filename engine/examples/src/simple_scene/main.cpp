@@ -24,10 +24,10 @@ auto main(const int argc, const char* const argv[]) -> int
 {
     kiln::app::App app =                    //
         kiln::app::create("Simple scene")   //
-            .apply_bundle(demo::Bundle{})
+            .use_context<demo::Demo>()
             .build();
 
     const std::filesystem::path model_path{ argc < 2 ? default_model_path() : argv[1] };
 
-    demo::run(app, model_path);
+    app.contexts().at<demo::Demo>().run(model_path);
 }
