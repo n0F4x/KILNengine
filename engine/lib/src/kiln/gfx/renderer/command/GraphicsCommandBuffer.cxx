@@ -9,7 +9,7 @@ import vulkan_hpp;
 namespace kiln::gfx::renderer {
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::begin_render_pass(const RenderPass& render_pass) -> void
+auto GraphicsCommandBuffer::record_render_pass_start(const RenderPass& render_pass) -> void
 {
     get().beginRendering(render_pass.get());
 
@@ -31,19 +31,19 @@ auto GraphicsCommandBuffer::begin_render_pass(const RenderPass& render_pass) -> 
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::end_render_pass() -> void
+auto GraphicsCommandBuffer::record_render_pass_finish() -> void
 {
     get().endRendering();
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::bind_pipeline(const GraphicsPipeline& pipeline) -> void
+auto GraphicsCommandBuffer::record_pipeline_bind(const GraphicsPipeline& pipeline) -> void
 {
     get().bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::draw(const uint32_t vertex_count) -> void
+auto GraphicsCommandBuffer::record_draw(const uint32_t vertex_count) -> void
 {
     get().draw(vertex_count, 1, 0, 0);
 }

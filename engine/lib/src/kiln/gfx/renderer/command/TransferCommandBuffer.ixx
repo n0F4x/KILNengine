@@ -11,7 +11,7 @@ export class TransferCommandBuffer : public CommandBufferBase {
 public:
     using CommandBufferBase::CommandBufferBase;
 
-    auto enqueue_buffer_copy(Buffer& source, Buffer& destination) -> void;
+    auto record_buffer_copy(Buffer& source, Buffer& destination) -> void;
 };
 
 }   // namespace kiln::gfx::renderer

@@ -258,7 +258,7 @@ auto Demo::render() -> void
         m_graphics_command_buffers[m_current_frame_index]
     };
 
-    graphics_command_buffer.begin();
+    graphics_command_buffer.begin_recording();
 
     const vk::ImageMemoryBarrier2 render_image_memory_barrier {
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -276,7 +276,7 @@ auto Demo::render() -> void
     const kiln::gfx::renderer::DependencyInfo render_dependency_info{
         .image_memory_barriers = std::span{ &render_image_memory_barrier, 1 },
     };
-    graphics_command_buffer.barrier(render_dependency_info);
+    graphics_command_buffer.record_barrier(render_dependency_info);
 
     const vk::Rect2D render_area{
         .extent = *m_surface.extent(),
@@ -290,11 +290,11 @@ auto Demo::render() -> void
                 .set_clear_value(std::array{ 0.01f, 0.01f, 0.01f, 1.f }),   //
         }
     };
-    graphics_command_buffer.begin_render_pass(render_pass);
+    graphics_command_buffer.record_render_pass_start(render_pass);
 
-    graphics_command_buffer.bind_pipeline(m_pipeline);
-    graphics_command_buffer.draw(3);
-    graphics_command_buffer.end_render_pass();
+    graphics_command_buffer.record_pipeline_bind(m_pipeline);
+    graphics_command_buffer.record_draw(3);
+    graphics_command_buffer.record_render_pass_finish();
 
     const vk::ImageMemoryBarrier2 present_image_memory_barrier {
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -314,9 +314,9 @@ auto Demo::render() -> void
     const kiln::gfx::renderer::DependencyInfo present_dependency_info{
         .image_memory_barriers = std::span{ &present_image_memory_barrier, 1 },
     };
-    graphics_command_buffer.barrier(present_dependency_info);
+    graphics_command_buffer.record_barrier(present_dependency_info);
 
-    graphics_command_buffer.end();
+    graphics_command_buffer.end_recording();
 
     const vk::SemaphoreSubmitInfo render_wait_semaphore_info{
         .semaphore = m_image_acquired_semaphores[m_current_frame_index],

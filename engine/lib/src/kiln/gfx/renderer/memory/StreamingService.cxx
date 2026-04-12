@@ -65,8 +65,8 @@ auto StreamingService::stage(
     const DependencyInfo staging_dependencies{
         .buffer_memory_barriers = std::span{ &staging_buffer_barrier, 1 },
     };
-    command_buffer.barrier(staging_dependencies);
-    command_buffer.enqueue_buffer_copy(staging_buffer, destination);
+    command_buffer.record_barrier(staging_dependencies);
+    command_buffer.record_buffer_copy(staging_buffer, destination);
 }
 
 }   // namespace kiln::gfx::renderer

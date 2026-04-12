@@ -19,10 +19,10 @@ public:
     [[nodiscard]]
     auto get() const noexcept -> const vk::raii::CommandBuffer&;
 
-    auto begin() -> void;
-    auto end() -> void;
+    auto begin_recording() -> void;
+    auto end_recording() -> void;
 
-    auto barrier(const DependencyInfo& dependency_info) -> void;
+    auto record_barrier(const DependencyInfo& dependency_info) -> void;
 
 private:
     vk::raii::CommandBuffer                 m_command_buffer;

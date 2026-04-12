@@ -14,12 +14,12 @@ export class GraphicsCommandBuffer : public TransferCommandBuffer {
 public:
     using TransferCommandBuffer::TransferCommandBuffer;
 
-    auto begin_render_pass(const RenderPass& render_pass) -> void;
-    auto end_render_pass() -> void;
+    auto record_render_pass_start(const RenderPass& render_pass) -> void;
+    auto record_render_pass_finish() -> void;
 
-    auto bind_pipeline(const GraphicsPipeline& pipeline) -> void;
+    auto record_pipeline_bind(const GraphicsPipeline& pipeline) -> void;
 
-    auto draw(uint32_t vertex_count) -> void;
+    auto record_draw(uint32_t vertex_count) -> void;
 };
 
 }   // namespace kiln::gfx::renderer

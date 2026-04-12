@@ -11,7 +11,7 @@ import kiln.util.contracts;
 namespace kiln::gfx::renderer {
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto TransferCommandBuffer::enqueue_buffer_copy(
+auto TransferCommandBuffer::record_buffer_copy(
     Buffer& source,
     Buffer& destination
 ) -> void

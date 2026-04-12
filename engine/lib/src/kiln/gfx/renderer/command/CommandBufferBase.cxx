@@ -21,7 +21,7 @@ auto CommandBufferBase::get() const noexcept -> const vk::raii::CommandBuffer&
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto CommandBufferBase::begin() -> void
+auto CommandBufferBase::begin_recording() -> void
 {
     vk::CommandBufferUsageFlags flags;
     if (!(m_usage_flags & CommandBufferUsageFlags::eReusable))
@@ -37,13 +37,13 @@ auto CommandBufferBase::begin() -> void
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto CommandBufferBase::end() -> void
+auto CommandBufferBase::end_recording() -> void
 {
     m_command_buffer.end();
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto CommandBufferBase::barrier(const DependencyInfo& dependency_info) -> void
+auto CommandBufferBase::record_barrier(const DependencyInfo& dependency_info) -> void
 {
     const vk::DependencyInfo transformed_dependency_info{
         .memoryBarrierCount =
