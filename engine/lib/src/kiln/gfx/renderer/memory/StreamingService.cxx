@@ -44,8 +44,8 @@ StreamingService::StreamingService(
 }
 
 StreamingService::StreamingService(
-    const Device&          device,
-    const TransferQueueRef host_to_device_transfer_queue
+    const Device&        device,
+    const TransferQueue& host_to_device_transfer_queue
 )
     : StreamingService{
           std::allocator_arg,
@@ -58,9 +58,9 @@ StreamingService::StreamingService(
 
 StreamingService::StreamingService(
     std::allocator_arg_t,
-    const allocator_type&  allocator,
-    const Device&          device,
-    const TransferQueueRef host_to_device_transfer_queue
+    const allocator_type& allocator,
+    const Device&         device,
+    const TransferQueue&  host_to_device_transfer_queue
 )
     : m_memory_resource{ std::allocator_arg, allocator, allocator.resource() },
       m_staging_command_pool{ device, host_to_device_transfer_queue.family_index() },
@@ -147,7 +147,7 @@ auto create_timeline_semaphore(const vk::raii::Device& logical_device)
 }
 
 auto StreamingService::flush_uploads(
-    const TransferQueueRef     transfer_queue,
+    TransferQueue&             transfer_queue,
     const SubmitInfo&          submit_info,
     std::pmr::memory_resource& transient_memory_resource
 ) -> void

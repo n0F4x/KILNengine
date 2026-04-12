@@ -113,7 +113,7 @@ auto RenderSurface::acquire_image(
 }
 
 auto RenderSurface::present(
-    const QueueRefBase                   queue,
+    QueueBase&                           queue,
     const uint32_t                       image_index,
     const std::span<const vk::Semaphore> wait_semaphores
 ) -> bool

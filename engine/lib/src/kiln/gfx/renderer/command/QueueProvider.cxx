@@ -14,37 +14,29 @@ namespace kiln::gfx::renderer {
 
 QueueProvider::QueueProvider(Queues&& queues) : m_queues{ std::move(queues) } {}
 
-auto QueueProvider::graphics_queue() -> std::optional<GraphicsQueueRef>
+auto QueueProvider::graphics_queue() -> util::OptionalRef<GraphicsQueue>
 {
-    return m_queues.graphics_queue_pack.transform(
-        [](const QueuePack& queue_pack) -> GraphicsQueueRef
-        {
-            return GraphicsQueueRef{
-                queue_pack.family_index,
-                queue_pack.queue,
-            };
-        }
-    );
+    if (m_queues.graphics_queue_pack.has_value())
+    {
+        return *m_queues.graphics_queue_pack;
+    }
+    return std::nullopt;
 }
 
-auto QueueProvider::host_to_device_transfer_queue() -> std::optional<TransferQueueRef>
+auto QueueProvider::host_to_device_transfer_queue() -> util::OptionalRef<TransferQueue>
 {
-    return m_queues.host_to_device_transfer_queue_pack.transform(
-        [](const QueuePack& queue_pack) -> TransferQueueRef
-        {
-            return TransferQueueRef{
-                queue_pack.family_index,
-                queue_pack.queue,
-            };
-        }
-    );
+    if (m_queues.host_to_device_transfer_queue_pack.has_value())
+    {
+        return *m_queues.host_to_device_transfer_queue_pack;
+    }
+    return std::nullopt;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto QueueProvider::available_queues() -> std::vector<std::reference_wrapper<QueuePack>>
+auto QueueProvider::available_queues() -> std::vector<std::reference_wrapper<QueueBase>>
 {
     // TODO: join optionals when they have become ranges
-    std::vector<std::reference_wrapper<QueuePack>> result;
+    std::vector<std::reference_wrapper<QueueBase>> result;
 
     uint32_t queue_count{};
     if (m_queues.graphics_queue_pack.has_value())
@@ -69,19 +61,35 @@ auto QueueProvider::available_queues() -> std::vector<std::reference_wrapper<Que
     return result;
 }
 
+auto QueueProvider::Builder::create(
+    vulkan::InstanceBuilder& instance_builder,
+    DeviceBuilder&           device_builder
+) -> Builder
+{
+    /*
+     * Vulkan 1.4 requires that graphics and command queues also support transfer
+     * operations
+     */
+    instance_builder.target_api_version(vk::ApiVersion14);
+    device_builder.require_minimum_version(vk::ApiVersion14);
+
+    return Builder{};
+}
+
 auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
 {
     const auto queue_pack_from{
-        [&device](const QueueType type) -> auto
+        [&device]<typename Queue_T>(std::in_place_type_t<Queue_T>, const QueueType type)
+            -> auto
         {
-            return [&device, type](const vulkan::QueueInfo& info) -> QueuePack
+            return [&device, type](const vulkan::QueueInfo& info) -> Queue_T
             {
-                return QueuePack{
-                    .type         = type,
-                    .family_index = info.family_index,
-                    .flags        = info.flags,
-                    .index        = info.index,
-                    .queue = vulkan::check_result(device.logical_device().getQueue2(
+                return Queue_T{
+                    type,
+                    info.family_index,
+                    info.flags,
+                    info.index,
+                    vulkan::check_result(device.logical_device().getQueue2(
                         vk::DeviceQueueInfo2{
                             .queueFamilyIndex = info.family_index.underlying(),
                             .queueIndex       = info.index,
@@ -93,12 +101,13 @@ auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
     };
 
     Queues queues{
-        .graphics_queue_pack =
-            device.graphics_queue_info().transform(queue_pack_from(QueueType::eGraphics)),
+        .graphics_queue_pack = device.graphics_queue_info().transform(
+            queue_pack_from(std::in_place_type<GraphicsQueue>, QueueType::eGraphics)
+        ),
         .host_to_device_transfer_queue_pack =
-            device.host_to_device_transfer_queue_info().transform(
-                queue_pack_from(QueueType::eHostToDeviceTransfer)
-            ),
+            device.host_to_device_transfer_queue_info().transform(queue_pack_from(
+                std::in_place_type<TransferQueue>, QueueType::eHostToDeviceTransfer
+            )),
     };
 
     return QueueProvider{ std::move(queues) };

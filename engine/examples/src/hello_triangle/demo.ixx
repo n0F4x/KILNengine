@@ -21,11 +21,11 @@ public:
     Demo(Demo&&, const allocator_type& allocator);
     Demo(
         std::allocator_arg_t,
-        const allocator_type&                     allocator,
-        const kiln::app::Config&                  config,
-        const kiln::gfx::vulkan::Instance&        vulkan_instance,
-        const kiln::wsi::Context&                 wsi_context,
-        const kiln::gfx::renderer::Device&        render_device,
+        const allocator_type&               allocator,
+        const kiln::app::Config&            config,
+        const kiln::gfx::vulkan::Instance&  vulkan_instance,
+        const kiln::wsi::Context&           wsi_context,
+        const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::QueueProvider& render_queue_provider
     );
 
@@ -44,7 +44,7 @@ public:
 
 private:
     std::reference_wrapper<const kiln::gfx::renderer::Device>  m_render_device_ref;
-    kiln::gfx::renderer::GraphicsQueueRef                      m_graphics_queue;
+    std::reference_wrapper<kiln::gfx::renderer::GraphicsQueue> m_graphics_queue;
     uint8_t                                                    m_number_of_frames{ 2 };
     uint8_t                                                    m_current_frame_index{};
     kiln::wsi::Window                                          m_window;

@@ -18,7 +18,7 @@ import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.command.SubmitInfo;
 import kiln.gfx.renderer.command.TransferCommandPool;
 import kiln.gfx.renderer.command.TransferCommandBuffer;
-import kiln.gfx.renderer.command.TransferQueueRef;
+import kiln.gfx.renderer.command.TransferQueue;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocator;
@@ -38,14 +38,14 @@ public:
     StreamingService(StreamingService&&, const allocator_type& allocator);
 
     explicit StreamingService(
-        const Device&    device,
-        TransferQueueRef host_to_device_transfer_queue
+        const Device&  device,
+        const TransferQueue& host_to_device_transfer_queue
     );
     explicit StreamingService(
         std::allocator_arg_t,
         const allocator_type& allocator,
         const Device&         device,
-        TransferQueueRef      host_to_device_transfer_queue
+        const TransferQueue&        host_to_device_transfer_queue
     );
 
 
@@ -60,7 +60,7 @@ public:
         Allocator&                 allocator
     ) -> void;
     auto flush_uploads(
-        TransferQueueRef           transfer_queue,
+        TransferQueue&             transfer_queue,
         const SubmitInfo&          submit_info,
         std::pmr::memory_resource& transient_memory_resource =
             *std::pmr::get_default_resource()

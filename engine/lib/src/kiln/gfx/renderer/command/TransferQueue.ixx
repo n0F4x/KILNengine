@@ -1,21 +1,21 @@
-export module kiln.gfx.renderer.command.TransferQueueRef;
+export module kiln.gfx.renderer.command.TransferQueue;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.command.QueueRefBase;
+import kiln.gfx.renderer.command.QueueBase;
 import kiln.gfx.renderer.command.TransferCommandBuffer;
 import kiln.gfx.renderer.command.SubmitInfo;
 
 namespace kiln::gfx::renderer {
 
-export class TransferQueueRef : public QueueRefBase {
+export class TransferQueue : public QueueBase {
 public:
-    using QueueRefBase::QueueRefBase;
+    using QueueBase::QueueBase;
 
     auto submit(
         const TransferCommandBuffer& command_buffer,
         const SubmitInfo&            info = {}
-    ) const -> void;
+    ) -> void;
 };
 
 }   // namespace kiln::gfx::renderer

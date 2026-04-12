@@ -1,13 +1,13 @@
-module kiln.gfx.renderer.command.TransferQueueRef;
+module kiln.gfx.renderer.command.TransferQueue;
 
 namespace kiln::gfx::renderer {
 
-auto TransferQueueRef::submit(
+auto TransferQueue::submit(
     const TransferCommandBuffer& command_buffer,
     const SubmitInfo&            info
-) const -> void
+) -> void
 {
-    QueueRefBase::submit(command_buffer, info);
+    QueueBase::submit(command_buffer, info);
 }
 
 }   // namespace kiln::gfx::renderer

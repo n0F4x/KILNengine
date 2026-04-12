@@ -30,8 +30,8 @@ auto create_window(const kiln::app::Config& config, const kiln::wsi::Context& ws
 
 [[nodiscard]]
 auto create_graphics_command_pool(
-    const kiln::gfx::renderer::Device&          render_device,
-    const kiln::gfx::renderer::GraphicsQueueRef graphics_queue
+    const kiln::gfx::renderer::Device&        render_device,
+    const kiln::gfx::renderer::GraphicsQueue& graphics_queue
 ) -> kiln::gfx::renderer::GraphicsCommandPool
 {
     return kiln::gfx::renderer::GraphicsCommandPool{
@@ -43,10 +43,10 @@ auto create_graphics_command_pool(
 
 [[nodiscard]]
 auto create_graphics_command_pools(
-    const std::pmr::polymorphic_allocator<>&    allocator,
-    const kiln::gfx::renderer::Device&          render_device,
-    const kiln::gfx::renderer::GraphicsQueueRef graphics_queue,
-    const uint8_t                               number_of_frames
+    const std::pmr::polymorphic_allocator<>&  allocator,
+    const kiln::gfx::renderer::Device&        render_device,
+    const kiln::gfx::renderer::GraphicsQueue& graphics_queue,
+    const uint8_t                             number_of_frames
 ) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>
 {
     std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool> result{ allocator };
@@ -326,7 +326,7 @@ auto Demo::render() -> void
         .semaphore = m_render_finished_semaphores[*swapchain_image_index],
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
     };
-    m_graphics_queue.submit(
+    m_graphics_queue.get().submit(
         graphics_command_buffer,
         kiln::gfx::renderer::SubmitInfo{
             .wait_semaphores   = std::span{     &render_wait_semaphore_info, 1 },
