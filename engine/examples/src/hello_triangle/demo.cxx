@@ -147,12 +147,12 @@ Demo::Demo(Demo&& other, const allocator_type& allocator)
 
 Demo::Demo(
     const std::allocator_arg_t,
-    const allocator_type&                     allocator,
-    const kiln::app::Config&                  config,
-    const kiln::gfx::vulkan::Instance&        vulkan_instance,
-    const kiln::wsi::Context&                 wsi_context,
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::QueueProvider& render_queue_provider
+    const allocator_type&               allocator,
+    const kiln::app::Config&            config,
+    const kiln::gfx::vulkan::Instance&  vulkan_instance,
+    const kiln::wsi::Context&           wsi_context,
+    const kiln::gfx::renderer::Device&  render_device,
+    kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
     : m_render_device_ref{ render_device },
       m_graphics_queue{ *render_queue_provider.graphics_queue() },
@@ -357,18 +357,18 @@ auto Demo::Builder::create(
     const kiln::gfx::renderer::PipelineContextBuilder&
 ) -> Builder
 {
-    device_builder.request_graphics_queue();
+    device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
     return Builder{};
 }
 
 auto Demo::Builder::build(
-    kiln::app::Arena&                         arena,
-    const kiln::app::Config&                  config,
-    const kiln::gfx::vulkan::Instance&        vulkan_instance,
-    const kiln::wsi::Context&                 wsi_context,
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::QueueProvider& render_queue_provider
+    kiln::app::Arena&                   arena,
+    const kiln::app::Config&            config,
+    const kiln::gfx::vulkan::Instance&  vulkan_instance,
+    const kiln::wsi::Context&           wsi_context,
+    const kiln::gfx::renderer::Device&  render_device,
+    kiln::gfx::renderer::QueueProvider& render_queue_provider
 ) -> Demo
 {
     return Demo{

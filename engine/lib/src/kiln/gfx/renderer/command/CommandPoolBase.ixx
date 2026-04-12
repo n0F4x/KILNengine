@@ -24,6 +24,10 @@ public:
         util::EnumMask<CommandPoolFlags> flags = CommandPoolFlags::eNone
     );
 
+
+    [[nodiscard]]
+    auto queue_family_index() const noexcept -> vulkan::QueueFamilyIndex;
+
     auto reset() -> void;
 
 protected:
@@ -31,6 +35,7 @@ protected:
 
 private:
     std::reference_wrapper<const Device> m_device;
+    vulkan::QueueFamilyIndex             m_queue_family_index;
     vk::raii::CommandPool                m_command_pool;
 };
 

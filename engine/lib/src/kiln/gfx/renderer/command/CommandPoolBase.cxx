@@ -16,6 +16,7 @@ CommandPoolBase::CommandPoolBase(
     const util::EnumMask<CommandPoolFlags> flags
 )
     : m_device{ device },
+      m_queue_family_index{ queue_family_index },
       m_command_pool{
           vulkan::check_result(device.logical_device().createCommandPool(
               vk::CommandPoolCreateInfo{
@@ -26,6 +27,11 @@ CommandPoolBase::CommandPoolBase(
           ))   //
       }
 {
+}
+
+auto CommandPoolBase::queue_family_index() const noexcept -> vulkan::QueueFamilyIndex
+{
+    return m_queue_family_index;
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst

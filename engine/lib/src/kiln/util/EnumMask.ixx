@@ -16,14 +16,12 @@ public:
     {
     }
 
-    [[nodiscard]]
     constexpr auto operator|=(const EnumMask other) noexcept -> EnumMask&
     {
         m_mask |= other.underlying();
         return *this;
     }
 
-    [[nodiscard]]
     constexpr auto operator&=(const EnumMask other) noexcept -> EnumMask&
     {
         m_mask &= other.underlying();

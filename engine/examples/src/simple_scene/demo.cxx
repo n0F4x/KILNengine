@@ -15,6 +15,7 @@ import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.Bundle;
 import kiln.gfx.renderer.command.QueueProviderBuilder;
 import kiln.gfx.renderer.device.DeviceBuilder;
+import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.vulkan.InstanceBuilder;
@@ -33,7 +34,7 @@ struct MetaContext {
             device_builder.enable_features(
                 vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
             );
-            device_builder.request_graphics_queue();
+            device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
             return Builder{};
         }

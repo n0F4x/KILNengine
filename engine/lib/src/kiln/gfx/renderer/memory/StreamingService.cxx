@@ -1,7 +1,9 @@
 module;
 
+#include <cstdint>
 #include <forward_list>
 #include <memory_resource>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -15,11 +17,31 @@ import vulkan_hpp;
 
 import kiln.gfx.renderer.command.CommandBufferUsageFlags;
 import kiln.gfx.renderer.command.DependencyInfo;
+import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.command.SubmitInfo;
+import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
+
+StreamingService::StreamingService(
+    StreamingService&&    other,
+    const allocator_type& allocator
+)
+    : m_memory_resource{ std::allocator_arg, allocator, allocator.resource() },
+      m_staging_command_pool{ std::move(other.m_staging_command_pool) },
+      m_standby_staging_command_buffers{
+          std::move(other.m_standby_staging_command_buffers),
+          &*m_memory_resource
+      },
+      m_in_flight_staging_command_buffers{
+          std::move(other.m_in_flight_staging_command_buffers),
+          &*m_memory_resource
+      },
+      m_staging_buffers{ std::move(other.m_staging_buffers), &*m_memory_resource }
+{
+}
 
 StreamingService::StreamingService(
     const Device&          device,
@@ -41,12 +63,16 @@ StreamingService::StreamingService(
     const TransferQueueRef host_to_device_transfer_queue
 )
     : m_memory_resource{ std::allocator_arg, allocator, allocator.resource() },
-      m_host_to_device_transfer_queue{ host_to_device_transfer_queue },
       m_staging_command_pool{ device, host_to_device_transfer_queue.family_index() },
       m_standby_staging_command_buffers{ &*m_memory_resource },
       m_in_flight_staging_command_buffers{ &*m_memory_resource },
       m_staging_buffers{ &*m_memory_resource }
 {
+}
+
+auto StreamingService::get_allocator() const noexcept -> allocator_type
+{
+    return m_memory_resource.get_allocator();
 }
 
 [[nodiscard]]
@@ -120,11 +146,14 @@ auto create_timeline_semaphore(const vk::raii::Device& logical_device)
     return vulkan::check_result(logical_device.createSemaphore(create_info));
 }
 
-auto StreamingService::flush(
+auto StreamingService::flush_uploads(
+    const TransferQueueRef     transfer_queue,
     const SubmitInfo&          submit_info,
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
+    PRECOND(transfer_queue.family_index() == m_staging_command_pool.queue_family_index());
+
     if (m_recording_staging_command_buffer.has_value())
     {
         m_recording_staging_command_buffer->first.end();
@@ -148,7 +177,7 @@ auto StreamingService::flush(
             .signal_semaphores = signal_semaphores,
             .fence             = submit_info.fence,
         };
-        m_host_to_device_transfer_queue.submit(
+        transfer_queue.submit(
             m_recording_staging_command_buffer->first, submit_info_with_our_semaphore
         );
 
@@ -227,9 +256,33 @@ auto StreamingService::Builder::create(
         }
     );
 
-    device_builder.request_host_to_device_transfer_queue();
+    device_builder.request_queue(QueueType::eHostToDeviceTransfer);
 
     return Builder{};
+}
+
+auto StreamingService::Builder::build(
+    app::Arena&    arena,
+    const Device&  device,
+    QueueProvider& queue_provider
+) -> StreamingService
+{
+    return StreamingService{
+        std::allocator_arg,
+        arena.pool_allocator(),
+        device,
+        *queue_provider.select_transfer_queue(
+            [](const QueueType queue_type) -> std::optional<uint32_t>
+            {
+                switch (queue_type)
+                {
+                    case QueueType::eGraphics:             return 0;
+                    case QueueType::eHostToDeviceTransfer: return 1;
+                }
+                // ReSharper disable once CppNotAllPathsReturnValue
+            }
+        ),
+    };
 }
 
 }   // namespace kiln::gfx::renderer

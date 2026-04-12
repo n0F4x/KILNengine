@@ -12,6 +12,7 @@ module kiln.gfx.renderer.device.Device;
 
 import kiln.app.memory.Arena;
 import kiln.gfx.renderer.device.DeviceBuildFailedError;
+import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.structure_chain.StructureChain;
@@ -164,21 +165,16 @@ auto device_queue_create_infos_from(
     return result;
 }
 
-auto Device::Builder::request_graphics_queue() -> void
+auto Device::Builder::request_queue(const QueueType type) -> void
 {
-    m_queue_requests.graphics_queue_requested = true;
-}
-
-auto Device::Builder::request_host_to_device_transfer_queue() -> void
-{
-    m_queue_requests.host_to_device_transfer_queue_requested = true;
+    m_requested_queue_types |= type;
 }
 
 auto Device::Builder::build(
     app::Arena&             memory_arena,
     const vulkan::Instance& instance,
     const wsi::Context&     wsi_context
-) && -> Device
+) const&& -> Device
 {
     std::pmr::monotonic_buffer_resource transient_memory_resource{
         memory_arena.make_transient_resource()
@@ -203,7 +199,7 @@ auto Device::Builder::build(
     vk::raii::PhysicalDevice physical_device{ std::move(supported_devices.front()) };
 
     vulkan::PhysicalDeviceCapabilities capabilities{
-        std::move(m_physical_device_filter.required_capabilities())
+        m_physical_device_filter.required_capabilities()
     };
 
     for (const std::vector<vk::ExtensionProperties> supported_extension_properties{
@@ -362,6 +358,7 @@ auto emplace_graphics_queue(
             {
                 return vulkan::QueueInfo{
                     .family_index = vulkan::QueueFamilyIndex{ family_index },
+                    .flags        = family_properties.queueFamilyProperties.queueFlags,
                     .index        = *queue_index,
                 };
             }
@@ -403,6 +400,7 @@ auto emplace_transfer_queue(
             {
                 return vulkan::QueueInfo{
                     .family_index = vulkan::QueueFamilyIndex{ family_index },
+                    .flags        = family_properties.queueFamilyProperties.queueFlags,
                     .index        = *queue_index,
                 };
             }
@@ -424,6 +422,7 @@ auto emplace_transfer_queue(
             {
                 return vulkan::QueueInfo{
                     .family_index = vulkan::QueueFamilyIndex{ family_index },
+                    .flags        = family_properties.queueFamilyProperties.queueFlags,
                     .index        = *queue_index,
                 };
             }
@@ -443,12 +442,12 @@ auto Device::Builder::create_queue_family_infos(
 {
     std::pmr::vector<vulkan::QueueFamilyInfo> result{ allocator };
 
-    if (m_queue_requests.graphics_queue_requested)
+    if (m_requested_queue_types & QueueType::eGraphics)
     {
         out_queue_infos.graphics_queue_info =
             emplace_graphics_queue(result, instance, wsi_context, physical_device);
     }
-    if (m_queue_requests.host_to_device_transfer_queue_requested)
+    if (m_requested_queue_types & QueueType::eHostToDeviceTransfer)
     {
         out_queue_infos.host_to_device_transfer_queue_info =
             emplace_transfer_queue(result, physical_device);

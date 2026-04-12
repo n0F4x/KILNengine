@@ -14,6 +14,7 @@ import vulkan_hpp;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.app.memory.Arena;
 import kiln.app.memory.ArenaBuilder;
+import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.PhysicalDeviceFilter;
@@ -21,6 +22,7 @@ import kiln.gfx.vulkan.QueueFamilyInfo;
 import kiln.gfx.vulkan.QueueInfo;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
 import kiln.util.containers.OptionalRef;
+import kiln.util.EnumMask;
 import kiln.util.StringLiteral;
 import kiln.wsi.Context;
 
@@ -78,11 +80,6 @@ private:
     QueueInfos                         m_queue_infos;
 };
 
-struct QueueRequests {
-    bool graphics_queue_requested{};
-    bool host_to_device_transfer_queue_requested{};
-};
-
 class Device::Builder : public app::ContextBuilderInterface {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
@@ -133,20 +130,19 @@ public:
     template <typename Self_T, typename... Args_T>
     auto add_custom_requirement(this Self_T&&, Args_T&&... args) -> Self_T&&;
 
-    auto request_graphics_queue() -> void;
-    auto request_host_to_device_transfer_queue() -> void;
+    auto request_queue(QueueType type) -> void;
 
     [[nodiscard]]
     auto build(
         app::Arena&             memory_arena,
         const vulkan::Instance& instance,
         const wsi::Context&     wsi_context
-    ) && -> Device;
+    ) const&& -> Device;
 
 private:
     vulkan::PhysicalDeviceFilter       m_physical_device_filter;
     vulkan::PhysicalDeviceCapabilities m_optional_capabilities;
-    QueueRequests                      m_queue_requests;
+    util::EnumMask<QueueType>          m_requested_queue_types;
 
 
     [[nodiscard]]

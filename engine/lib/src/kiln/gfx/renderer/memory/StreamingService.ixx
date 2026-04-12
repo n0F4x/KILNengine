@@ -12,6 +12,8 @@ export module kiln.gfx.renderer.memory.StreamingService;
 import vulkan_hpp;
 
 import kiln.app.Builder;
+import kiln.app.context.ContextBuilderInterface;
+import kiln.app.memory.Arena;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.command.SubmitInfo;
 import kiln.gfx.renderer.command.TransferCommandPool;
@@ -33,6 +35,8 @@ public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
+    StreamingService(StreamingService&&, const allocator_type& allocator);
+
     explicit StreamingService(
         const Device&    device,
         TransferQueueRef host_to_device_transfer_queue
@@ -45,13 +49,18 @@ public:
     );
 
 
+    [[nodiscard]]
+    auto get_allocator() const noexcept -> allocator_type;
+
+
     auto upload(
         std::span<const std::byte> data,
         Buffer&                    destination,
         const Device&              device,
         Allocator&                 allocator
     ) -> void;
-    auto flush(
+    auto flush_uploads(
+        TransferQueueRef           transfer_queue,
         const SubmitInfo&          submit_info,
         std::pmr::memory_resource& transient_memory_resource =
             *std::pmr::get_default_resource()
@@ -64,8 +73,7 @@ private:
     };
 
     util::Indirect<std::pmr::unsynchronized_pool_resource> m_memory_resource;
-    TransferQueueRef    m_host_to_device_transfer_queue;
-    TransferCommandPool m_staging_command_pool;
+    TransferCommandPool                                    m_staging_command_pool;
     std::pmr::vector<std::pair<TransferCommandBuffer, UploadMetaData>>
         m_standby_staging_command_buffers;
     std::optional<std::pair<TransferCommandBuffer, UploadMetaData>>
@@ -84,12 +92,17 @@ private:
     ) -> void;
 };
 
-class StreamingService::Builder {
+class StreamingService::Builder : public app::ContextBuilderInterface {
 public:
     [[nodiscard]]
     static auto
         create(vulkan::InstanceBuilder& instance_builder, DeviceBuilder& device_builder)
             -> Builder;
+
+    [[nodiscard]]
+    static auto
+        build(app::Arena& arena, const Device& device, QueueProvider& queue_provider)
+            -> StreamingService;
 };
 
 }   // namespace kiln::gfx::renderer

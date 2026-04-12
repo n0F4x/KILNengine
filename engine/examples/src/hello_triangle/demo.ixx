@@ -26,7 +26,7 @@ public:
         const kiln::gfx::vulkan::Instance&        vulkan_instance,
         const kiln::wsi::Context&                 wsi_context,
         const kiln::gfx::renderer::Device&        render_device,
-        const kiln::gfx::renderer::QueueProvider& render_queue_provider
+        kiln::gfx::renderer::QueueProvider& render_queue_provider
     );
 
     // required for interfacing with the standard
@@ -63,7 +63,7 @@ class Demo::Builder : public kiln::app::ContextBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(
-        kiln::gfx::renderer::DeviceBuilder&        device_builder,
+        kiln::gfx::renderer::DeviceBuilder&               device_builder,
         const kiln::gfx::renderer::CommandContextBuilder& command_context_builder,
         const kiln::gfx::renderer::PresentationContextBuilder& presentation_context_builder,
         const kiln::gfx::renderer::PipelineContextBuilder&
@@ -71,11 +71,11 @@ public:
 
     [[nodiscard]]
     static auto build(
-        kiln::app::Arena&                         arena,
-        const kiln::app::Config&                  config,
-        const kiln::gfx::vulkan::Instance&        vulkan_instance,
-        const kiln::wsi::Context&                 wsi_context,
-        const kiln::gfx::renderer::Device&        render_device,
-        const kiln::gfx::renderer::QueueProvider& render_queue_provider
+        kiln::app::Arena&                   arena,
+        const kiln::app::Config&            config,
+        const kiln::gfx::vulkan::Instance&  vulkan_instance,
+        const kiln::wsi::Context&           wsi_context,
+        const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::QueueProvider& render_queue_provider
     ) -> Demo;
 };
