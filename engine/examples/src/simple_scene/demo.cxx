@@ -11,10 +11,13 @@ import vulkan_hpp;
 
 import kiln.gfx.asset.gltf.Asset;
 import kiln.gfx.asset.gltf.Parser;
+import kiln.gfx.renderer.command.QueueProvider;
+import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;
+import kiln.gfx.renderer.stream.StagingRegion;
 import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace demo {
@@ -36,18 +39,48 @@ auto mega_buffer_size_from(const kiln::gfx::asset::gltf::Asset& asset) -> uint32
     return result;
 }
 
+auto record_staging_transfers(
+    kiln::gfx::renderer::StagingStream& staging_stream,
+    const kiln::gfx::asset::gltf::Asset&,
+    kiln::gfx::renderer::Buffer& final_buffer
+) -> void
+{
+    const std::vector<std::byte> dummy_data{ final_buffer.size() };
+    staging_stream.record(kiln::gfx::renderer::StagingRegion{ dummy_data, final_buffer });
+}
+
+[[nodiscard]]
+// ReSharper disable once CppNotAllPathsReturnValue
+auto select_staging_queue(const kiln::gfx::renderer::QueueType queue_type)
+    -> std::optional<uint32_t>
+{
+    switch (queue_type)
+    {
+        case kiln::gfx::renderer::QueueType::eGraphics:             return 0;
+        case kiln::gfx::renderer::QueueType::eHostToDeviceTransfer: return 1;
+    }
+}
+
 Demo::Demo(
-    kiln::gfx::renderer::Allocator&        gpu_allocator,
-    kiln::gfx::renderer::StreamingService& gpu_streaming_service,
-    kiln::gfx::asset::gltf::Parser&        gltf_parser
+    kiln::app::MemoryArena&             memory_arena,
+    const kiln::gfx::renderer::Device&  gpu_device,
+    kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
+    kiln::gfx::renderer::Allocator&     gpu_allocator,
+    kiln::gfx::asset::gltf::Parser&     gltf_parser
 )
-    : m_gpu_allocator{ gpu_allocator },
-      m_gpu_streaming_service{ gpu_streaming_service },
+    : m_gpu{ gpu_device },
+      m_gpu_allocator{ gpu_allocator },
+      m_staging_stream{
+          std::allocator_arg,
+          memory_arena.pool_allocator(),
+          gpu_device,
+          *gpu_queue_provider.select_transfer_queue(select_staging_queue),
+      },
       m_gltf_parser{ gltf_parser }
 {
 }
 
-auto Demo::run(const std::filesystem::path& model_filepath) const -> void
+auto Demo::run(const std::filesystem::path& model_filepath) -> void
 {
     const std::optional asset{ m_gltf_parser.get().load(model_filepath) };
     if (asset.has_value())
@@ -71,6 +104,10 @@ auto Demo::run(const std::filesystem::path& model_filepath) const -> void
     kiln::gfx::renderer::Buffer buffer{
         m_gpu_allocator.get().create_buffer(buffer_create_info, allocation_create_info)
     };
+
+    record_staging_transfers(m_staging_stream, *asset, buffer);
+    m_staging_stream.flush(m_gpu_allocator);
+    m_staging_stream.reset(m_gpu);
 }
 
 auto Demo::Builder::create(
@@ -88,12 +125,17 @@ auto Demo::Builder::create(
 }
 
 auto Demo::Builder::build(
-    kiln::gfx::renderer::Allocator& gpu_allocator,
+    kiln::app::MemoryArena&             memory_arena,
+    const kiln::gfx::renderer::Device&  gpu_device,
+    kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
+    kiln::gfx::renderer::Allocator&     gpu_allocator,
     const kiln::gfx::renderer::PresentationContext&,
     kiln::gfx::asset::gltf::Parser& gltf_parser
 ) -> Demo
 {
-    return Demo{ gpu_allocator, gltf_parser };
+    return Demo{
+        memory_arena, gpu_device, gpu_queue_provider, gpu_allocator, gltf_parser
+    };
 }
 
 }   // namespace demo

@@ -73,10 +73,15 @@ auto QueueProvider::Builder::create(
     instance_builder.target_api_version(vk::ApiVersion14);
     device_builder.require_minimum_version(vk::ApiVersion14);
 
+    device_builder.enable_features(
+        vk::PhysicalDeviceVulkan13Features{ .synchronization2 = vk::True }
+    );
+
     return Builder{};
 }
 
-auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
+auto QueueProvider::Builder::build(const Device& device)
+    -> QueueProvider
 {
     const auto queue_pack_from{
         [&device]<typename Queue_T>(std::in_place_type_t<Queue_T>, const QueueType type)

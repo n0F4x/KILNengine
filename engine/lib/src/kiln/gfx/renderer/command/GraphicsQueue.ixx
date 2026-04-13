@@ -14,7 +14,7 @@ public:
 
     auto submit(
         const GraphicsCommandBuffer& command_buffer,
-        const SubmitInfo&            info = {}
+        const SubmitInfo&            info = SubmitInfo{}
     ) -> void;
 };
 

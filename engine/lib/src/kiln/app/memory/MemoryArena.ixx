@@ -4,21 +4,15 @@ module;
 #include <memory_resource>
 #include <utility>
 
-export module kiln.app.memory.Arena;
+export module kiln.app.memory.MemoryArena;
 
 import kiln.app.context.ContextBuilderInterface;
 
 namespace kiln::app {
 
-namespace internal {
-
-export class ArenaBuilder;
-
-}   // namespace internal
-
-export class Arena {
+export class MemoryArena {
 public:
-    using Builder = internal::ArenaBuilder;
+    class Builder;
 
     [[nodiscard]]
     // ReSharper disable once CppMemberFunctionMayBeConst
@@ -46,31 +40,27 @@ private:
     };
 };
 
-namespace internal {
-
-export class ArenaBuilder : public ContextBuilderInterface {
+class MemoryArena::Builder : public ContextBuilderInterface {
 public:
-    explicit ArenaBuilder() = default;
+    explicit Builder() = default;
 
-    explicit ArenaBuilder(Arena&& arena) noexcept : m_arena{ std::move(arena) } {}
+    explicit Builder(MemoryArena&& memory_arena) noexcept : m_arena{ std::move(memory_arena) } {}
 
     [[nodiscard]]
     // ReSharper disable once CppMemberFunctionMayBeConst
-    auto arena() noexcept -> Arena&
+    auto arena() noexcept -> MemoryArena&
     {
         return m_arena;
     }
 
     [[nodiscard]]
-    auto build() && -> Arena
+    auto build() && -> MemoryArena
     {
         return std::move(m_arena);
     }
 
 private:
-    Arena m_arena;
+    MemoryArena m_arena;
 };
-
-}   // namespace internal
 
 }   // namespace kiln::app

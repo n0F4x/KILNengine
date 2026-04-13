@@ -15,8 +15,8 @@ import kiln.app.context.context_builder_c;
 import kiln.app.context.context_c;
 import kiln.app.context.Contexts;
 import kiln.app.context.ContextBuildTree;
-import kiln.app.memory.Arena;
-import kiln.app.memory.ArenaBuilder;
+import kiln.app.memory.MemoryArena;
+import kiln.app.memory.MemoryArenaBuilder;
 import kiln.util.containers.Indirect;
 import kiln.util.type_traits.const_like;
 
@@ -39,7 +39,7 @@ public:
     auto build() && -> App;
 
 private:
-    Arena            m_arena;
+    MemoryArena            m_arena;
     ContextBuildTree m_context_build_tree;
 };
 

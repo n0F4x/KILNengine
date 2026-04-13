@@ -16,6 +16,7 @@ export module kiln.util.containers.Polymorphic;
 import kiln.util.concepts.decayed;
 import kiln.util.concepts.nothrow_movable;
 import kiln.util.concepts.specialization_of;
+import kiln.util.concepts.storable;
 import kiln.util.contracts;
 import kiln.util.reflection;
 import kiln.util.ScopeFail;
@@ -33,10 +34,10 @@ export consteval auto default_polymorphic_alignment() -> std::size_t
 }
 
 export template <
-    decayed_c   T,
-    bool        is_move_only_T = false,
-    std::size_t size_T         = default_polymorphic_size(),
-    std::size_t alignment_T    = default_polymorphic_alignment()>
+    std::destructible T,
+    bool              is_move_only_T = false,
+    std::size_t       size_T         = default_polymorphic_size(),
+    std::size_t       alignment_T    = default_polymorphic_alignment()>
 class Polymorphic;
 
 template <typename T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
@@ -217,7 +218,11 @@ private:
         m_vtable;
 };
 
-export template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+export template <
+    std::destructible T,
+    bool              is_move_only_T,
+    std::size_t       size_T,
+    std::size_t       alignment_T>
 class Polymorphic {
 public:
     using ValueType      = T;
@@ -256,10 +261,10 @@ public:
             && storable<std::remove_cvref_t<U>>()
         );
 
-    template <decayed_c U, typename... Args_T>
+    template <typename U, typename... Args_T>
     explicit Polymorphic(std::in_place_type_t<U>, Args_T&&... args)
         requires(std::is_constructible_v<U, Args_T && ...> && storable<U>());
-    template <decayed_c U, typename... Args_T>
+    template <typename U, typename... Args_T>
     explicit Polymorphic(
         std::allocator_arg_t,
         const allocator_type& allocator,
@@ -1203,40 +1208,41 @@ auto EraseMechanism<T, is_move_only_T, 0, alignment_T>::release(
     }
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 consteval auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::is_move_only() -> bool
 {
     return is_move_only_T;
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 consteval auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::size() -> std::size_t
 {
     return size_T;
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 consteval auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::alignment()
     -> std::size_t
 {
     return alignment_T;
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <typename U>
 consteval auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::storable() -> bool
 {
-    return is_move_only() || std::copyable<U>;
+    return std::derived_from<U, T> && storable_c<U>
+        && (is_move_only() || std::copyable<U>);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(const Polymorphic& other)
     requires(!is_move_only())
     : Polymorphic{ other, other.m_allocator }
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     const Polymorphic&    other,
     const allocator_type& allocator
@@ -1248,7 +1254,7 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     Polymorphic&& other
 ) noexcept
@@ -1258,7 +1264,7 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     Polymorphic&&         other,
     const allocator_type& allocator
@@ -1275,13 +1281,13 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::~Polymorphic()
 {
     m_erase_mechanism.drop(m_allocator, m_storage);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <typename U>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
     requires(
@@ -1298,7 +1304,7 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 template <typename U>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::allocator_arg_t,
@@ -1320,8 +1326,8 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
-template <decayed_c U, typename... Args_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <typename U, typename... Args_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::in_place_type_t<U> in_place_type,
     Args_T&&... args
@@ -1336,8 +1342,8 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
-template <decayed_c U, typename... Args_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <typename U, typename... Args_T>
 Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::allocator_arg_t,
     const allocator_type&   allocator,
@@ -1358,7 +1364,7 @@ Polymorphic<T, is_move_only_T, size_T, alignment_T>::Polymorphic(
 {
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(
     const Polymorphic& other
 ) -> Polymorphic&
@@ -1377,7 +1383,7 @@ auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(
     return *this;
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 // NOLINTNEXTLINE(*-noexcept-move-operations,*-noexcept-move,*-noexcept-move-constructor)
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(Polymorphic&& other)
     -> Polymorphic&
@@ -1400,7 +1406,7 @@ auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(Polymorphic&
     return *this;
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(
     Polymorphic&& other
 ) noexcept -> Polymorphic&
@@ -1417,33 +1423,33 @@ auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(
     return *this;
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator->() noexcept -> T*
 {
     return m_erase_mechanism.address_of(m_storage);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator->() const noexcept
     -> const T*
 {
     return m_erase_mechanism.address_of(m_storage);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator*() noexcept -> T&
 {
     return m_erase_mechanism.dereference(m_storage);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator*() const noexcept
     -> const T&
 {
     return m_erase_mechanism.dereference(m_storage);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::get_allocator() const noexcept
     -> allocator_type
 {
@@ -1451,7 +1457,7 @@ auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::get_allocator() const 
 }
 
 // NOLINTNEXTLINE(*-noexcept-swap)
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::swap(Polymorphic& other) -> void
 {
     m_erase_mechanism.swap(
@@ -1460,7 +1466,7 @@ auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::swap(Polymorphic& othe
     std::swap(m_erase_mechanism, other.m_erase_mechanism);
 }
 
-template <decayed_c T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::release() -> void
 {
     m_erase_mechanism.release(m_allocator, m_storage);

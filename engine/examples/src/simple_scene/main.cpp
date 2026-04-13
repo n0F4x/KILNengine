@@ -24,6 +24,7 @@ auto main(const int argc, const char* const argv[]) -> int
 {
     kiln::app::App app =                    //
         kiln::app::create("Simple scene")   //
+            .use_context<kiln::gfx::vulkan::DebugMessenger>()
             .use_context<demo::Demo>()
             .build();
 

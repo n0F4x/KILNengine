@@ -6,21 +6,21 @@ module;
 export module kiln.app.App;
 
 import kiln.app.context.Contexts;
-import kiln.app.memory.Arena;
+import kiln.app.memory.MemoryArena;
 import kiln.util.type_traits.forward_like;
 
 namespace kiln::app {
 
 export class App {
 public:
-    explicit App(Arena&& arena, Contexts&& contexts);
+    explicit App(MemoryArena&& memory_arena, Contexts&& contexts);
 
     template <typename Self_T>
     [[nodiscard]]
     auto contexts(this Self_T&&) noexcept -> util::forward_like_t<Contexts, Self_T>;
 
 private:
-    Arena    m_arena;
+    MemoryArena    m_arena;
     Contexts m_contexts;
 };
 
@@ -28,8 +28,8 @@ private:
 
 namespace kiln::app {
 
-inline App::App(Arena&& arena, Contexts&& contexts)
-    : m_arena{ std::move(arena) },
+inline App::App(MemoryArena&& memory_arena, Contexts&& contexts)
+    : m_arena{ std::move(memory_arena) },
       m_contexts{ std::move(contexts) }
 {
 }

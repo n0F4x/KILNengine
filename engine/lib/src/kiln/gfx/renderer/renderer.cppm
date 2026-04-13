@@ -5,5 +5,6 @@ export import kiln.gfx.renderer.device;
 export import kiln.gfx.renderer.memory;
 export import kiln.gfx.renderer.pipeline;
 export import kiln.gfx.renderer.presentation;
+export import kiln.gfx.renderer.stream;
 
 export import kiln.gfx.renderer.Bundle;

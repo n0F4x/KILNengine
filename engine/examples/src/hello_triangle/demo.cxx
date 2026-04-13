@@ -233,7 +233,7 @@ auto Demo::on_window_resize(const kiln::wsi::Size2u new_resolution) -> void
     m_surface.resize(new_resolution);
 }
 
-auto Demo::render() -> void
+auto Demo::render(std::pmr::memory_resource& transient_memory_resource) -> void
 {
     kiln::gfx::vulkan::check_result(
         m_render_device_ref.get().logical_device().waitForFences(
@@ -326,14 +326,11 @@ auto Demo::render() -> void
         .semaphore = m_render_finished_semaphores[*swapchain_image_index],
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
     };
-    m_graphics_queue.get().submit(
-        graphics_command_buffer,
-        kiln::gfx::renderer::SubmitInfo{
-            .wait_semaphores   = std::span{     &render_wait_semaphore_info, 1 },
-            .signal_semaphores = std::span{ &render_finished_semaphore_info, 1 },
-            .fence             = m_render_finished_fences[m_current_frame_index],
-    }
-    );
+    kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
+    submit_info.wait_semaphores().push_back(render_wait_semaphore_info);
+    submit_info.signal_semaphores().push_back(render_finished_semaphore_info);
+    submit_info.fence() = *m_render_finished_fences[m_current_frame_index];
+    m_graphics_queue.get().submit(graphics_command_buffer, submit_info);
 
     m_surface.present(
         m_graphics_queue,
@@ -352,7 +349,6 @@ auto Demo::shut_down() -> void
 
 auto Demo::Builder::create(
     kiln::gfx::renderer::DeviceBuilder& device_builder,
-    const kiln::gfx::renderer::CommandContextBuilder&,
     const kiln::gfx::renderer::PresentationContextBuilder&,
     const kiln::gfx::renderer::PipelineContextBuilder&
 ) -> Builder
@@ -363,7 +359,7 @@ auto Demo::Builder::create(
 }
 
 auto Demo::Builder::build(
-    kiln::app::Arena&                   arena,
+    kiln::app::MemoryArena&             memory_arena,
     const kiln::app::Config&            config,
     const kiln::gfx::vulkan::Instance&  vulkan_instance,
     const kiln::wsi::Context&           wsi_context,
@@ -373,7 +369,7 @@ auto Demo::Builder::build(
 {
     return Demo{
         std::allocator_arg,
-        arena.pool_allocator(),   //
+        memory_arena.pool_allocator(),   //
         config,
         vulkan_instance,
         wsi_context,

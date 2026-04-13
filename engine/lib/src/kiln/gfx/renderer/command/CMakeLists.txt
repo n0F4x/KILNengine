@@ -1,6 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
         CommandBufferBase.cxx
-        CommandContextBuilder.cxx
         CommandPoolBase.cxx
         GraphicsCommandBuffer.cxx
         GraphicsQueue.cxx
@@ -17,8 +16,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         command.cppm
         CommandBufferBase.ixx
         CommandBufferUsageFlags.ixx
-        CommandContext.ixx
-        CommandContextBuilder.ixx
         CommandPoolBase.ixx
         CommandPoolFlags.ixx
         DependencyInfo.ixx

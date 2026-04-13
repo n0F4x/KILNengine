@@ -8,7 +8,7 @@ module;
 export module kiln.res.ResourceManager;
 
 import kiln.app.context.ContextBuilderInterface;
-import kiln.app.memory.Arena;
+import kiln.app.memory.MemoryArena;
 import kiln.res.resource_c;
 import kiln.res.ResourceID;
 import kiln.res.ResourcePool;
@@ -62,9 +62,9 @@ namespace internal {
 export class ResourceManagerBuilder : public app::ContextBuilderInterface {
 public:
     [[nodiscard]]
-    static auto build(app::Arena& arena) -> ResourceManager
+    static auto build(app::MemoryArena& memory_arena) -> ResourceManager
     {
-        return ResourceManager{ arena.pool_allocator() };
+        return ResourceManager{ memory_arena.pool_allocator() };
     }
 };
 

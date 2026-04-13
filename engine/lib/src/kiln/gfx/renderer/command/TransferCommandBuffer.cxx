@@ -6,25 +6,28 @@ module kiln.gfx.renderer.command.TransferCommandBuffer;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto TransferCommandBuffer::record_buffer_copy(
-    Buffer& source,
-    Buffer& destination
+    const BufferRegion& source,
+    const BufferRegion& destination
 ) -> void
 {
     PRECOND(source.size() == destination.size());
 
     const vk::BufferCopy2 region{
-        .size = source.size(),
+        .srcOffset = source.offset(),
+        .dstOffset = destination.offset(),
+        .size      = source.size(),
     };
 
     const vk::CopyBufferInfo2 info{
-        .srcBuffer   = source.get(),
-        .dstBuffer   = destination.get(),
+        .srcBuffer   = source.buffer(),
+        .dstBuffer   = destination.buffer(),
         .regionCount = 1u,
         .pRegions    = &region,
     };

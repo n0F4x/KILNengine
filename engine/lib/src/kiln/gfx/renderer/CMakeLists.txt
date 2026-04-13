@@ -3,6 +3,7 @@ add_subdirectory(device)
 add_subdirectory(memory)
 add_subdirectory(pipeline)
 add_subdirectory(presentation)
+add_subdirectory(stream)
 
 target_sources(${PROJECT_NAME} PRIVATE
         Bundle.cxx

@@ -2,7 +2,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         Allocation.cxx
         Allocator.cxx
         Buffer.cxx
-        StreamingService.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -14,6 +13,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         Allocator.ixx
         AllocatorBuilder.ixx
         Buffer.ixx
+        BufferRegion.ixx
         MemoryTypeID.ixx
-        StreamingService.ixx
 )

@@ -1,6 +1,7 @@
 module;
 
 #include <functional>
+#include <memory_resource>
 #include <vector>
 
 export module hello_triangle;
@@ -38,7 +39,10 @@ public:
 
     auto on_window_resize(kiln::wsi::Size2u new_resolution) -> void;
 
-    auto render() -> void;
+    auto render(
+        std::pmr::memory_resource& transient_memory_resource =
+            *std::pmr::get_default_resource()
+    ) -> void;
 
     auto shut_down() -> void;
 
@@ -64,14 +68,13 @@ public:
     [[nodiscard]]
     static auto create(
         kiln::gfx::renderer::DeviceBuilder&               device_builder,
-        const kiln::gfx::renderer::CommandContextBuilder& command_context_builder,
         const kiln::gfx::renderer::PresentationContextBuilder& presentation_context_builder,
         const kiln::gfx::renderer::PipelineContextBuilder&
     ) -> Builder;
 
     [[nodiscard]]
     static auto build(
-        kiln::app::Arena&                   arena,
+        kiln::app::MemoryArena&             memory_arena,
         const kiln::app::Config&            config,
         const kiln::gfx::vulkan::Instance&  vulkan_instance,
         const kiln::wsi::Context&           wsi_context,

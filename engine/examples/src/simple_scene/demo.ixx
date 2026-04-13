@@ -6,14 +6,18 @@ module;
 export module simple_scene;
 
 import kiln.app.App;
-import kiln.app.context.ContextBuilderInterface;
 import kiln.app.Builder;
+import kiln.app.context.ContextBuilderInterface;
+import kiln.app.memory.MemoryArena;
 import kiln.gfx.asset.gltf.Parser;
+import kiln.gfx.renderer.command.QueueProvider;
+import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;
-import kiln.gfx.renderer.memory.StreamingService;
+import kiln.gfx.renderer.stream.StagingStream;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.vulkan.InstanceBuilder;
+import kiln.res.Bin;
 
 namespace demo {
 
@@ -22,17 +26,20 @@ public:
     class Builder;
 
     explicit Demo(
-        kiln::gfx::renderer::Allocator&        gpu_allocator,
-        kiln::gfx::renderer::StreamingService& gpu_streaming_service,
-        kiln::gfx::asset::gltf::Parser&        gltf_parser
+        kiln::app::MemoryArena&             memory_arena,
+        const kiln::gfx::renderer::Device&  gpu_device,
+        kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
+        kiln::gfx::renderer::Allocator&     gpu_allocator,
+        kiln::gfx::asset::gltf::Parser&     gltf_parser
     );
 
-    auto run(const std::filesystem::path& model_filepath) const -> void;
+    auto run(const std::filesystem::path& model_filepath) -> void;
 
 private:
-    std::reference_wrapper<kiln::gfx::renderer::Allocator>        m_gpu_allocator;
-    std::reference_wrapper<kiln::gfx::renderer::StreamingService> m_gpu_streaming_service;
-    std::reference_wrapper<kiln::gfx::asset::gltf::Parser>        m_gltf_parser;
+    std::reference_wrapper<const kiln::gfx::renderer::Device> m_gpu;
+    std::reference_wrapper<kiln::gfx::renderer::Allocator>    m_gpu_allocator;
+    kiln::gfx::renderer::StagingStream                        m_staging_stream;
+    std::reference_wrapper<kiln::gfx::asset::gltf::Parser>    m_gltf_parser;
 };
 
 class Demo::Builder : public kiln::app::ContextBuilderInterface {
@@ -45,6 +52,9 @@ public:
 
     [[nodiscard]]
     static auto build(
+        kiln::app::MemoryArena&                         memory_arena,
+        const kiln::gfx::renderer::Device&              gpu_device,
+        kiln::gfx::renderer::QueueProvider&             gpu_queue_provider,
         kiln::gfx::renderer::Allocator&                 gpu_allocator,
         const kiln::gfx::renderer::PresentationContext& presentation_context,
         kiln::gfx::asset::gltf::Parser&                 gltf_parser

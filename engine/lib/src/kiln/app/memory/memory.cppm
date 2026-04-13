@@ -1,4 +1,4 @@
 export module kiln.app.memory;
 
-export import kiln.app.memory.Arena;
-export import kiln.app.memory.ArenaBuilder;
+export import kiln.app.memory.MemoryArena;
+export import kiln.app.memory.MemoryArenaBuilder;

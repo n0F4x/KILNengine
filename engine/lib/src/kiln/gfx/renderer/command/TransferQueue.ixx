@@ -14,7 +14,7 @@ public:
 
     auto submit(
         const TransferCommandBuffer& command_buffer,
-        const SubmitInfo&            info = {}
+        const SubmitInfo&            info = SubmitInfo{}
     ) -> void;
 };
 

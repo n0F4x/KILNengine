@@ -12,8 +12,7 @@ auto main() -> int
 {
     kiln::app::App app =   //
         kiln::app::create("Hello triangle!")
-            // .use_context<kiln::wsi::Context>()
-            // .apply_bundle(kiln::gfx::Bundle{})
+            .use_context<kiln::gfx::vulkan::DebugMessenger>()
             .use_context<Demo>()
             .build();
 
@@ -36,7 +35,7 @@ auto run(kiln::app::App& app) -> void
     std::atomic               window_resolution{ demo.window().resolution() };
 
     std::jthread render_thread{
-        [&] -> void
+        [&demo, &running, &window_resized, &window_resolution] mutable -> void
         {
             auto last_time{ std::chrono::steady_clock::now() };
             while (running)

@@ -264,11 +264,13 @@ auto Allocator::host_copy(
     );
 }
 
-auto Allocator::host_copy(const std::span<const std::byte> source, Buffer& destination)
-    -> void
+auto Allocator::host_copy(
+    const std::span<const std::byte> source,
+    const BufferRegion&              destination
+) -> void
 {
     PRECOND(source.size_bytes() == destination.size());
-    host_copy(source, destination.allocation(), 0, destination.size());
+    host_copy(source, destination.allocation(), destination.offset(), destination.size());
 }
 
 auto Allocator::map(Allocation& allocation) -> std::span<std::byte>

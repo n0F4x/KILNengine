@@ -21,7 +21,7 @@ import kiln.app.context.context_c;
 import kiln.app.context.Contexts;
 import kiln.app.context.ErasedContextBuilder;
 import kiln.app.context.strip_dependency_t;
-import kiln.app.memory.Arena;
+import kiln.app.memory.MemoryArena;
 import kiln.util.any_of;
 import kiln.util.contracts;
 import kiln.util.concepts.specialization_of;
@@ -44,7 +44,7 @@ public:
         std::pmr::polymorphic_allocator<>;
 
 
-    explicit ContextBuildTree(Arena&& arena, const Config& config);
+    explicit ContextBuildTree(MemoryArena&& memory_arena, const Config& config);
 
 
     [[nodiscard]]

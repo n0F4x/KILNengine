@@ -12,8 +12,8 @@ export module kiln.gfx.renderer.device.Device;
 import vulkan_hpp;
 
 import kiln.app.context.ContextBuilderInterface;
-import kiln.app.memory.Arena;
-import kiln.app.memory.ArenaBuilder;
+import kiln.app.memory.MemoryArena;
+import kiln.app.memory.MemoryArenaBuilder;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
@@ -86,7 +86,7 @@ public:
 
 
     [[nodiscard]]
-    static auto create(app::ArenaBuilder& arena_builder) -> Builder;
+    static auto create(app::MemoryArenaBuilder& memory_arena_builder) -> Builder;
 
 
     Builder(const Builder&, const allocator_type& allocator);
@@ -134,7 +134,7 @@ public:
 
     [[nodiscard]]
     auto build(
-        app::Arena&             memory_arena,
+        app::MemoryArena&       memory_arena,
         const vulkan::Instance& instance,
         const wsi::Context&     wsi_context
     ) const&& -> Device;

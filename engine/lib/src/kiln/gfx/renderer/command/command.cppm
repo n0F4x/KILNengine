@@ -2,8 +2,6 @@ export module kiln.gfx.renderer.command;
 
 export import kiln.gfx.renderer.command.CommandBufferBase;
 export import kiln.gfx.renderer.command.CommandBufferUsageFlags;
-export import kiln.gfx.renderer.command.CommandContext;
-export import kiln.gfx.renderer.command.CommandContextBuilder;
 export import kiln.gfx.renderer.command.CommandPoolBase;
 export import kiln.gfx.renderer.command.CommandPoolFlags;
 export import kiln.gfx.renderer.command.DependencyInfo;

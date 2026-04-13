@@ -17,6 +17,7 @@ import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
+import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 
@@ -56,7 +57,7 @@ public:
         vk::DeviceSize             destination_offset,
         vk::DeviceSize             destination_size
     ) -> void;
-    auto host_copy(std::span<const std::byte> source, Buffer& destination) -> void;
+    auto host_copy(std::span<const std::byte> source, const BufferRegion& destination) -> void;
 
     [[nodiscard]]
     auto map(Allocation& allocation) -> std::span<std::byte>;

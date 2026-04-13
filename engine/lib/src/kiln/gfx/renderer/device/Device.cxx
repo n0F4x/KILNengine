@@ -10,7 +10,7 @@ module;
 
 module kiln.gfx.renderer.device.Device;
 
-import kiln.app.memory.Arena;
+import kiln.app.memory.MemoryArena;
 import kiln.gfx.renderer.device.DeviceBuildFailedError;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
@@ -103,9 +103,9 @@ auto Device::host_to_device_transfer_queue_info() const noexcept
     return std::nullopt;
 }
 
-auto Device::Builder::create(app::ArenaBuilder& arena_builder) -> Builder
+auto Device::Builder::create(app::MemoryArenaBuilder& memory_arena_builder) -> Builder
 {
-    return Builder{ arena_builder.arena().pool_allocator() };
+    return Builder{ memory_arena_builder.arena().pool_allocator() };
 }
 
 Device::Builder::Builder(const Builder& other, const allocator_type& allocator)
@@ -171,7 +171,7 @@ auto Device::Builder::request_queue(const QueueType type) -> void
 }
 
 auto Device::Builder::build(
-    app::Arena&             memory_arena,
+    app::MemoryArena&             memory_arena,
     const vulkan::Instance& instance,
     const wsi::Context&     wsi_context
 ) const&& -> Device

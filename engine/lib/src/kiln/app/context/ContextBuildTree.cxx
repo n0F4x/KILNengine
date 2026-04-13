@@ -14,22 +14,22 @@ module kiln.app.context.ContextBuildTree;
 
 import kiln.app.config.ConfigBuilder;
 import kiln.app.context.ErasedContextBuilder;
-import kiln.app.memory.ArenaBuilder;
+import kiln.app.memory.MemoryArenaBuilder;
 import kiln.util.contracts;
 
 namespace kiln::app {
 
-ContextBuildTree::ContextBuildTree(Arena&& arena, const Config& config)
-    : m_contexts{ arena.pool_allocator() },
-      m_builders{ arena.pool_allocator() },
-      m_builder_hashes{ arena.pool_allocator() },
-      m_builder_dependencies{ arena.pool_allocator() },
-      m_injections{ arena.pool_allocator() },
-      m_injection_hashes{ arena.pool_allocator() },
-      m_injection_dependencies{ arena.pool_allocator() },
-      m_contained_hashes{ arena.pool_allocator() }
+ContextBuildTree::ContextBuildTree(MemoryArena&& memory_arena, const Config& config)
+    : m_contexts{ memory_arena.pool_allocator() },
+      m_builders{ memory_arena.pool_allocator() },
+      m_builder_hashes{ memory_arena.pool_allocator() },
+      m_builder_dependencies{ memory_arena.pool_allocator() },
+      m_injections{ memory_arena.pool_allocator() },
+      m_injection_hashes{ memory_arena.pool_allocator() },
+      m_injection_dependencies{ memory_arena.pool_allocator() },
+      m_contained_hashes{ memory_arena.pool_allocator() }
 {
-    unsafe_register_context_builder(ArenaBuilder{ std::move(arena) });
+    unsafe_register_context_builder(MemoryArenaBuilder{ std::move(memory_arena) });
     unsafe_register_context_builder(ConfigBuilder{ config });
 }
 
