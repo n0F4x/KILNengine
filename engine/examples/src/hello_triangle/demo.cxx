@@ -7,11 +7,13 @@ module;
 #include <span>
 #include <vector>
 
-module hello_triangle;
+module examples.hello_triangle;
 
 import vulkan_hpp;
 
 import kiln;
+
+namespace demo {
 
 [[nodiscard]]
 auto create_window(const kiln::app::Config& config, const kiln::wsi::Context& wsi_context)
@@ -125,7 +127,7 @@ auto create_per_frame_fences(
     return result;
 }
 
-Demo::Demo(Demo&& other, const allocator_type& allocator)
+Context::Context(Context&& other, const allocator_type& allocator)
     : m_render_device_ref{ std::move(other.m_render_device_ref) },
       m_graphics_queue{ std::move(other.m_graphics_queue) },
       m_number_of_frames{ std::move(other.m_number_of_frames) },
@@ -145,7 +147,7 @@ Demo::Demo(Demo&& other, const allocator_type& allocator)
 {
 }
 
-Demo::Demo(
+Context::Context(
     const std::allocator_arg_t,
     const allocator_type&               allocator,
     const kiln::app::Config&            config,
@@ -212,17 +214,17 @@ Demo::Demo(
 {
 }
 
-auto Demo::get_allocator() const -> allocator_type
+auto Context::get_allocator() const -> allocator_type
 {
     return m_graphics_command_pools.get_allocator();
 }
 
-auto Demo::window() noexcept -> kiln::wsi::Window&
+auto Context::window() noexcept -> kiln::wsi::Window&
 {
     return m_window;
 }
 
-auto Demo::on_window_resize(const kiln::wsi::Size2u new_resolution) -> void
+auto Context::on_window_resize(const kiln::wsi::Size2u new_resolution) -> void
 {
     if (m_surface.extent() == new_resolution)
     {
@@ -233,7 +235,7 @@ auto Demo::on_window_resize(const kiln::wsi::Size2u new_resolution) -> void
     m_surface.resize(new_resolution);
 }
 
-auto Demo::render(std::pmr::memory_resource& transient_memory_resource) -> void
+auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> void
 {
     kiln::gfx::vulkan::check_result(
         m_render_device_ref.get().logical_device().waitForFences(
@@ -261,18 +263,18 @@ auto Demo::render(std::pmr::memory_resource& transient_memory_resource) -> void
     graphics_command_buffer.begin_recording();
 
     const vk::ImageMemoryBarrier2 render_image_memory_barrier {
-        .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-        .oldLayout = vk::ImageLayout::eUndefined,
-        .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        .image = m_surface.image_at(*swapchain_image_index),
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .levelCount = 1,
-            .layerCount = 1,
-          },
-    };
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .image = m_surface.image_at(*swapchain_image_index),
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .levelCount = 1,
+                .layerCount = 1,
+              },
+        };
     const kiln::gfx::renderer::DependencyInfo render_dependency_info{
         .image_memory_barriers = std::span{ &render_image_memory_barrier, 1 },
     };
@@ -297,20 +299,20 @@ auto Demo::render(std::pmr::memory_resource& transient_memory_resource) -> void
     graphics_command_buffer.record_render_pass_finish();
 
     const vk::ImageMemoryBarrier2 present_image_memory_barrier {
-        .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-        .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
-        .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        .newLayout = vk::ImageLayout::ePresentSrcKHR,
-        .image = m_surface.image_at(*swapchain_image_index),
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-          },
-    };
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+            .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .image = m_surface.image_at(*swapchain_image_index),
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1,
+              },
+        };
     const kiln::gfx::renderer::DependencyInfo present_dependency_info{
         .image_memory_barriers = std::span{ &present_image_memory_barrier, 1 },
     };
@@ -342,12 +344,12 @@ auto Demo::render(std::pmr::memory_resource& transient_memory_resource) -> void
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto Demo::shut_down() -> void
+auto Context::shut_down() -> void
 {
     m_render_device_ref.get().logical_device().waitIdle();
 }
 
-auto Demo::Builder::create(
+auto Context::Builder::create(
     kiln::gfx::renderer::DeviceBuilder& device_builder,
     const kiln::gfx::renderer::PresentationContextBuilder&,
     const kiln::gfx::renderer::PipelineContextBuilder&
@@ -358,16 +360,16 @@ auto Demo::Builder::create(
     return Builder{};
 }
 
-auto Demo::Builder::build(
+auto Context::Builder::build(
     kiln::app::MemoryArena&             memory_arena,
     const kiln::app::Config&            config,
     const kiln::gfx::vulkan::Instance&  vulkan_instance,
     const kiln::wsi::Context&           wsi_context,
     const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& render_queue_provider
-) -> Demo
+) -> Context
 {
-    return Demo{
+    return Context{
         std::allocator_arg,
         memory_arena.pool_allocator(),   //
         config,
@@ -377,3 +379,5 @@ auto Demo::Builder::build(
         render_queue_provider,
     };
 }
+
+}   // namespace demo

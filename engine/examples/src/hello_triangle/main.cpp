@@ -4,7 +4,8 @@
 #include <thread>
 
 import kiln;
-import hello_triangle;
+
+import examples.hello_triangle;
 
 auto run(kiln::app::App& app) -> void;
 
@@ -13,7 +14,7 @@ auto main() -> int
     kiln::app::App app =   //
         kiln::app::create("Hello triangle!")
             .use_context<kiln::gfx::vulkan::DebugMessenger>()
-            .use_context<Demo>()
+            .use_context<demo::Context>()
             .build();
 
     std::println(
@@ -29,13 +30,13 @@ auto run(kiln::app::App& app) -> void
     using namespace std::chrono_literals;
 
     const kiln::wsi::Context& wsi_context{ app.contexts().at<kiln::wsi::Context>() };
-    Demo&                     demo{ app.contexts().at<Demo>() };
+    demo::Context&            demo_context{ app.contexts().at<demo::Context>() };
     std::atomic_bool          running{ true };
     std::atomic_bool          window_resized{ false };
-    std::atomic               window_resolution{ demo.window().resolution() };
+    std::atomic               window_resolution{ demo_context.window().resolution() };
 
     std::jthread render_thread{
-        [&demo, &running, &window_resized, &window_resolution] mutable -> void
+        [&demo_context, &running, &window_resized, &window_resolution] mutable -> void
         {
             auto last_time{ std::chrono::steady_clock::now() };
             while (running)
@@ -46,10 +47,10 @@ auto run(kiln::app::App& app) -> void
 
                 if (window_resized.exchange(false))
                 {
-                    demo.on_window_resize(window_resolution);
+                    demo_context.on_window_resize(window_resolution);
                 }
 
-                demo.render();
+                demo_context.render();
 
 
                 std::this_thread::sleep_for(1s / 60 - delta_time);
@@ -58,22 +59,22 @@ auto run(kiln::app::App& app) -> void
         }   //
     };
 
-    while (!demo.window().should_close())
+    while (!demo_context.window().should_close())
     {
         kiln::wsi::wait_events(wsi_context);
 
-        if (demo.window().key_pressed(kiln::wsi::Key::eEscape))
+        if (demo_context.window().key_pressed(kiln::wsi::Key::eEscape))
         {
-            demo.window().request_close();
+            demo_context.window().request_close();
         }
 
         // TODO: only do this on a window resize event
-        window_resolution = demo.window().resolution();
+        window_resolution = demo_context.window().resolution();
         window_resized    = true;
     }
 
     running = false;
     render_thread.join();
 
-    demo.shut_down();
+    demo_context.shut_down();
 }

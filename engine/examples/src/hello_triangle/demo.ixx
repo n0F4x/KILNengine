@@ -4,13 +4,15 @@ module;
 #include <memory_resource>
 #include <vector>
 
-export module hello_triangle;
+export module examples.hello_triangle;
 
 import vulkan_hpp;
 
 import kiln;
 
-export class Demo {
+namespace demo {
+
+export class Context {
 public:
     // required for interfacing with the standard
     using allocator_type =   // NOLINT(*-identifier-naming)
@@ -19,8 +21,8 @@ public:
     class Builder;
 
 
-    Demo(Demo&&, const allocator_type& allocator);
-    Demo(
+    Context(Context&&, const allocator_type& allocator);
+    Context(
         std::allocator_arg_t,
         const allocator_type&               allocator,
         const kiln::app::Config&            config,
@@ -63,11 +65,11 @@ private:
     std::pmr::vector<vk::raii::Fence>     m_render_finished_fences;
 };
 
-class Demo::Builder : public kiln::app::ContextBuilderInterface {
+class Context::Builder : public kiln::app::ContextBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(
-        kiln::gfx::renderer::DeviceBuilder&               device_builder,
+        kiln::gfx::renderer::DeviceBuilder& device_builder,
         const kiln::gfx::renderer::PresentationContextBuilder& presentation_context_builder,
         const kiln::gfx::renderer::PipelineContextBuilder&
     ) -> Builder;
@@ -80,5 +82,7 @@ public:
         const kiln::wsi::Context&           wsi_context,
         const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::QueueProvider& render_queue_provider
-    ) -> Demo;
+    ) -> Context;
 };
+
+}   // namespace demo

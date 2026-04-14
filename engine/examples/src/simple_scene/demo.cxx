@@ -5,7 +5,7 @@ module;
 
 #include <vk_mem_alloc.h>
 
-module simple_scene;
+module examples.simple_scene;
 
 import vulkan_hpp;
 
@@ -61,7 +61,7 @@ auto select_staging_queue(const kiln::gfx::renderer::QueueType queue_type)
     }
 }
 
-Demo::Demo(
+Context::Context(
     kiln::app::MemoryArena&             memory_arena,
     const kiln::gfx::renderer::Device&  gpu_device,
     kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
@@ -80,7 +80,7 @@ Demo::Demo(
 {
 }
 
-auto Demo::run(const std::filesystem::path& model_filepath) -> void
+auto Context::run(const std::filesystem::path& model_filepath) -> void
 {
     const std::optional asset{ m_gltf_parser.get().load(model_filepath) };
     if (asset.has_value())
@@ -110,7 +110,7 @@ auto Demo::run(const std::filesystem::path& model_filepath) -> void
     m_staging_stream.reset(m_gpu);
 }
 
-auto Demo::Builder::create(
+auto Context::Builder::create(
     kiln::gfx::vulkan::InstanceBuilder& instance_builder,
     kiln::gfx::renderer::DeviceBuilder& device_builder
 ) -> Builder
@@ -124,16 +124,16 @@ auto Demo::Builder::create(
     return Builder{};
 }
 
-auto Demo::Builder::build(
+auto Context::Builder::build(
     kiln::app::MemoryArena&             memory_arena,
     const kiln::gfx::renderer::Device&  gpu_device,
     kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
     kiln::gfx::renderer::Allocator&     gpu_allocator,
     const kiln::gfx::renderer::PresentationContext&,
     kiln::gfx::asset::gltf::Parser& gltf_parser
-) -> Demo
+) -> Context
 {
-    return Demo{
+    return Context{
         memory_arena, gpu_device, gpu_queue_provider, gpu_allocator, gltf_parser
     };
 }

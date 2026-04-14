@@ -3,7 +3,7 @@ module;
 #include <filesystem>
 #include <functional>
 
-export module simple_scene;
+export module examples.simple_scene;
 
 import kiln.app.App;
 import kiln.app.Builder;
@@ -21,11 +21,11 @@ import kiln.res.Bin;
 
 namespace demo {
 
-export class Demo {
+export class Context {
 public:
     class Builder;
 
-    explicit Demo(
+    explicit Context(
         kiln::app::MemoryArena&             memory_arena,
         const kiln::gfx::renderer::Device&  gpu_device,
         kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
@@ -42,7 +42,7 @@ private:
     std::reference_wrapper<kiln::gfx::asset::gltf::Parser>    m_gltf_parser;
 };
 
-class Demo::Builder : public kiln::app::ContextBuilderInterface {
+class Context::Builder : public kiln::app::ContextBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(
@@ -58,7 +58,7 @@ public:
         kiln::gfx::renderer::Allocator&                 gpu_allocator,
         const kiln::gfx::renderer::PresentationContext& presentation_context,
         kiln::gfx::asset::gltf::Parser&                 gltf_parser
-    ) -> Demo;
+    ) -> Context;
 };
 
 }   // namespace demo
