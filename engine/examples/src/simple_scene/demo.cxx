@@ -2,6 +2,7 @@ module;
 
 #include <filesystem>
 #include <print>
+#include <span>
 
 #include <vk_mem_alloc.h>
 
@@ -17,7 +18,8 @@ import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;
-import kiln.gfx.renderer.stream.StagingRegion;
+import kiln.gfx.renderer.memory.BufferRegion;
+import kiln.gfx.renderer.stream.StagingRequest;
 import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace demo {
@@ -39,14 +41,31 @@ auto mega_buffer_size_from(const kiln::gfx::asset::gltf::Asset& asset) -> uint32
     return result;
 }
 
+auto copy_asset(
+    const kiln::gfx::asset::gltf::Asset&,
+    const kiln::gfx::renderer::BufferRegion& final_buffer
+) -> void
+{
+    std::println("Copied {} bytes from host to gpu", final_buffer.size());
+}
+
 auto record_staging_transfers(
     kiln::gfx::renderer::StagingStream& staging_stream,
     const kiln::gfx::asset::gltf::Asset&,
-    kiln::gfx::renderer::Buffer& final_buffer
+    const kiln::gfx::renderer::BufferRegion& final_buffer
 ) -> void
 {
-    const std::vector<std::byte> dummy_data{ final_buffer.size() };
-    staging_stream.record(kiln::gfx::renderer::StagingRegion{ dummy_data, final_buffer });
+    staging_stream.record(
+        kiln::gfx::renderer::StagingRequest{
+            kiln::gfx::renderer::StagingRequest::Callback{
+                [](const std::span<std::byte> out) -> void
+                {
+                    std::println("Copied {} bytes to staging buffer", out.size());   //
+                }   //
+            },
+            final_buffer,
+        }
+    );
 }
 
 [[nodiscard]]
@@ -101,13 +120,20 @@ auto Context::run(const std::filesystem::path& model_filepath) -> void
     constexpr static VmaAllocationCreateInfo allocation_create_info{
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
-    kiln::gfx::renderer::Buffer buffer{
+    kiln::gfx::renderer::Buffer mega_buffer{
         m_gpu_allocator.get().create_buffer(buffer_create_info, allocation_create_info)
     };
 
-    record_staging_transfers(m_staging_stream, *asset, buffer);
-    m_staging_stream.flush(m_gpu_allocator);
-    m_staging_stream.reset(m_gpu);
+    if (mega_buffer.allocation().memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible)
+    {
+        copy_asset(*asset, mega_buffer);
+    }
+    else
+    {
+        record_staging_transfers(m_staging_stream, *asset, mega_buffer);
+        m_staging_stream.flush(m_gpu_allocator);
+        m_staging_stream.reset(m_gpu);
+    }
 }
 
 auto Context::Builder::create(

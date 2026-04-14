@@ -19,7 +19,7 @@ import kiln.gfx.renderer.command.TransferQueue;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;
-import kiln.gfx.renderer.stream.StagingRegion;
+import kiln.gfx.renderer.stream.StagingRequest;
 import kiln.util.containers.Indirect;
 
 namespace kiln::gfx::renderer {
@@ -51,7 +51,7 @@ public:
     [[nodiscard]]
     auto empty() const noexcept -> bool;
 
-    auto record(const StagingRegion& staging_regions) -> void;
+    auto record(StagingRequest&& staging_request) -> void;
 
     /*
      * Waits for flush
@@ -64,10 +64,10 @@ private:
     TransferCommandPool                                    m_command_pool;
     TransferCommandBuffer                                  m_command_buffer;
     util::Indirect<std::pmr::unsynchronized_pool_resource> m_memory_pool;
-    std::pmr::forward_list<StagingRegion> m_staging_regions{ &*m_memory_pool };
-    std::size_t                           m_number_of_staging_regions{};
-    std::pmr::forward_list<Buffer>        m_in_flight_staging_buffers{ &*m_memory_pool };
-    vk::raii::Fence                       m_staging_finished_fence;
+    std::pmr::forward_list<StagingRequest> m_staging_requests{ &*m_memory_pool };
+    std::size_t                            m_number_of_staging_requests{};
+    std::pmr::forward_list<Buffer>         m_in_flight_staging_buffers{ &*m_memory_pool };
+    vk::raii::Fence                        m_staging_finished_fence;
 };
 
 }   // namespace kiln::gfx::renderer

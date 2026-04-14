@@ -57,7 +57,8 @@ public:
         vk::DeviceSize             destination_offset,
         vk::DeviceSize             destination_size
     ) -> void;
-    auto host_copy(std::span<const std::byte> source, const BufferRegion& destination) -> void;
+    auto host_copy(std::span<const std::byte> source, const BufferRegion& destination)
+        -> void;
 
     [[nodiscard]]
     auto map(Allocation& allocation) -> std::span<std::byte>;
@@ -65,10 +66,18 @@ public:
     auto unmap(Allocation& allocation) -> void;
     auto unmap(Buffer& buffer) -> void;
 
-    auto invalidate(Allocation& allocation) -> void;
-    auto invalidate(Buffer& buffer) -> void;
-    auto flush(Allocation& allocation) -> void;
-    auto flush(Buffer& buffer) -> void;
+    auto invalidate(
+        Allocation&    allocation,
+        vk::DeviceSize destination_offset,
+        vk::DeviceSize destination_size
+    ) -> void;
+    auto invalidate(const BufferRegion& buffer) -> void;
+    auto flush(
+        Allocation&    allocation,
+        vk::DeviceSize destination_offset,
+        vk::DeviceSize destination_size
+    ) -> void;
+    auto flush(const BufferRegion& buffer) -> void;
 
 private:
     std::reference_wrapper<const Device>                            m_device;

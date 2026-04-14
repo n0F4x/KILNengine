@@ -16,6 +16,7 @@ import kiln.gfx.renderer.command.CommandBufferUsageFlags;
 import kiln.gfx.renderer.command.DependencyInfo;
 import kiln.gfx.renderer.command.TransferCommandPool;
 import kiln.gfx.renderer.memory.Buffer;
+import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 import kiln.util.reflection;
@@ -27,8 +28,8 @@ StagingStream::StagingStream(StagingStream&& other, const allocator_type& alloca
       m_command_pool{ std::move(other.m_command_pool) },
       m_command_buffer{ std::move(other.m_command_buffer) },
       m_memory_pool{ std::move(other.m_memory_pool), allocator },
-      m_staging_regions{ std::move(other.m_staging_regions), &*m_memory_pool },
-      m_number_of_staging_regions{ other.m_number_of_staging_regions },
+      m_staging_requests{ std::move(other.m_staging_requests), &*m_memory_pool },
+      m_number_of_staging_requests{ other.m_number_of_staging_requests },
       m_in_flight_staging_buffers{
           std::move(other.m_in_flight_staging_buffers),
           &*m_memory_pool,
@@ -77,10 +78,10 @@ auto StagingStream::get_allocator() const noexcept -> allocator_type
 
 auto StagingStream::empty() const noexcept -> bool
 {
-    return m_number_of_staging_regions == 0;
+    return m_number_of_staging_requests == 0;
 }
 
-auto StagingStream::record(const StagingRegion& staging_regions) -> void
+auto StagingStream::record(StagingRequest&& staging_request) -> void
 {
     PRECOND(
         m_in_flight_staging_buffers.empty(),
@@ -90,8 +91,8 @@ auto StagingStream::record(const StagingRegion& staging_regions) -> void
         )
     );
 
-    m_staging_regions.push_front(staging_regions);
-    ++m_number_of_staging_regions;
+    m_staging_requests.push_front(std::move(staging_request));
+    ++m_number_of_staging_requests;
 }
 
 auto StagingStream::reset(const Device& device) -> void
@@ -102,8 +103,8 @@ auto StagingStream::reset(const Device& device) -> void
     device.logical_device().resetFences(*m_staging_finished_fence);
 
     m_command_pool.reset();
-    m_staging_regions.clear();
-    m_number_of_staging_regions = 0;
+    m_staging_requests.clear();
+    m_number_of_staging_requests = 0;
     m_in_flight_staging_buffers.clear();
 }
 
@@ -127,29 +128,35 @@ auto create_staging_buffer(Allocator& allocator, const vk::DeviceSize buffer_siz
 }
 
 auto stage(
-    Buffer&                staging_buffer,
     TransferCommandBuffer& command_buffer,
-    const StagingRegion&   staging_region,
+    StagingRequest&        staging_request,
+    const BufferRegion&    staging_buffer_region,
     Allocator&             allocator
 ) -> void
 {
-    allocator.host_copy(staging_region.data(), staging_buffer);
+    std::move(staging_request)(
+        allocator.map(staging_buffer_region.buffer())
+            .subspan(staging_buffer_region.offset(), staging_buffer_region.size())
+    );
+    allocator.unmap(staging_buffer_region.buffer());
 
     const vk::BufferMemoryBarrier2 staging_buffer_barrier{
         .srcStageMask  = vk::PipelineStageFlagBits2::eHost,
         .srcAccessMask = vk::AccessFlagBits2::eHostWrite,
         .dstStageMask  = vk::PipelineStageFlagBits2::eTransfer,
         .dstAccessMask = vk::AccessFlagBits2::eTransferRead,
-        .buffer        = staging_region.destination().buffer(),
-        .offset        = staging_region.destination().offset(),
-        .size          = staging_region.destination().size(),
+        .buffer        = staging_request.destination().buffer().get(),
+        .offset        = staging_request.destination().offset(),
+        .size          = staging_request.destination().size(),
     };
     const DependencyInfo staging_dependencies{
         .buffer_memory_barriers = std::span{ &staging_buffer_barrier, 1 },
     };
     command_buffer.record_barrier(staging_dependencies);
 
-    command_buffer.record_buffer_copy(staging_buffer, staging_region.destination());
+    command_buffer.record_buffer_copy(
+        staging_buffer_region, staging_request.destination()
+    );
 }
 
 auto StagingStream::flush(Allocator& allocator, SubmitInfo&& submit_info) -> void
@@ -163,20 +170,28 @@ auto StagingStream::flush(Allocator& allocator, SubmitInfo&& submit_info) -> voi
     );
 
     m_command_buffer.begin_recording();
-    for (const StagingRegion& staging_region : m_staging_regions)
+    for (StagingRequest& staging_request : m_staging_requests)
     {
         // TODO: optimization: merge staging buffers
         m_in_flight_staging_buffers.push_front(
-            create_staging_buffer(allocator, staging_region.size())
+            create_staging_buffer(allocator, staging_request.destination().size())
         );
 
         stage(
-            m_in_flight_staging_buffers.front(), m_command_buffer, staging_region, allocator
+            m_command_buffer,
+            staging_request,
+            m_in_flight_staging_buffers.front(),
+            allocator
         );
     }
     m_command_buffer.end_recording();
 
     submit_info.fence() = *m_staging_finished_fence;
+
+    for (Buffer& staging_buffer : m_in_flight_staging_buffers)
+    {
+        allocator.flush(staging_buffer);
+    }
 
     m_queue_ref.get().submit(m_command_buffer, submit_info);
 }

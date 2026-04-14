@@ -35,8 +35,7 @@ public:
         [[kiln_lifetimebound]]
         Buffer& buffer
     )
-        : m_buffer{ buffer.get() },
-          m_allocation_ref{ buffer.allocation() },
+        : m_buffer{ buffer },
           m_offset{ 0 },
           m_size{ buffer.size() }
     {
@@ -48,23 +47,22 @@ public:
         const vk::DeviceSize           size
     )
         : BufferRegionPrecondition{ buffer, offset, size },
-          m_buffer{ buffer.get() },
-          m_allocation_ref{ buffer.allocation() },
+          m_buffer{ buffer },
           m_offset{ offset },
           m_size{ size }
     {
     }
 
     [[nodiscard]]
-    auto buffer() const noexcept -> vk::Buffer
+    auto buffer() const noexcept -> Buffer&
     {
-        return m_buffer;
+        return m_buffer.get();
     }
 
     [[nodiscard]]
     auto allocation() const noexcept -> Allocation&
     {
-        return m_allocation_ref;
+        return m_buffer.get().allocation();
     }
 
     [[nodiscard]]
@@ -80,10 +78,9 @@ public:
     }
 
 private:
-    vk::Buffer                         m_buffer;
-    std::reference_wrapper<Allocation> m_allocation_ref;
-    vk::DeviceSize                     m_offset;
-    vk::DeviceSize                     m_size;
+    std::reference_wrapper<Buffer> m_buffer;
+    vk::DeviceSize                 m_offset;
+    vk::DeviceSize                 m_size;
 };
 
 }   // namespace kiln::gfx::renderer

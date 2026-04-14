@@ -298,28 +298,40 @@ auto Allocator::unmap(Buffer& buffer) -> void
     unmap(buffer.allocation());
 }
 
-auto Allocator::invalidate(Allocation& allocation) -> void
+auto Allocator::invalidate(
+    Allocation&          allocation,
+    const vk::DeviceSize destination_offset,
+    const vk::DeviceSize destination_size
+) -> void
 {
     vulkan::check_result(
-        vmaInvalidateAllocation(m_handle.get(), allocation.get(), 0, vk::WholeSize)
+        vmaInvalidateAllocation(
+            m_handle.get(), allocation.get(), destination_offset, destination_size
+        )   //
     );
 }
 
-auto Allocator::invalidate(Buffer& buffer) -> void
+auto Allocator::invalidate(const BufferRegion& buffer) -> void
 {
-    invalidate(buffer.allocation());
+    invalidate(buffer.allocation(), buffer.offset(), buffer.size());
 }
 
-auto Allocator::flush(Allocation& allocation) -> void
+auto Allocator::flush(
+    Allocation&          allocation,
+    const vk::DeviceSize destination_offset,
+    const vk::DeviceSize destination_size
+) -> void
 {
     vulkan::check_result(
-        vmaFlushAllocation(m_handle.get(), allocation.get(), 0, vk::WholeSize)
+        vmaFlushAllocation(
+            m_handle.get(), allocation.get(), destination_offset, destination_size
+        )   //
     );
 }
 
-auto Allocator::flush(Buffer& buffer) -> void
+auto Allocator::flush(const BufferRegion& buffer) -> void
 {
-    flush(buffer.allocation());
+    flush(buffer.allocation(), buffer.offset(), buffer.size());
 }
 
 namespace internal {

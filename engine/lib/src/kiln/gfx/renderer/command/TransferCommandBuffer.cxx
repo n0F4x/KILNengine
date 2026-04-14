@@ -26,8 +26,8 @@ auto TransferCommandBuffer::record_buffer_copy(
     };
 
     const vk::CopyBufferInfo2 info{
-        .srcBuffer   = source.buffer(),
-        .dstBuffer   = destination.buffer(),
+        .srcBuffer   = source.buffer().get(),
+        .dstBuffer   = destination.buffer().get(),
         .regionCount = 1u,
         .pRegions    = &region,
     };
