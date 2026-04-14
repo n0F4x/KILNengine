@@ -10,7 +10,6 @@ module examples.simple_scene;
 
 import vulkan_hpp;
 
-import kiln.gfx.asset.gltf.Asset;
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.device.Device;
@@ -19,54 +18,13 @@ import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.renderer.memory.BufferRegion;
+import kiln.gfx.renderer.stream.LazyCopy;
 import kiln.gfx.renderer.stream.StagingRequest;
 import kiln.gfx.vulkan.InstanceBuilder;
 
+import examples.simple_scene.workflow;
+
 namespace demo {
-
-[[nodiscard]]
-auto mega_buffer_size_from(const kiln::gfx::asset::gltf::Asset& asset) -> uint32_t
-{
-    uint32_t result{};
-
-    for (const auto& buffer_view : asset.vertex_array_views())
-    {
-        result += buffer_view.byte_length;
-    }
-    for (const auto& buffer_view : asset.index_array_views())
-    {
-        result += buffer_view.byte_length;
-    }
-
-    return result;
-}
-
-auto copy_asset(
-    const kiln::gfx::asset::gltf::Asset&,
-    const kiln::gfx::renderer::BufferRegion& final_buffer
-) -> void
-{
-    std::println("Copied {} bytes from host to gpu", final_buffer.size());
-}
-
-auto record_staging_transfers(
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    const kiln::gfx::asset::gltf::Asset&,
-    const kiln::gfx::renderer::BufferRegion& final_buffer
-) -> void
-{
-    staging_stream.record(
-        kiln::gfx::renderer::StagingRequest{
-            kiln::gfx::renderer::StagingRequest::Callback{
-                [](const std::span<std::byte> out) -> void
-                {
-                    std::println("Copied {} bytes to staging buffer", out.size());   //
-                }   //
-            },
-            final_buffer,
-        }
-    );
-}
 
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue
@@ -99,13 +57,47 @@ Context::Context(
 {
 }
 
+[[nodiscard]]
+auto mega_buffer_size_from(const Asset& asset) -> uint32_t
+{
+    return asset.indices_size_bytes()     //
+         + asset.positions_size_bytes()   //
+         + asset.rest_of_vertices_size_bytes();
+}
+
+auto copy_asset(const Asset&, const kiln::gfx::renderer::BufferRegion& final_buffer)
+    -> void
+{
+    std::println("Copied {} bytes from host to gpu", final_buffer.size());
+}
+
+auto record_staging_transfers(
+    kiln::gfx::renderer::StagingStream& staging_stream,
+    const Asset&,
+    const kiln::gfx::renderer::BufferRegion& final_buffer
+) -> void
+{
+    staging_stream.record(
+        kiln::gfx::renderer::StagingRequest{
+            kiln::gfx::renderer::LazyCopy{
+                [](const std::span<std::byte> out) -> void
+                {
+                    std::println("Copied {} bytes to staging buffer", out.size());   //
+                }   //
+            },
+            final_buffer,
+        }
+    );
+}
+
 auto Context::run(const std::filesystem::path& model_filepath) -> void
 {
-    const std::optional asset{ m_gltf_parser.get().load(model_filepath) };
-    if (asset.has_value())
+    std::optional raw_asset{ m_gltf_parser.get().load(model_filepath) };
+    if (raw_asset.has_value())
     {
         std::println("Model loaded from {}", model_filepath.generic_string());
     }
+    Asset asset{ std::move(*raw_asset) };
 
     [[maybe_unused]]
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -114,7 +106,7 @@ auto Context::run(const std::filesystem::path& model_filepath) -> void
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = mega_buffer_size_from(*asset),
+        .size        = mega_buffer_size_from(asset),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -124,13 +116,14 @@ auto Context::run(const std::filesystem::path& model_filepath) -> void
         m_gpu_allocator.get().create_buffer(buffer_create_info, allocation_create_info)
     };
 
-    if (mega_buffer.allocation().memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible)
+    if (mega_buffer.allocation().memory_properties()
+        & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        copy_asset(*asset, mega_buffer);
+        copy_asset(asset, mega_buffer);
     }
     else
     {
-        record_staging_transfers(m_staging_stream, *asset, mega_buffer);
+        record_staging_transfers(m_staging_stream, asset, mega_buffer);
         m_staging_stream.flush(m_gpu_allocator);
         m_staging_stream.reset(m_gpu);
     }

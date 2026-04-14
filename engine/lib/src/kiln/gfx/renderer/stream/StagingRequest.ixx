@@ -9,15 +9,13 @@ export module kiln.gfx.renderer.stream.StagingRequest;
 import vulkan_hpp;
 
 import kiln.gfx.renderer.memory.BufferRegion;
-import kiln.util.containers.MoveOnlyFunction;
+import kiln.gfx.renderer.stream.LazyCopy;
 
 namespace kiln::gfx::renderer {
 
 export class StagingRequest {
 public:
-    using Callback = util::MoveOnlyFunction<auto(std::span<std::byte>) &&->void>;
-
-    explicit StagingRequest(Callback&& callback, const BufferRegion& destination)
+    explicit StagingRequest(LazyCopy&& callback, const BufferRegion& destination)
         : m_callback{ std::move(callback) },
           m_destination{ destination }
     {
@@ -35,7 +33,7 @@ public:
     }
 
 private:
-    Callback     m_callback;
+    LazyCopy     m_callback;
     BufferRegion m_destination;
 };
 
