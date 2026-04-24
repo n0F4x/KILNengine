@@ -6,10 +6,11 @@ module;
 
 #include <vk_mem_alloc.h>
 
-module examples.simple_scene;
+module examples.simple_scene.Context;
 
 import vulkan_hpp;
 
+import kiln.app.config.Config;
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.device.Device;
@@ -21,6 +22,8 @@ import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.stream.LazyCopy;
 import kiln.gfx.renderer.stream.StagingRequest;
 import kiln.gfx.vulkan.InstanceBuilder;
+import kiln.wsi.Context;
+import kiln.wsi.WindowedWindowSettings;
 
 import examples.simple_scene.workflow;
 
@@ -40,20 +43,24 @@ auto select_staging_queue(const kiln::gfx::renderer::QueueType queue_type)
 
 Context::Context(
     kiln::app::MemoryArena&             memory_arena,
-    const kiln::gfx::renderer::Device&  gpu_device,
+    const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
     kiln::gfx::renderer::Allocator&     gpu_allocator,
-    kiln::gfx::asset::gltf::Parser&     gltf_parser
+    kiln::gfx::asset::gltf::Parser&     gltf_parser,
+    Window&                             window,
+    Renderer&                           renderer
 )
-    : m_gpu{ gpu_device },
+    : m_gpu{ render_device },
       m_gpu_allocator{ gpu_allocator },
       m_staging_stream{
           std::allocator_arg,
           memory_arena.pool_allocator(),
-          gpu_device,
+          render_device,
           *gpu_queue_provider.select_transfer_queue(select_staging_queue),
       },
-      m_gltf_parser{ gltf_parser }
+      m_gltf_parser{ gltf_parser },
+      m_window{ window },
+      m_renderer{ renderer }
 {
 }
 
@@ -138,6 +145,9 @@ auto Context::Builder::create(
     device_builder.enable_features(
         vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
     );
+    device_builder.enable_features(
+        vk::PhysicalDeviceVulkan12Features{ .bufferDeviceAddress = vk::True }
+    );
     device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
     return Builder{};
@@ -145,15 +155,22 @@ auto Context::Builder::create(
 
 auto Context::Builder::build(
     kiln::app::MemoryArena&             memory_arena,
-    const kiln::gfx::renderer::Device&  gpu_device,
+    const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
     kiln::gfx::renderer::Allocator&     gpu_allocator,
-    const kiln::gfx::renderer::PresentationContext&,
-    kiln::gfx::asset::gltf::Parser& gltf_parser
+    kiln::gfx::asset::gltf::Parser&     gltf_parser,
+    Window&                             window,
+    Renderer&                           renderer
 ) -> Context
 {
     return Context{
-        memory_arena, gpu_device, gpu_queue_provider, gpu_allocator, gltf_parser
+        memory_arena,
+        render_device,   //
+        gpu_queue_provider,
+        gpu_allocator,
+        gltf_parser,   //
+        window,
+        renderer,
     };
 }
 

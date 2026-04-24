@@ -3,7 +3,7 @@
 
 import kiln;
 
-import examples.simple_scene;
+import examples.simple_scene.Context;
 
 [[nodiscard]]
 auto assets_path() -> std::filesystem::path

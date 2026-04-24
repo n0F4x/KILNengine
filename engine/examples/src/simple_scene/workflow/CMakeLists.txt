@@ -1,5 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Asset.cxx
+        Renderer.cxx
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -8,4 +9,5 @@ target_sources(${PROJECT_NAME} PRIVATE
         FILES
         workflow.cppm
         Asset.ixx
+        Renderer.ixx
 )
