@@ -97,7 +97,7 @@ auto Context::run(const std::filesystem::path& model_filepath) -> void
     {
         std::println("Model loaded from {}", model_filepath.generic_string());
     }
-    Asset asset{ std::move(*raw_asset) };
+    const Asset asset{ std::move(*raw_asset) };
 
     [[maybe_unused]]
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
