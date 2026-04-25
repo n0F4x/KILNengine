@@ -4,6 +4,6 @@ import kiln.gfx.renderer.memory.Allocator;
 
 namespace kiln::gfx::renderer {
 
-export using internal::AllocatorBuilder;
+export using AllocatorBuilder = Allocator::Builder;
 
 }   // namespace kiln::gfx::renderer

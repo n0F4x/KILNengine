@@ -14,5 +14,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         AllocatorBuilder.ixx
         Buffer.ixx
         BufferRegion.ixx
+        LazyCopy.ixx
         MemoryTypeID.ixx
 )

@@ -219,6 +219,11 @@ auto Allocator::create_buffer(
     const VmaAllocationCreateInfo& allocation_create_info
 ) -> Buffer
 {
+    if (buffer_create_info.size == 0)
+    {
+        return Buffer{};
+    }
+
     VkBuffer          buffer;
     VmaAllocation     allocation{};
     VmaAllocationInfo allocation_info{};
@@ -273,6 +278,26 @@ auto Allocator::host_copy(
     host_copy(source, destination.allocation(), destination.offset(), destination.size());
 }
 
+auto Allocator::host_copy(LazyCopy&& lazy_copy, const BufferRegion& destination) -> void
+{
+    const vk::MemoryPropertyFlags memory_properties{
+        destination.allocation().memory_properties()
+    };
+    PRECOND(memory_properties & vk::MemoryPropertyFlagBits::eHostVisible);
+
+    if (destination.size() == 0)
+    {
+        return;
+    }
+
+    std::move(lazy_copy)(map(destination));
+    unmap(destination);
+    if (!(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
+    {
+        flush(destination);
+    }
+}
+
 auto Allocator::map(Allocation& allocation) -> std::span<std::byte>
 {
     PRECOND(allocation.memory_properties() & vk::MemoryPropertyFlagBits::eHostVisible);
@@ -283,9 +308,10 @@ auto Allocator::map(Allocation& allocation) -> std::span<std::byte>
     return std::span{ static_cast<std::byte*>(mapped_data), allocation.size() };
 }
 
-auto Allocator::map(Buffer& buffer) -> std::span<std::byte>
+auto Allocator::map(const BufferRegion& buffer_region) -> std::span<std::byte>
 {
-    return map(buffer.allocation()).subspan(0, buffer.size());
+    return map(buffer_region.allocation())
+        .subspan(buffer_region.offset(), buffer_region.size());
 }
 
 auto Allocator::unmap(Allocation& allocation) -> void
@@ -293,9 +319,9 @@ auto Allocator::unmap(Allocation& allocation) -> void
     vmaUnmapMemory(m_handle.get(), allocation.get());
 }
 
-auto Allocator::unmap(Buffer& buffer) -> void
+auto Allocator::unmap(const BufferRegion& buffer_region) -> void
 {
-    unmap(buffer.allocation());
+    unmap(buffer_region.allocation());
 }
 
 auto Allocator::invalidate(
@@ -334,12 +360,10 @@ auto Allocator::flush(const BufferRegion& buffer) -> void
     flush(buffer.allocation(), buffer.offset(), buffer.size());
 }
 
-namespace internal {
-
-auto AllocatorBuilder::create(
+auto Allocator::Builder::create(
     vulkan::InstanceBuilder& instance_builder,
     DeviceBuilder&           device_builder
-) -> AllocatorBuilder
+) -> Builder
 {
     // VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT
     // VMA_ALLOCATOR_CREATE_AMD_DEVICE_COHERENT_MEMORY_BIT
@@ -374,15 +398,13 @@ auto AllocatorBuilder::create(
     );
 
 
-    return AllocatorBuilder{};
+    return Builder{};
 }
 
-auto AllocatorBuilder::build(const vulkan::Instance& instance, const Device& device)
+auto Allocator::Builder::build(const vulkan::Instance& instance, const Device& device)
     -> Allocator
 {
     return Allocator{ instance, device };
 }
-
-}   // namespace internal
 
 }   // namespace kiln::gfx::renderer

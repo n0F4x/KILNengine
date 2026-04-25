@@ -7,7 +7,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         stream.cppm
-        LazyCopy.ixx
         StagingRequest.ixx
         StagingStream.ixx
 )

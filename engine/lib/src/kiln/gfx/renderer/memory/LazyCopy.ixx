@@ -3,7 +3,7 @@ module;
 #include <cstddef>
 #include <span>
 
-export module kiln.gfx.renderer.stream.LazyCopy;
+export module kiln.gfx.renderer.memory.LazyCopy;
 
 import kiln.util.containers.MoveOnlyFunction;
 

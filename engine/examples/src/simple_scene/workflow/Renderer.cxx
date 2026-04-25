@@ -15,13 +15,21 @@ import examples.simple_scene.Window;
 
 namespace demo {
 
+struct ShaderScene {
+    vk::DeviceSize primitives;
+    vk::DeviceSize materials;
+    vk::DeviceSize indices;
+    vk::DeviceSize positions;
+    vk::DeviceSize vertices;
+};
+
 [[nodiscard]]
 auto create_graphics_pipeline_layout(const vk::raii::Device& device)
     -> vk::raii::PipelineLayout
 {
     constexpr static std::array push_constant_ranges{
         vk::PushConstantRange{ .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                              .size       = sizeof(vk::DeviceSize) },
+                              .size       = sizeof(ShaderScene) },
     };
 
     constexpr static vk::PipelineLayoutCreateInfo create_info{

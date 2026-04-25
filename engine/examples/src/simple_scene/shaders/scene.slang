@@ -1,13 +1,24 @@
+import Material;
+
 struct Primitive {
-    uint32_t* indices;
-    float3*   positions;
-    float*    base_vertex_offset;
-    uint      normal_offset;
-    uint      tangent_offset;
-    uint      uv_1_offset;
-    uint      uv_2_offset;
-    uint      color_offset;
-    uint      material_index;
+    uint32_t      material_index;
+    uint32_t      index_offset;
+    uint32_t      position_offset;
+    uint32_t      vertex_offset;
+    uint32_t      stride;
+    uint32_t      normal_offset;
+    uint32_t      tangent_offset;
+    uint32_t      uv_1_offset;
+    uint32_t      uv_2_offset;
+    uint32_t      color_offset;
+};
+
+struct Scene {
+    Primitive* primitives;
+    Material*  materials;
+    uint32_t*  indices;
+    float3*    positions;
+    float*     vertices;
 };
 
 struct VertexOutput {
@@ -17,15 +28,19 @@ struct VertexOutput {
 
 [shader("vertex")]
 VertexOutput main(
-    uint vertex_id : SV_VertexID,
-    uint draw_id : SV_DrawIndex,
-    uniform Primitive* primitives
+    uint32_t vertex_id : SV_VertexID,
+    uint32_t draw_id : SV_DrawIndex,
+    uniform Scene scene
 )
 {
-    Primitive primitive = primitives[draw_id];
-    uint32_t  index     = primitive.indices[vertex_id];
-    float3    position  = primitive.positions[index];
-    float3    color     = *(float3*)(primitive.base_vertex_offset + index + primitive.color_offset);
+    Primitive primitive = scene.primitives[draw_id];
+    uint32_t  vertex_index     = scene.indices[vertex_id + primitive.index_offset];
+    float3    position  = scene.positions[primitive.position_offset + vertex_index];
+    float3    color =
+        *(float3*)(scene.vertices
+                    + primitive.vertex_offset
+                    + vertex_index * primitive.stride
+                    + primitive.color_offset);
 
     VertexOutput output;
     output.position = float4(position, 1.0);

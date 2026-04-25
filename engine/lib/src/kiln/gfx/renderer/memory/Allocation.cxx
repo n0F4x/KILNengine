@@ -1,5 +1,6 @@
 module;
 
+#include <cassert>
 #include <utility>
 
 #include <vk_mem_alloc.h>
@@ -14,8 +15,8 @@ import kiln.util.contracts;
 namespace kiln::gfx::renderer {
 
 Allocation::Allocation(
-    const VmaAllocator   allocator, // NOLINT(*-misplaced-const)
-    const VmaAllocation  allocation, // NOLINT(*-misplaced-const)
+    const VmaAllocator   allocator,    // NOLINT(*-misplaced-const)
+    const VmaAllocation  allocation,   // NOLINT(*-misplaced-const)
     const MemoryTypeID   memory_type_id,
     const vk::DeviceSize size
 ) noexcept
@@ -75,8 +76,13 @@ auto Allocation::memory_type_id() const noexcept -> MemoryTypeID
 
 auto Allocation::memory_properties() const noexcept -> vk::MemoryPropertyFlags
 {
-    VkMemoryPropertyFlags result;
-    vmaGetMemoryTypeProperties(m_allocator, m_memory_type_id.underlying(), &result);
+    VkMemoryPropertyFlags result{};
+    if (m_allocation != nullptr)
+    {
+        assert(m_memory_type_id != MemoryTypeID::invalid_value());
+        vmaGetMemoryTypeProperties(m_allocator, m_memory_type_id.underlying(), &result);
+    }
+
     return vk::MemoryPropertyFlags{ result };
 }
 

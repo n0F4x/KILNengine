@@ -97,6 +97,11 @@ auto StagingStream::record(StagingRequest&& staging_request) -> void
 
 auto StagingStream::reset(const Device& device) -> void
 {
+    if (empty())
+    {
+        return;
+    }
+
     vulkan::check_result(device.logical_device().waitForFences(
         *m_staging_finished_fence, vk::True, std::numeric_limits<uint64_t>::max()
     ));

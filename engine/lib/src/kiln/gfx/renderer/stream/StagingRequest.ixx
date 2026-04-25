@@ -4,19 +4,31 @@ module;
 #include <span>
 #include <utility>
 
+#include "kiln/util/contract_macros.hpp"
+
 export module kiln.gfx.renderer.stream.StagingRequest;
 
 import vulkan_hpp;
 
 import kiln.gfx.renderer.memory.BufferRegion;
-import kiln.gfx.renderer.stream.LazyCopy;
+import kiln.gfx.renderer.memory.LazyCopy;
+import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-export class StagingRequest {
+class StagingRequestPrecondition {
+public:
+    explicit StagingRequestPrecondition(const BufferRegion& destination)
+    {
+        PRECOND(destination.size() != 0);
+    }
+};
+
+export class StagingRequest : StagingRequestPrecondition {
 public:
     explicit StagingRequest(LazyCopy&& callback, const BufferRegion& destination)
-        : m_callback{ std::move(callback) },
+        : StagingRequestPrecondition{ destination },
+          m_callback{ std::move(callback) },
           m_destination{ destination }
     {
     }

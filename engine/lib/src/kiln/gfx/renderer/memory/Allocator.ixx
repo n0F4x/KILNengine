@@ -18,20 +18,15 @@ import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.renderer.memory.BufferRegion;
+import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
-namespace internal {
-
-export class AllocatorBuilder;
-
-}   // namespace internal
-
 export class Allocator {
 public:
-    using Builder = internal::AllocatorBuilder;
+    class Builder;
 
 
     Allocator(
@@ -59,12 +54,13 @@ public:
     ) -> void;
     auto host_copy(std::span<const std::byte> source, const BufferRegion& destination)
         -> void;
+    auto host_copy(LazyCopy&& lazy_copy, const BufferRegion& destination) -> void;
 
     [[nodiscard]]
     auto map(Allocation& allocation) -> std::span<std::byte>;
-    auto map(Buffer& buffer) -> std::span<std::byte>;
+    auto map(const BufferRegion& buffer_region) -> std::span<std::byte>;
     auto unmap(Allocation& allocation) -> void;
-    auto unmap(Buffer& buffer) -> void;
+    auto unmap(const BufferRegion& buffer_region) -> void;
 
     auto invalidate(
         Allocation&    allocation,
@@ -84,20 +80,16 @@ private:
     std::unique_ptr<VmaAllocator_T, decltype(&vmaDestroyAllocator)> m_handle;
 };
 
-namespace internal {
-
-export class AllocatorBuilder : public app::ContextBuilderInterface {
+class Allocator::Builder : public app::ContextBuilderInterface {
 public:
     [[nodiscard]]
     static auto
         create(vulkan::InstanceBuilder& instance_builder, DeviceBuilder& device_builder)
-            -> AllocatorBuilder;
+            -> Builder;
 
     [[nodiscard]]
     static auto build(const vulkan::Instance& instance, const Device& device)
         -> Allocator;
 };
-
-}   // namespace internal
 
 }   // namespace kiln::gfx::renderer

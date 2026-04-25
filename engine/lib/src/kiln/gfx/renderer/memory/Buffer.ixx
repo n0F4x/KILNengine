@@ -8,6 +8,7 @@ namespace kiln::gfx::renderer {
 
 export class Buffer {
 public:
+    explicit Buffer() = default;
     explicit Buffer(
         vk::raii::Buffer&& buffer,
         vk::DeviceSize     buffer_size,
@@ -25,7 +26,7 @@ public:
     auto allocation() const noexcept -> const Allocation&;
 
 private:
-    vk::raii::Buffer m_buffer;
+    vk::raii::Buffer m_buffer{ nullptr };
     vk::DeviceSize   m_size{};
     Allocation       m_allocation;
 };
