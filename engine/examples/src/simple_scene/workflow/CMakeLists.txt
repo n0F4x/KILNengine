@@ -1,7 +1,8 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Asset.cxx
         load_scene.cxx
-        Renderer.cxx
+        Pipeline.cxx
+        Scene.cxx
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -11,6 +12,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         workflow.cppm
         Asset.ixx
         load_scene.ixx
-        Renderer.ixx
+        Pipeline.ixx
         Scene.ixx
 )

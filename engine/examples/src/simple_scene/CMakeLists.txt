@@ -15,7 +15,6 @@ add_subdirectory(workflow)
 target_sources(${PROJECT_NAME} PRIVATE
         Context.cxx
         main.cpp
-        Window.cxx
 )
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -23,5 +22,4 @@ target_sources(${PROJECT_NAME} PRIVATE
         BASE_DIRS ${PROJECT_SOURCE_DIR}
         FILES
         Context.ixx
-        Window.ixx
 )

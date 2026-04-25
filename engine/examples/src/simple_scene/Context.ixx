@@ -16,14 +16,15 @@ import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.stream.StagingStream;
 import kiln.gfx.renderer.device.DeviceBuilder;
+import kiln.gfx.renderer.pipeline.PipelineContext;
 import kiln.gfx.renderer.presentation.PresentationContext;
+import kiln.gfx.renderer.presentation.RenderSurface;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.wsi.Context;
 import kiln.wsi.Window;
 
-import examples.simple_scene.workflow.Renderer;
-import examples.simple_scene.Window;
+import examples.simple_scene.workflow.Pipeline;
 
 namespace demo {
 
@@ -32,24 +33,29 @@ public:
     class Builder;
 
     explicit Context(
+        const kiln::app::Config&            config,
         kiln::app::MemoryArena&             memory_arena,
+        const kiln::gfx::vulkan::Instance&  vulkan_instance,
+        const kiln::wsi::Context&           wsi_context,
         const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
         kiln::gfx::renderer::Allocator&     gpu_allocator,
-        kiln::gfx::asset::gltf::Parser&     gltf_parser,
-        Window&                             window,
-        Renderer&                           renderer
+        kiln::gfx::asset::gltf::Parser&     gltf_parser
     );
 
     auto run(const std::filesystem::path& model_filepath) -> void;
 
 private:
+    constexpr static uint8_t number_of_frames_in_flight{ 2 };
+
+
     std::reference_wrapper<const kiln::gfx::renderer::Device> m_gpu;
     std::reference_wrapper<kiln::gfx::renderer::Allocator>    m_gpu_allocator;
     kiln::gfx::renderer::StagingStream                        m_staging_stream;
     std::reference_wrapper<kiln::gfx::asset::gltf::Parser>    m_gltf_parser;
-    std::reference_wrapper<Window>                            m_window;
-    std::reference_wrapper<Renderer>                          m_renderer;
+    kiln::wsi::Window                                         m_window;
+    kiln::gfx::renderer::RenderSurface                        m_render_surface;
+    Pipeline                                                  m_pipeline;
 };
 
 class Context::Builder : public kiln::app::ContextBuilderInterface {
@@ -62,13 +68,16 @@ public:
 
     [[nodiscard]]
     static auto build(
-        kiln::app::MemoryArena&             memory_arena,
-        const kiln::gfx::renderer::Device&  render_device,
-        kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
-        kiln::gfx::renderer::Allocator&     gpu_allocator,
-        kiln::gfx::asset::gltf::Parser&     gltf_parser,
-        Window&                             window,
-        Renderer&                           renderer
+        const kiln::app::Config&                        config,
+        kiln::app::MemoryArena&                         memory_arena,
+        const kiln::gfx::vulkan::Instance&              vulkan_instance,
+        const kiln::wsi::Context&                       wsi_context,
+        const kiln::gfx::renderer::Device&              render_device,
+        kiln::gfx::renderer::QueueProvider&             gpu_queue_provider,
+        kiln::gfx::renderer::Allocator&                 gpu_allocator,
+        const kiln::gfx::renderer::PipelineContext&     pipeline_context,
+        const kiln::gfx::renderer::PresentationContext& presentation_context,
+        kiln::gfx::asset::gltf::Parser&                 gltf_parser
     ) -> Context;
 };
 

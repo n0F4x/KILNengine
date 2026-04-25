@@ -4,14 +4,12 @@ module;
 #include <filesystem>
 #include <source_location>
 
-module examples.simple_scene.workflow.Renderer;
+module examples.simple_scene.workflow.Pipeline;
 
 import vulkan_hpp;
 
 import kiln.gfx.renderer.pipeline.ShaderModule;
 import kiln.gfx.vulkan.result.check_result;
-
-import examples.simple_scene.Window;
 
 namespace demo {
 
@@ -40,21 +38,12 @@ auto create_graphics_pipeline_layout(const vk::raii::Device& device)
     return kiln::gfx::vulkan::check_result(device.createPipelineLayout(create_info));
 }
 
-Renderer::Renderer(
-    const kiln::gfx::vulkan::Instance& vulkan_instance,
-    const kiln::gfx::renderer::Device& device,
-    Window&                            window
+Pipeline::Pipeline(
+    const kiln::gfx::renderer::Device&        device,
+    const kiln::gfx::renderer::RenderSurface& surface,
+    const uint8_t
 )
-    : m_surface{
-          kiln::gfx::vulkan::check_result(
-              window->create_vulkan_surface(vulkan_instance.get())
-          ),
-          device,
-          m_number_of_frames,
-          true,
-          window->resolution(),
-      },
-      m_graphics_pipeline_layout{
+    : m_graphics_pipeline_layout{
           create_graphics_pipeline_layout(device.logical_device())
       },
       m_graphics_shader_module{
@@ -70,20 +59,9 @@ Renderer::Renderer(
           m_graphics_pipeline_layout,
           m_graphics_shader_module,
           m_graphics_shader_module,
-          std::array{ m_surface.surface_format().format },
+          std::array{ surface.surface_format().format },
       }
 {
-}
-
-auto Renderer::Builder::build(
-    const kiln::gfx::vulkan::Instance& vulkan_instance,
-    const kiln::gfx::renderer::Device& device,
-    Window&                            window,
-    const kiln::gfx::renderer::PresentationContext&,
-    const kiln::gfx::renderer::PipelineContext&
-) -> Renderer
-{
-    return Renderer{ vulkan_instance, device, window };
 }
 
 }   // namespace demo

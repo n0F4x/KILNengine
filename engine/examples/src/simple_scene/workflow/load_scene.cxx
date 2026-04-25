@@ -25,21 +25,46 @@ import examples.simple_scene.workflow.Asset;
 namespace demo {
 
 [[nodiscard]]
-auto geometry_buffer_size_from(const AssetLoader& asset_loader) -> vk::DeviceSize
+auto index_buffer_byte_offset(const AssetLoader&) -> vk::DeviceSize
 {
-    vk::DeviceSize result{};
+    return 0;
+}
 
-    result += asset_loader.index_alignment() - result % asset_loader.index_alignment();
-    result += asset_loader.indices_size_bytes();
+[[nodiscard]]
+auto position_buffer_byte_offset(const AssetLoader& asset_loader) -> vk::DeviceSize
+{
+    vk::DeviceSize result{
+        index_buffer_byte_offset(asset_loader) + asset_loader.indices_size_bytes()   //
+    };
 
-    result += asset_loader.position_alignment()
-            - result % asset_loader.position_alignment();
-    result += asset_loader.positions_size_bytes();
-
-    result += asset_loader.vertex_alignment() - result % asset_loader.vertex_alignment();
-    result += asset_loader.vertices_size_bytes();
+    if (const auto remainder{ result % asset_loader.position_alignment() }; remainder != 0)
+    {
+        result += asset_loader.position_alignment() - remainder;
+    }
 
     return result;
+}
+
+[[nodiscard]]
+auto vertex_buffer_byte_offset(const AssetLoader& asset_loader) -> vk::DeviceSize
+{
+    vk::DeviceSize result{
+        position_buffer_byte_offset(asset_loader)
+        + asset_loader.positions_size_bytes()   //
+    };
+
+    if (const auto remainder{ result % asset_loader.vertex_alignment() }; remainder != 0)
+    {
+        result += asset_loader.vertex_alignment() - remainder;
+    }
+
+    return result;
+}
+
+[[nodiscard]]
+auto geometry_buffer_size_from(const AssetLoader& asset_loader) -> vk::DeviceSize
+{
+    return vertex_buffer_byte_offset(asset_loader) + asset_loader.vertices_size_bytes();
 }
 
 [[nodiscard]]
@@ -111,13 +136,17 @@ auto stage_indices(
     AssetLoader&                        asset_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     const vk::MemoryPropertyFlags       memory_properties,
-    uint64_t&                           buffer_offset
+    vk::DeviceSize&                     buffer_offset
 ) -> void
 {
     asset_loader.set_index_offset(0);
 
-    buffer_offset += asset_loader.index_alignment()
-                   - buffer_offset % asset_loader.index_alignment();
+    if (const auto remainder{ buffer_offset % asset_loader.index_alignment() };
+        remainder != 0)
+    {
+        buffer_offset += asset_loader.index_alignment() - remainder;
+    }
+
     const kiln::gfx::renderer::BufferRegion destination{
         geometry_buffer,
         buffer_offset,
@@ -149,13 +178,17 @@ auto stage_positions(
     AssetLoader&                        asset_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     const vk::MemoryPropertyFlags       memory_properties,
-    uint64_t&                           buffer_offset
+    vk::DeviceSize&                     buffer_offset
 ) -> void
 {
     asset_loader.set_position_offset(0);
 
-    buffer_offset += asset_loader.position_alignment()
-                   - buffer_offset % asset_loader.position_alignment();
+    if (const auto remainder{ buffer_offset % asset_loader.position_alignment() };
+        remainder != 0)
+    {
+        buffer_offset += asset_loader.position_alignment() - remainder;
+    }
+
     const kiln::gfx::renderer::BufferRegion destination{
         geometry_buffer,
         buffer_offset,
@@ -188,13 +221,17 @@ auto stage_vertices(
     AssetLoader&                        asset_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     const vk::MemoryPropertyFlags       memory_properties,
-    uint64_t&                           buffer_offset
+    vk::DeviceSize&                     buffer_offset
 ) -> void
 {
     asset_loader.set_vertex_offset(0);
 
-    buffer_offset += asset_loader.vertex_alignment()
-                   - buffer_offset % asset_loader.vertex_alignment();
+    if (const auto remainder{ buffer_offset % asset_loader.vertex_alignment() };
+        remainder != 0)
+    {
+        buffer_offset += asset_loader.vertex_alignment() - remainder;
+    }
+
     const kiln::gfx::renderer::BufferRegion destination{
         geometry_buffer,
         buffer_offset,
@@ -232,7 +269,7 @@ auto stage_geometry(
         geometry_buffer.allocation().memory_properties()
     };
 
-    uint64_t buffer_offset{};
+    vk::DeviceSize buffer_offset{};
     if (asset_loader.indices_size_bytes() != 0)
     {
         stage_indices(
@@ -365,6 +402,10 @@ auto load_scene(
     kiln::gfx::renderer::StagingStream& staging_stream
 ) -> Scene
 {
+    vk::DeviceSize index_byte_offset;
+    vk::DeviceSize position_byte_offset;
+    vk::DeviceSize vertex_byte_offset;
+
     kiln::gfx::renderer::Buffer geometry_buffer;
     kiln::gfx::renderer::Buffer material_buffer;
     kiln::gfx::renderer::Buffer primitive_buffer;
@@ -390,6 +431,10 @@ auto load_scene(
 
         AssetLoader asset_loader{ asset };
 
+        index_byte_offset    = index_buffer_byte_offset(asset_loader);
+        position_byte_offset = position_buffer_byte_offset(asset_loader);
+        vertex_byte_offset   = vertex_buffer_byte_offset(asset_loader);
+
         geometry_buffer  = create_geometry_buffer(gpu_allocator, asset_loader);
         material_buffer  = create_material_buffer(gpu_allocator, asset_loader);
         primitive_buffer = create_primitive_buffer(gpu_allocator, asset_loader);
@@ -412,7 +457,11 @@ auto load_scene(
     staging_stream.reset(device);
 
     return Scene{
+        device,
         std::move(geometry_buffer),
+        index_byte_offset,
+        position_byte_offset,
+        vertex_byte_offset,
         std::move(material_buffer),
         std::move(primitive_buffer),
     };
