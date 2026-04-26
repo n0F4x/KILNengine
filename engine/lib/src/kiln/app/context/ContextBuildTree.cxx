@@ -200,8 +200,7 @@ auto ContextBuildTree::DependencyDescriptor::resolve_missing_dependency(
         return;
     }
 
-    // TODO: use std::ranges::rotate when libc++ supports it
-    std::rotate(iter, std::next(iter), missing_hashes.end());
+    std::ranges::rotate(iter, std::next(iter), missing_hashes.end());
     --m_number_of_missing_dependencies;
 }
 
@@ -311,22 +310,26 @@ auto ContextBuildTree::fix_order_of_builders(
             std::distance(m_builder_dependencies.begin(), builder_descriptor_iter)
         };
 
-        // TODO: use std::ranges::rotate when libc++ supports it
-        first_dependent_builder_descriptor_iter = std::rotate(
-            first_dependent_builder_descriptor_iter,
-            builder_descriptor_iter,
-            std::next(builder_descriptor_iter)
-        );
-        first_dependent_builder_iter = std::rotate(
-            first_dependent_builder_iter,
-            std::next(m_builders.begin(), index),
-            std::next(m_builders.begin(), index + 1)
-        );
-        first_dependent_builder_hash_iter = std::rotate(
-            first_dependent_builder_hash_iter,
-            std::next(m_builder_hashes.begin(), index),
-            std::next(m_builder_hashes.begin(), index + 1)
-        );
+        first_dependent_builder_descriptor_iter =
+            std::ranges::rotate(
+                first_dependent_builder_descriptor_iter,
+                builder_descriptor_iter,
+                std::next(builder_descriptor_iter)
+            )
+                .begin();
+        first_dependent_builder_iter = std::ranges::rotate(
+                                           first_dependent_builder_iter,
+                                           std::next(m_builders.begin(), index),
+                                           std::next(m_builders.begin(), index + 1)
+        )
+                                           .begin();
+        first_dependent_builder_hash_iter =
+            std::ranges::rotate(
+                first_dependent_builder_hash_iter,
+                std::next(m_builder_hashes.begin(), index),
+                std::next(m_builder_hashes.begin(), index + 1)
+            )
+                .begin();
     }
 }
 
@@ -410,22 +413,26 @@ auto ContextBuildTree::fix_order_of_injections(
             std::distance(m_injection_dependencies.begin(), injection_descriptor_iter)
         };
 
-        // TODO: use std::ranges::rotate when libc++ supports it
-        first_dependent_injection_descriptor_iter = std::rotate(
-            first_dependent_injection_descriptor_iter,
-            injection_descriptor_iter,
-            std::next(injection_descriptor_iter)
-        );
-        first_dependent_injection_iter = std::rotate(
-            first_dependent_injection_iter,
-            std::next(m_injections.begin(), index),
-            std::next(m_injections.begin(), index + 1)
-        );
-        first_dependent_injection_hash_iter = std::rotate(
-            first_dependent_injection_hash_iter,
-            std::next(m_injection_hashes.begin(), index),
-            std::next(m_injection_hashes.begin(), index + 1)
-        );
+        first_dependent_injection_descriptor_iter =
+            std::ranges::rotate(
+                first_dependent_injection_descriptor_iter,
+                injection_descriptor_iter,
+                std::next(injection_descriptor_iter)
+            )
+                .begin();
+        first_dependent_injection_iter = std::ranges::rotate(
+                                             first_dependent_injection_iter,
+                                             std::next(m_injections.begin(), index),
+                                             std::next(m_injections.begin(), index + 1)
+        )
+                                             .begin();
+        first_dependent_injection_hash_iter =
+            std::ranges::rotate(
+                first_dependent_injection_hash_iter,
+                std::next(m_injection_hashes.begin(), index),
+                std::next(m_injection_hashes.begin(), index + 1)
+            )
+                .begin();
     }
 }
 

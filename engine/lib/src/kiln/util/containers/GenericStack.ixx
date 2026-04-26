@@ -188,13 +188,8 @@ template <move_only_any_c Any_T>
 template <basic_generic_stack_item_c<Any_T> Item_T>
 auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
 {
-    // TODO: use std::ranges::contains once it compiler with MS STL
-    return std::ranges::any_of(
-        m_types_and_items,
-        [](const std::pair<uint64_t, Any>& hash_and_item) static -> bool
-        {
-            return hash_and_item.first == hash_u64<Item_T>();   //
-        }
+    return std::ranges::contains(
+        m_types_and_items, hash_u64<Item_T>(), &std::pair<uint64_t, Any>::first
     );
 }
 
@@ -205,12 +200,10 @@ auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
     -> OptionalRef<const_like_t<Item_T, Self_T>>
 {
     // TODO: use `std::ranges::find` + projection with better MS STL compatibility
-    const auto iter = std::ranges::find_if(
+    const auto iter = std::ranges::find(
         self.BasicGenericStack::m_types_and_items,
-        [](const_like_t<std::pair<uint64_t, Any>, Self_T>& type_hash_and_item) -> bool
-        {
-            return type_hash_and_item.first == hash_u64<Item_T>();   //
-        }
+        hash_u64<Item_T>(),
+        &std::pair<uint64_t, Any>::first
     );
     if (iter == self.BasicGenericStack::m_types_and_items.cend())
     {

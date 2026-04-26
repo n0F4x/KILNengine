@@ -61,7 +61,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
                 f"Supported compilers are: {supported_compilers}"
             )
 
-        minimum_supported_clang_version = 21
+        minimum_supported_clang_version = 22
         if (self.settings.compiler == "clang"
                 and self.settings.compiler.version < Version(minimum_supported_clang_version)):
             raise ConanInvalidConfiguration(
@@ -104,7 +104,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.requires("fastgltf/0.9.0", transitive_headers=True)
 
         if self._enable_tests:
-            self.test_requires("catch2/3.12.0")
+            self.test_requires("catch2/3.14.0")
 
     def layout(self):
         cmake_layout(self)

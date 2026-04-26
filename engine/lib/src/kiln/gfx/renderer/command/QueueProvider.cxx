@@ -3,6 +3,7 @@ module;
 #include <cstdint>
 #include <functional>
 #include <optional>
+#include <ranges>
 #include <vector>
 
 module kiln.gfx.renderer.command.QueueProvider;
@@ -35,7 +36,7 @@ auto QueueProvider::host_to_device_transfer_queue() -> util::OptionalRef<Transfe
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto QueueProvider::available_queues() -> std::vector<std::reference_wrapper<QueueBase>>
 {
-    // TODO: join optionals when they have become ranges
+    // TODO: use std::views::concat(optional_queues...);
     std::vector<std::reference_wrapper<QueueBase>> result;
 
     uint32_t queue_count{};
@@ -80,8 +81,7 @@ auto QueueProvider::Builder::create(
     return Builder{};
 }
 
-auto QueueProvider::Builder::build(const Device& device)
-    -> QueueProvider
+auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
 {
     const auto queue_pack_from{
         [&device]<typename Queue_T>(std::in_place_type_t<Queue_T>, const QueueType type)

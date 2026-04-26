@@ -10,7 +10,7 @@
         "glfw/3.4#41cc24c744dc4c80571f5dd10dcd9cda%1732635892.515",
         "fmt/12.1.0#50abab23274d56bb8f42c94b3b9a40c7%1761885265.231",
         "fastgltf/0.9.0#af8b34e3a5ba67aebfafe33b189eaf62%1755516102.829",
-        "catch2/3.12.0#0477ac73ea43866eb7168f6030b6b591%1767110219.015"
+        "catch2/3.14.0#d82340ec56a54afe1932f1aa9c9d490c%1775578807.348"
     ],
     "build_requires": [
         "cmake/4.1#platform"

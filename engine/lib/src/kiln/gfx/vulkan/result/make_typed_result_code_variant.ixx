@@ -40,7 +40,7 @@ constexpr auto make_typed_result_code_variant(const vk::Result result_code)
     {
         std::variant<TypedResultCode<expected_result_codes_T>...> result;
 
-        // TODO (Clang): use template for
+        // TODO: use template for
         (try_set_result<expected_result_codes_T>(result, result_code), ...);
 
         return result;

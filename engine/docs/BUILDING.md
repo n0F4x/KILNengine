@@ -4,7 +4,7 @@
 
 Make sure you have the following programs installed on your machine
 
--   Clang (at least version 21)
+-   Clang (at least version 22)
 -   Ninja
 -   CMake (at least version 4.1)
 -   [Conan](https://docs.conan.io/2/installation.html)
@@ -22,7 +22,7 @@ arch=x86_64
 build_type=Debug
 compiler=clang
 compiler.cppstd=26
-compiler.version=21
+compiler.version=22
 compiler.runtime=dynamic
 compiler.runtime_type=Debug
 compiler.runtime_version=v145
@@ -54,7 +54,7 @@ arch=x86_64
 build_type=Debug
 compiler=clang
 compiler.cppstd=26
-compiler.version=21
+compiler.version=22
 compiler.libcxx=libc++
 
 [conf]
