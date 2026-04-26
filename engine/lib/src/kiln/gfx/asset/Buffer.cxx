@@ -19,7 +19,7 @@ Buffer::Buffer(Buffer&& other) noexcept
 {
 }
 
-Buffer::Buffer(Buffer&& other, const allocator_type& allocator)
+Buffer::Buffer(Buffer&& other, [[maybe_unused]] const allocator_type& allocator)
     : Buffer{ std::move(other) }
 {
     PRECOND(allocator == other.get_allocator());

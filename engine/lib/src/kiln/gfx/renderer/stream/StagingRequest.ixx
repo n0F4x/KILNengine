@@ -18,7 +18,7 @@ namespace kiln::gfx::renderer {
 
 class StagingRequestPrecondition {
 public:
-    explicit StagingRequestPrecondition(const BufferRegion& destination)
+    explicit StagingRequestPrecondition([[maybe_unused]] const BufferRegion& destination)
     {
         PRECOND(destination.size() != 0);
     }

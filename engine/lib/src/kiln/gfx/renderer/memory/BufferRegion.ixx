@@ -20,9 +20,9 @@ public:
     explicit BufferRegionPrecondition() = default;
 
     explicit BufferRegionPrecondition(
-        const Buffer&        buffer,
-        const vk::DeviceSize offset,
-        const vk::DeviceSize size
+        [[maybe_unused]] const Buffer&        buffer,
+        [[maybe_unused]] const vk::DeviceSize offset,
+        [[maybe_unused]] const vk::DeviceSize size
     )
     {
         PRECOND(buffer.size() - offset >= size);

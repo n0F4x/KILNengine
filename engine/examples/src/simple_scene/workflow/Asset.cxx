@@ -161,6 +161,7 @@ auto AssetLoader::lazy_indices_copy() const noexcept -> kiln::gfx::renderer::Laz
     return kiln::gfx::renderer::LazyCopy{
         [this](const std::span<std::byte> out) -> void
         {
+            std::ignore = this;
             PRECOND(out.size() == indices_size_bytes());
             std::memcpy(out.data(), indices.data(), out.size());
         }   //
@@ -172,6 +173,7 @@ auto AssetLoader::lazy_positions_copy() const noexcept -> kiln::gfx::renderer::L
     return kiln::gfx::renderer::LazyCopy{
         [this](const std::span<std::byte> out) -> void
         {
+            std::ignore = this;
             PRECOND(out.size() == positions_size_bytes());
             std::memcpy(out.data(), positions.data(), out.size());
         }   //
@@ -183,6 +185,7 @@ auto AssetLoader::lazy_vertices_copy() const noexcept -> kiln::gfx::renderer::La
     return kiln::gfx::renderer::LazyCopy{
         [this](const std::span<std::byte> out) -> void
         {
+            std::ignore = this;
             PRECOND(out.size() == vertices_size_bytes());
             std::memcpy(out.data(), vertices.data(), out.size());
         }   //
