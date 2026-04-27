@@ -2,6 +2,7 @@ module;
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <span>
 
 #include <vk_mem_alloc.h>
@@ -43,7 +44,8 @@ public:
     [[nodiscard]]
     auto create_buffer(
         const vk::BufferCreateInfo&    buffer_create_info,
-        const VmaAllocationCreateInfo& allocation_create_info
+        const VmaAllocationCreateInfo& allocation_create_info,
+        std::optional<uint32_t>        min_alignment = std::nullopt
     ) -> Buffer;
 
     auto host_copy(

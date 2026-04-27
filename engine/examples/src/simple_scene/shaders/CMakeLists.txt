@@ -18,8 +18,6 @@ foreach (SHADER ${SHADERS})
             OUTPUT ${SHADER_OUT_FILE}
             COMMAND ${SLANGC} ${SHADER}
             -target spirv
-            -profile spirv_1_4
-            -emit-spirv-directly
             -o ${SHADER_OUT_FILE}
             -I ${SHADERS_SRC_DIR}
             VERBATIM
@@ -29,3 +27,10 @@ endforeach ()
 add_custom_target(${PROJECT_NAME}_shaders DEPENDS ${SHADER_OUT_FILES})
 
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
+
+target_sources(${PROJECT_NAME} PRIVATE
+        FILE_SET CXX_MODULES
+        BASE_DIRS ${PROJECT_SOURCE_DIR}
+        FILES
+        shaders.cppm
+)

@@ -17,11 +17,11 @@ module examples.simple_scene.workflow.Asset;
 
 import kiln.util.contracts;
 
+import examples.simple_scene.shaders;
+
 namespace demo {
 
 AssetLoader::AssetLoader(const fastgltf::Asset& asset) : m_asset{ asset } {}
-
-struct Material {};
 
 using Index = uint32_t;
 constexpr static std::array indices{
@@ -37,26 +37,13 @@ constexpr static std::array positions{
 };
 
 struct ShaderVertex {
-    glm::vec3 color;
+    glm::vec4 color;
 };
 
 constexpr static std::array vertices{
-    ShaderVertex{ .color{ 1, 0, 0 } },
-    ShaderVertex{ .color{ 0, 1, 0 } },
-    ShaderVertex{ .color{ 0, 0, 1 } },
-};
-
-struct ShaderPrimitive {
-    uint32_t material_index{ std::numeric_limits<uint32_t>::max() };
-    uint32_t index_offset{ std::numeric_limits<uint32_t>::max() };
-    uint32_t position_offset;
-    uint32_t vertex_offset{ std::numeric_limits<uint32_t>::max() };
-    uint32_t stride{ sizeof(ShaderVertex) };
-    uint32_t normal_offset{ std::numeric_limits<uint32_t>::max() };
-    uint32_t tangent_offset{ std::numeric_limits<uint32_t>::max() };
-    uint32_t uv_1_offset{ std::numeric_limits<uint32_t>::max() };
-    uint32_t uv_2_offset{ std::numeric_limits<uint32_t>::max() };
-    uint32_t color_offset{ offsetof(ShaderVertex, color) };
+    ShaderVertex{ .color{ 1, 0, 0, 1 } },
+    ShaderVertex{ .color{ 0, 1, 0, 1 } },
+    ShaderVertex{ .color{ 0, 0, 1, 1 } },
 };
 
 auto AssetLoader::materials_size_bytes() const noexcept -> uint32_t
@@ -81,12 +68,34 @@ auto AssetLoader::vertices_size_bytes() const noexcept -> uint32_t
 
 auto AssetLoader::primitives_size_bytes() const noexcept -> uint32_t
 {
-    return sizeof(ShaderPrimitive);
+    return sizeof(shaders::Primitive);
+}
+
+auto AssetLoader::primitive() const noexcept -> shaders::Primitive
+{
+    return shaders::Primitive{
+        .index_offset =
+            indices_size_bytes() == 0
+                ? std::numeric_limits<decltype(shaders::Primitive::index_offset)>::max()
+                : *m_index_offset,
+        .position_offset = *m_position_offset,
+        .vertex_offset =
+            vertices_size_bytes() == 0
+                ? std::numeric_limits<decltype(shaders::Primitive::vertex_offset)>::max()
+                : *m_vertex_offset,
+        .stride       = sizeof(ShaderVertex) / 4,
+        .color_offset = offsetof(ShaderVertex, color) / 4,
+    };
+}
+
+auto AssetLoader::number_of_indices() const noexcept -> uint32_t
+{
+    return indices.empty() ? positions.size() : indices.size();
 }
 
 auto AssetLoader::material_alignment() const noexcept -> uint32_t
 {
-    return alignof(Material);
+    return alignof(shaders::Material);
 }
 
 auto AssetLoader::index_alignment() const noexcept -> uint32_t
@@ -106,7 +115,7 @@ auto AssetLoader::vertex_alignment() const noexcept -> uint32_t
 
 auto AssetLoader::primitive_alignment() const noexcept -> uint32_t
 {
-    return alignof(ShaderPrimitive);
+    return alignof(shaders::Primitive);
 }
 
 auto AssetLoader::set_material_offset(const uint32_t material_offset) -> void
@@ -199,20 +208,7 @@ auto AssetLoader::lazy_primitives_copy() const noexcept -> kiln::gfx::renderer::
         {
             PRECOND(out.size() == primitives_size_bytes());
 
-            const ShaderPrimitive shader_primitive{
-                .material_index = std::numeric_limits<uint32_t>::max(),
-                .index_offset =
-                    indices_size_bytes() == 0
-                        ? std::numeric_limits<decltype(ShaderPrimitive::index_offset)>::
-                              max()
-                        : *m_index_offset,
-                .position_offset = *m_position_offset,
-                .vertex_offset =
-                    vertices_size_bytes() == 0
-                        ? std::numeric_limits<decltype(ShaderPrimitive::vertex_offset)>::
-                              max()
-                        : *m_vertex_offset,
-            };
+            const shaders::Primitive shader_primitive{ primitive() };
 
             std::memcpy(out.data(), &shader_primitive, out.size());
         }   //

@@ -6,6 +6,7 @@ module;
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 export module kiln.gfx.renderer.device.Device;
 

@@ -4,6 +4,10 @@ module;
 
 module examples.simple_scene.workflow.Scene;
 
+import vulkan_hpp;
+
+import kiln.gfx.vulkan.result.check_result;
+
 namespace demo {
 
 [[nodiscard]]
@@ -20,23 +24,25 @@ auto address_of_buffer(
 }
 
 Scene::Scene(
-    const kiln::gfx::renderer::Device& device,
-    kiln::gfx::renderer::Buffer&&      geometry_buffer,
-    const vk::DeviceSize               index_byte_offset,
-    const vk::DeviceSize               position_byte_offset,
-    const vk::DeviceSize               vertex_byte_offset,
-    kiln::gfx::renderer::Buffer&&      material_buffer,
-    kiln::gfx::renderer::Buffer&&      primitive_buffer
+    const kiln::gfx::renderer::Device&        device,
+    kiln::gfx::renderer::Buffer&&             geometry_buffer,
+    const uint32_t                            number_of_indices,
+    const vk::DeviceSize                      index_byte_offset,
+    const vk::DeviceSize                      position_byte_offset,
+    const vk::DeviceSize                      vertex_byte_offset,
+    kiln::gfx::renderer::Buffer&&             material_buffer,
+    kiln::gfx::renderer::Buffer&&             primitive_buffer
 )
     : m_geometry_buffer{ std::move(geometry_buffer) },
-      m_geometry_buffer_address{ address_of_buffer(device, geometry_buffer) },
+      m_geometry_buffer_address{ address_of_buffer(device, m_geometry_buffer) },
+      m_number_of_indices{ number_of_indices },
       m_index_byte_offset{ index_byte_offset },
       m_position_byte_offset{ position_byte_offset },
       m_vertex_byte_offset{ vertex_byte_offset },
       m_material_buffer{ std::move(material_buffer) },
-      m_material_buffer_address{ address_of_buffer(device, material_buffer) },
+      m_material_buffer_address{ address_of_buffer(device, m_material_buffer) },
       m_primitive_buffer{ std::move(primitive_buffer) },
-      m_primitive_buffer_address{ address_of_buffer(device, primitive_buffer) }
+      m_primitive_buffer_address{ address_of_buffer(device, m_primitive_buffer) }
 {
 }
 
@@ -69,6 +75,11 @@ auto Scene::material_buffer_address() const noexcept -> vk::DeviceSize
 auto Scene::primitive_buffer_address() const noexcept -> vk::DeviceSize
 {
     return m_primitive_buffer_address;
+}
+
+auto Scene::number_of_indices() const noexcept -> uint32_t
+{
+    return m_number_of_indices;
 }
 
 }   // namespace demo

@@ -14,7 +14,9 @@ foreach (SHADER ${SHADERS})
     add_custom_command(
             MAIN_DEPENDENCY ${SHADER}
             OUTPUT ${SHADER_OUT_FILE}
-            COMMAND ${SLANGC} ${SHADER} -target spirv -profile spirv_1_4 -emit-spirv-directly -o ${SHADER_OUT_FILE}
+            COMMAND ${SLANGC} ${SHADER}
+            -target spirv
+            -o ${SHADER_OUT_FILE}
             VERBATIM
     )
 endforeach ()

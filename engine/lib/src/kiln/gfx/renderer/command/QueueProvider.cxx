@@ -77,6 +77,9 @@ auto QueueProvider::Builder::create(
     device_builder.enable_features(
         vk::PhysicalDeviceVulkan13Features{ .synchronization2 = vk::True }
     );
+    device_builder.enable_features(
+        vk::PhysicalDeviceVulkan14Features{ .maintenance6 = vk::True }
+    );
 
     return Builder{};
 }

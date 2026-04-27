@@ -1,6 +1,7 @@
 module;
 
 #include <algorithm>
+#include <span>
 
 export module kiln.gfx.vulkan.extension_inspection.extension_is_promoted_to_vulkan1x;
 

@@ -216,7 +216,8 @@ auto Allocator::get() -> VmaAllocator
 
 auto Allocator::create_buffer(
     const vk::BufferCreateInfo&    buffer_create_info,
-    const VmaAllocationCreateInfo& allocation_create_info
+    const VmaAllocationCreateInfo& allocation_create_info,
+    const std::optional<uint32_t>  min_alignment
 ) -> Buffer
 {
     if (buffer_create_info.size == 0)
@@ -227,14 +228,25 @@ auto Allocator::create_buffer(
     VkBuffer          buffer;
     VmaAllocation     allocation{};
     VmaAllocationInfo allocation_info{};
-    auto              result = ::vmaCreateBuffer(
-        m_handle.get(),
-        reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
-        &allocation_create_info,
-        &buffer,
-        &allocation,
-        &allocation_info
-    );
+    auto              result =
+        min_alignment.has_value()
+                         ? vmaCreateBufferWithAlignment(
+                  m_handle.get(),
+                  reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
+                  &allocation_create_info,
+                  *min_alignment,
+                  &buffer,
+                  &allocation,
+                  &allocation_info
+              )
+                         : ::vmaCreateBuffer(
+                  m_handle.get(),
+                  reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
+                  &allocation_create_info,
+                  &buffer,
+                  &allocation,
+                  &allocation_info
+              );
 
     vulkan::check_result(result);
 

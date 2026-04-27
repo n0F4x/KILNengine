@@ -31,5 +31,5 @@ auto main(const int argc, const char* const argv[]) -> int
 
     const std::filesystem::path model_path{ argc < 2 ? default_model_path() : argv[1] };
 
-    app.contexts().at<demo::Context>().run(model_path);
+    app.contexts().at<demo::Context>().run(app, model_path);
 }

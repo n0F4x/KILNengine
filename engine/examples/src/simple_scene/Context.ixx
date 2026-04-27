@@ -24,8 +24,6 @@ import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.wsi.Context;
 import kiln.wsi.Window;
 
-import examples.simple_scene.workflow.Pipeline;
-
 namespace demo {
 
 export class Context {
@@ -38,24 +36,18 @@ public:
         const kiln::gfx::vulkan::Instance&  vulkan_instance,
         const kiln::wsi::Context&           wsi_context,
         const kiln::gfx::renderer::Device&  render_device,
-        kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
-        kiln::gfx::renderer::Allocator&     gpu_allocator,
-        kiln::gfx::asset::gltf::Parser&     gltf_parser
+        kiln::gfx::renderer::QueueProvider& gpu_queue_provider
     );
 
-    auto run(const std::filesystem::path& model_filepath) -> void;
+    auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> void;
 
 private:
     constexpr static uint8_t number_of_frames_in_flight{ 2 };
 
 
-    std::reference_wrapper<const kiln::gfx::renderer::Device> m_gpu;
-    std::reference_wrapper<kiln::gfx::renderer::Allocator>    m_gpu_allocator;
-    kiln::gfx::renderer::StagingStream                        m_staging_stream;
-    std::reference_wrapper<kiln::gfx::asset::gltf::Parser>    m_gltf_parser;
-    kiln::wsi::Window                                         m_window;
-    kiln::gfx::renderer::RenderSurface                        m_render_surface;
-    Pipeline                                                  m_pipeline;
+    kiln::gfx::renderer::StagingStream m_staging_stream;
+    kiln::wsi::Window                  m_window;
+    kiln::gfx::renderer::RenderSurface m_render_surface;
 };
 
 class Context::Builder : public kiln::app::ContextBuilderInterface {

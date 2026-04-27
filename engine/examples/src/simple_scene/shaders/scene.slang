@@ -1,17 +1,7 @@
 import Material;
+import Primitive;
 
-struct Primitive {
-    uint32_t      material_index;
-    uint32_t      index_offset;
-    uint32_t      position_offset;
-    uint32_t      vertex_offset;
-    uint32_t      stride;
-    uint32_t      normal_offset;
-    uint32_t      tangent_offset;
-    uint32_t      uv_1_offset;
-    uint32_t      uv_2_offset;
-    uint32_t      color_offset;
-};
+static const uint32_t UINT32_MAX = 0xFFFFFFFF;
 
 struct Scene {
     Primitive* primitives;
@@ -22,7 +12,7 @@ struct Scene {
 };
 
 struct VertexOutput {
-    float3 color;
+    float4 color;
     float4 position : SV_Position;
 };
 
@@ -34,13 +24,21 @@ VertexOutput main(
 )
 {
     Primitive primitive = scene.primitives[draw_id];
-    uint32_t  vertex_index     = scene.indices[vertex_id + primitive.index_offset];
-    float3    position  = scene.positions[primitive.position_offset + vertex_index];
-    float3    color =
-        *(float3*)(scene.vertices
-                    + primitive.vertex_offset
-                    + vertex_index * primitive.stride
-                    + primitive.color_offset);
+
+    uint32_t vertex_index = vertex_id;
+    if (primitive.index_offset != UINT32_MAX) {
+        vertex_index = scene.indices[primitive.index_offset + vertex_id];
+    }
+
+    float3 position = scene.positions[primitive.position_offset + vertex_index];
+
+    float4 color = float4(0, 0, 0, 1);
+    if (primitive.color_offset != UINT32_MAX) {
+        color = *(float4*)(scene.vertices
+                 + primitive.vertex_offset
+                 + vertex_index * primitive.stride
+                 + primitive.color_offset);
+    }
 
     VertexOutput output;
     output.position = float4(position, 1.0);
@@ -51,5 +49,5 @@ VertexOutput main(
 [shader("fragment")]
 float4 main(VertexOutput input) : SV_Target
 {
-    return float4(input.color, 1.0);
+    return input.color;
 }

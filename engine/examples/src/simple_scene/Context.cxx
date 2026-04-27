@@ -1,8 +1,11 @@
 module;
 
+#include <atomic>
+#include <chrono>
 #include <filesystem>
+#include <memory_resource>
 #include <print>
-#include <span>
+#include <thread>
 
 #include <vk_mem_alloc.h>
 
@@ -16,9 +19,12 @@ import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.result.check_result;
+import kiln.wsi.event.Key;
+import kiln.wsi.event.wait_events;
 import kiln.wsi.WindowedWindowSettings;
 
 import examples.simple_scene.workflow.load_scene;
+import examples.simple_scene.workflow.Renderer;
 
 namespace demo {
 
@@ -55,39 +61,119 @@ Context::Context(
     const kiln::gfx::vulkan::Instance&  vulkan_instance,
     const kiln::wsi::Context&           wsi_context,
     const kiln::gfx::renderer::Device&  render_device,
-    kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
-    kiln::gfx::renderer::Allocator&     gpu_allocator,
-    kiln::gfx::asset::gltf::Parser&     gltf_parser
+    kiln::gfx::renderer::QueueProvider& gpu_queue_provider
 )
-    : m_gpu{ render_device },
-      m_gpu_allocator{ gpu_allocator },
-      m_staging_stream{
+    : m_staging_stream{
           std::allocator_arg,
           memory_arena.pool_allocator(),
           render_device,
           *gpu_queue_provider.select_transfer_queue(select_staging_queue),
       },
-      m_gltf_parser{ gltf_parser },
       m_window{ create_window(config, wsi_context) },
       m_render_surface{
           kiln::gfx::vulkan::check_result(
               m_window.create_vulkan_surface(vulkan_instance.get())
           ),
-          m_gpu,
+          render_device,
           number_of_frames_in_flight,
           true,
           m_window.resolution(),
-      },
-      m_pipeline{ m_gpu, m_render_surface, number_of_frames_in_flight }
+      }
 {
 }
 
-auto Context::run(const std::filesystem::path& model_filepath) -> void
+auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepath)
+    -> void
 {
+    auto&       memory_arena{ app.contexts().at<kiln::app::MemoryArena>() };
+    const auto& wsi_context{ app.contexts().at<kiln::wsi::Context>() };
+    const auto& render_device{ app.contexts().at<kiln::gfx::renderer::Device>() };
+    auto& render_queue_provider{ app.contexts().at<kiln::gfx::renderer::QueueProvider>() };
+    auto& render_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
+    auto& gltf_parser{ app.contexts().at<kiln::gfx::asset::gltf::Parser>() };
+
     [[maybe_unused]]
     auto scene = load_scene(
-        model_filepath, m_gpu, m_gpu_allocator, m_gltf_parser, m_staging_stream
+        model_filepath,
+        render_device,
+        render_allocator,
+        gltf_parser,
+        m_staging_stream
     );
+
+    Renderer renderer{
+        std::allocator_arg,
+        memory_arena.pool_allocator(),
+        render_device,
+        number_of_frames_in_flight,
+        m_render_surface.surface_format().format,
+        m_render_surface.number_of_images(),   //
+    };
+
+    std::atomic_bool running{ true };
+    std::atomic_bool window_resized{ false };
+    std::atomic      window_resolution{ m_window.resolution() };
+
+    std::jthread render_thread{
+        [this,
+         &render_device,
+         &render_queue_provider,
+         &scene,
+         &renderer,
+         &running,
+         &window_resized,
+         &window_resolution] mutable -> void
+        {
+            auto last_time{ std::chrono::steady_clock::now() };
+            while (running)
+            {
+                const auto now{ std::chrono::steady_clock::now() };
+                const auto delta_time{ now - last_time };
+
+                if (window_resized.exchange(false))
+                {
+                    if (const auto new_window_resolution{ window_resolution.load() };
+                        m_render_surface.extent() != new_window_resolution)
+                    {
+                        render_device.logical_device().waitIdle();
+                        m_render_surface.resize(new_window_resolution);
+                    }
+                }
+
+                renderer.render(
+                    render_device,
+                    *render_queue_provider.graphics_queue(),
+                    m_render_surface,
+                    scene,
+                    *std::pmr::get_default_resource()
+                );
+
+
+                using namespace std::chrono_literals;
+                std::this_thread::sleep_for(1s / 60 - delta_time);
+                last_time = now;
+            }
+        }   //
+    };
+
+    while (!m_window.should_close())
+    {
+        kiln::wsi::wait_events(wsi_context);
+
+        if (m_window.key_pressed(kiln::wsi::Key::eEscape))
+        {
+            m_window.request_close();
+        }
+
+        // TODO: only do this on a window resize event
+        window_resolution = m_window.resolution();
+        window_resized    = true;
+    }
+
+    running = false;
+    render_thread.join();
+
+    render_device.logical_device().waitIdle();
 }
 
 auto Context::Builder::create(
@@ -96,11 +182,15 @@ auto Context::Builder::create(
 ) -> Builder
 {
     instance_builder.target_api_version(vk::ApiVersion14);
+    device_builder.enable_features(vk::PhysicalDeviceFeatures{ .shaderInt64 = vk::True });
     device_builder.enable_features(
-        vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
+        vk::PhysicalDeviceVulkan12Features{
+            .scalarBlockLayout   = vk::True,
+            .bufferDeviceAddress = vk::True,
+        }
     );
     device_builder.enable_features(
-        vk::PhysicalDeviceVulkan12Features{ .bufferDeviceAddress = vk::True }
+        vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
     );
     device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
@@ -114,10 +204,10 @@ auto Context::Builder::build(
     const kiln::wsi::Context&           wsi_context,
     const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
-    kiln::gfx::renderer::Allocator&     gpu_allocator,
+    kiln::gfx::renderer::Allocator&,
     const kiln::gfx::renderer::PipelineContext&,
     const kiln::gfx::renderer::PresentationContext&,
-    kiln::gfx::asset::gltf::Parser& gltf_parser
+    kiln::gfx::asset::gltf::Parser&
 ) -> Context
 {
     return Context{
@@ -127,8 +217,6 @@ auto Context::Builder::build(
         wsi_context,
         render_device,
         gpu_queue_provider,   //
-        gpu_allocator,        //
-        gltf_parser,
     };
 }
 

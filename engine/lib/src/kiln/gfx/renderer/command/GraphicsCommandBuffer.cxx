@@ -9,7 +9,8 @@ import vulkan_hpp;
 namespace kiln::gfx::renderer {
 
 // ReSharper disable once CppMemberFunctionMayBeConst
-auto GraphicsCommandBuffer::record_render_pass_start(const RenderPass& render_pass) -> void
+auto GraphicsCommandBuffer::record_render_pass_start(const RenderPass& render_pass)
+    -> void
 {
     get().beginRendering(render_pass.get());
 
@@ -40,6 +41,13 @@ auto GraphicsCommandBuffer::record_render_pass_finish() -> void
 auto GraphicsCommandBuffer::record_pipeline_bind(const GraphicsPipeline& pipeline) -> void
 {
     get().bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.get());
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto GraphicsCommandBuffer::record_push_constants(const vk::PushConstantsInfo& info)
+    -> void
+{
+    get().pushConstants2(info);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst

@@ -68,6 +68,15 @@ auto geometry_buffer_size_from(const AssetLoader& asset_loader) -> vk::DeviceSiz
 }
 
 [[nodiscard]]
+auto geometry_alignment_from(const AssetLoader& asset_loader) -> vk::DeviceSize
+{
+    return std::max(
+        std::max(asset_loader.index_alignment(), asset_loader.position_alignment()),
+        asset_loader.vertex_alignment()
+    );
+}
+
+[[nodiscard]]
 auto create_geometry_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
     const AssetLoader&              asset_loader
@@ -85,7 +94,9 @@ auto create_geometry_buffer(
     constexpr static VmaAllocationCreateInfo allocation_create_info{
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
-    return gpu_allocator.create_buffer(buffer_create_info, allocation_create_info);
+    return gpu_allocator.create_buffer(
+        buffer_create_info, allocation_create_info, geometry_alignment_from(asset_loader)
+    );
 }
 
 [[nodiscard]]
@@ -106,7 +117,9 @@ auto create_material_buffer(
     constexpr static VmaAllocationCreateInfo allocation_create_info{
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
-    return gpu_allocator.create_buffer(buffer_create_info, allocation_create_info);
+    return gpu_allocator.create_buffer(
+        buffer_create_info, allocation_create_info, asset_loader.material_alignment()
+    );
 }
 
 [[nodiscard]]
@@ -127,7 +140,9 @@ auto create_primitive_buffer(
     constexpr static VmaAllocationCreateInfo allocation_create_info{
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
-    return gpu_allocator.create_buffer(buffer_create_info, allocation_create_info);
+    return gpu_allocator.create_buffer(
+        buffer_create_info, allocation_create_info, asset_loader.primitive_alignment()
+    );
 }
 
 auto stage_indices(
@@ -395,13 +410,14 @@ auto stage_asset(
 }
 
 auto load_scene(
-    const std::filesystem::path&        model_path,
-    const kiln::gfx::renderer::Device&  device,
-    kiln::gfx::renderer::Allocator&     gpu_allocator,
-    kiln::gfx::asset::gltf::Parser&     model_parser,
-    kiln::gfx::renderer::StagingStream& staging_stream
+    const std::filesystem::path&              model_path,
+    const kiln::gfx::renderer::Device&        device,
+    kiln::gfx::renderer::Allocator&           gpu_allocator,
+    kiln::gfx::asset::gltf::Parser&           model_parser,
+    kiln::gfx::renderer::StagingStream&       staging_stream
 ) -> Scene
 {
+    uint32_t       number_of_indices{};
     vk::DeviceSize index_byte_offset;
     vk::DeviceSize position_byte_offset;
     vk::DeviceSize vertex_byte_offset;
@@ -431,6 +447,7 @@ auto load_scene(
 
         AssetLoader asset_loader{ asset };
 
+        number_of_indices += asset_loader.number_of_indices();
         index_byte_offset    = index_buffer_byte_offset(asset_loader);
         position_byte_offset = position_buffer_byte_offset(asset_loader);
         vertex_byte_offset   = vertex_buffer_byte_offset(asset_loader);
@@ -459,6 +476,7 @@ auto load_scene(
     return Scene{
         device,
         std::move(geometry_buffer),
+        number_of_indices,
         index_byte_offset,
         position_byte_offset,
         vertex_byte_offset,

@@ -2,6 +2,7 @@ module;
 
 #include <forward_list>
 #include <memory_resource>
+#include <utility>
 
 export module kiln.res.Bin;
 

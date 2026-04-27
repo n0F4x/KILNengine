@@ -10,6 +10,8 @@ export module examples.simple_scene.workflow.Asset;
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;
 
+import examples.simple_scene.shaders;
+
 namespace demo {
 
 export class AssetLoader {
@@ -26,6 +28,11 @@ public:
     auto vertices_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
     auto primitives_size_bytes() const noexcept -> uint32_t;
+
+    [[nodiscard]]
+    auto primitive() const noexcept -> shaders::Primitive;
+    [[nodiscard]]
+    auto number_of_indices() const noexcept -> uint32_t;
 
     [[nodiscard]]
     auto material_alignment() const noexcept -> uint32_t;

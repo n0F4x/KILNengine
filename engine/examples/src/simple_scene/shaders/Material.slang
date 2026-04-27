@@ -1,52 +1,37 @@
+#ifndef __SLANG__
+#pragma once
+#define EXPORT
+#define EXPORT_MEMBER
+#include <cstdint>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
+#define float3 glm::vec3
+#define float4 glm::vec4
+#else
 module Material;
+#define EXPORT public
+#define EXPORT_MEMBER public
+#endif
 
-// size: 128
-public struct Material {
-// size: 16
-    float4 pbrMetallicRoughnessBaseColorFactor;
+EXPORT struct Material {
+    EXPORT_MEMBER float4 pbrMetallicRoughnessBaseColorFactor;
 
-// size: 4
-    uint pbrMetallicRoughnessBaseColorTextureIndex;
-// size: 4
-    uint pbrMetallicRoughnessBaseColorTextureTexCoord;
-// size: 4
-    float pbrMetallicRoughnessMetallicFactor;
-// size: 4
-    float pbrMetallicRoughnessRoughnessFactor;
+    EXPORT_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureIndex;
+    EXPORT_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureTexCoord;
+    EXPORT_MEMBER float    pbrMetallicRoughnessMetallicFactor;
+    EXPORT_MEMBER float    pbrMetallicRoughnessRoughnessFactor;
 
-// size: 4
-    uint pbrMetallicRoughnessMetallicRoughnessTextureIndex;
-// size: 4
-    uint pbrMetallicRoughnessMetallicRoughnessTextureTexCoord;
-// size: 4
-    uint normalTextureIndex;
-// size: 4
-    uint normalTextureTexCoord;
+    EXPORT_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureIndex;
+    EXPORT_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureTexCoord;
+    EXPORT_MEMBER uint32_t normalTextureIndex;
+    EXPORT_MEMBER uint32_t normalTextureTexCoord;
 
-// size: 4
-    float normalTextureScale;
-// size: 4
-    uint occlusionTextureIndex;
-// size: 4
-    uint occlusionTextureTexCoord;
-// size: 4
-    float occlusionTextureScale;
-
-// size: 4
-    uint emissiveTextureIndex;
-// size: 4
-    uint emissiveTextureTexCoord;
-// size: 8
-    float2 _padding0;
-
-// size: 12
-    float3 emissiveFactor;
-// size: 4
-    float alphaCutoff;
-
-// size: 16
-    float4 _padding1;
-
-// size: 16
-    float4 _padding2;
+    EXPORT_MEMBER float    normalTextureScale;
+    EXPORT_MEMBER uint32_t occlusionTextureIndex;
+    EXPORT_MEMBER uint32_t occlusionTextureTexCoord;
+    EXPORT_MEMBER float    occlusionTextureScale;
+    EXPORT_MEMBER uint32_t emissiveTextureIndex;
+    EXPORT_MEMBER uint32_t emissiveTextureTexCoord;
+    EXPORT_MEMBER float3   emissiveFactor;
+    EXPORT_MEMBER float    alphaCutoff;
 };
