@@ -23,6 +23,7 @@ public:
         vk::DeviceSize                     position_byte_offset,
         vk::DeviceSize                     vertex_byte_offset,
         kiln::gfx::renderer::Buffer&&      material_buffer,
+        kiln::gfx::renderer::Buffer&&      transform_buffer,
         kiln::gfx::renderer::Buffer&&      primitive_buffer
     );
 
@@ -35,6 +36,8 @@ public:
     auto vertex_buffer_address() const noexcept -> vk::DeviceSize;
     [[nodiscard]]
     auto material_buffer_address() const noexcept -> vk::DeviceSize;
+    [[nodiscard]]
+    auto transform_buffer_address() const noexcept -> vk::DeviceSize;
     [[nodiscard]]
     auto primitive_buffer_address() const noexcept -> vk::DeviceSize;
 
@@ -50,6 +53,8 @@ private:
     vk::DeviceSize              m_vertex_byte_offset;
     kiln::gfx::renderer::Buffer m_material_buffer;
     vk::DeviceSize              m_material_buffer_address;
+    kiln::gfx::renderer::Buffer m_transform_buffer;
+    vk::DeviceSize              m_transform_buffer_address;
     kiln::gfx::renderer::Buffer m_primitive_buffer;
     vk::DeviceSize              m_primitive_buffer_address;
 };

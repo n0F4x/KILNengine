@@ -410,11 +410,11 @@ auto stage_asset(
 }
 
 auto load_scene(
-    const std::filesystem::path&              model_path,
-    const kiln::gfx::renderer::Device&        device,
-    kiln::gfx::renderer::Allocator&           gpu_allocator,
-    kiln::gfx::asset::gltf::Parser&           model_parser,
-    kiln::gfx::renderer::StagingStream&       staging_stream
+    const std::filesystem::path&        model_path,
+    const kiln::gfx::renderer::Device&  device,
+    kiln::gfx::renderer::Allocator&     gpu_allocator,
+    kiln::gfx::asset::gltf::Parser&     model_parser,
+    kiln::gfx::renderer::StagingStream& staging_stream
 ) -> Scene
 {
     uint32_t       number_of_indices{};
@@ -424,6 +424,7 @@ auto load_scene(
 
     kiln::gfx::renderer::Buffer geometry_buffer;
     kiln::gfx::renderer::Buffer material_buffer;
+    kiln::gfx::renderer::Buffer transform_buffer;
     kiln::gfx::renderer::Buffer primitive_buffer;
 
     {
@@ -481,6 +482,7 @@ auto load_scene(
         position_byte_offset,
         vertex_byte_offset,
         std::move(material_buffer),
+        std::move(transform_buffer),
         std::move(primitive_buffer),
     };
 }

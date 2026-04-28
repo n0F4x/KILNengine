@@ -24,14 +24,15 @@ auto address_of_buffer(
 }
 
 Scene::Scene(
-    const kiln::gfx::renderer::Device&        device,
-    kiln::gfx::renderer::Buffer&&             geometry_buffer,
-    const uint32_t                            number_of_indices,
-    const vk::DeviceSize                      index_byte_offset,
-    const vk::DeviceSize                      position_byte_offset,
-    const vk::DeviceSize                      vertex_byte_offset,
-    kiln::gfx::renderer::Buffer&&             material_buffer,
-    kiln::gfx::renderer::Buffer&&             primitive_buffer
+    const kiln::gfx::renderer::Device& device,
+    kiln::gfx::renderer::Buffer&&      geometry_buffer,
+    const uint32_t                     number_of_indices,
+    const vk::DeviceSize               index_byte_offset,
+    const vk::DeviceSize               position_byte_offset,
+    const vk::DeviceSize               vertex_byte_offset,
+    kiln::gfx::renderer::Buffer&&      material_buffer,
+    kiln::gfx::renderer::Buffer&&      transform_buffer,
+    kiln::gfx::renderer::Buffer&&      primitive_buffer
 )
     : m_geometry_buffer{ std::move(geometry_buffer) },
       m_geometry_buffer_address{ address_of_buffer(device, m_geometry_buffer) },
@@ -41,6 +42,8 @@ Scene::Scene(
       m_vertex_byte_offset{ vertex_byte_offset },
       m_material_buffer{ std::move(material_buffer) },
       m_material_buffer_address{ address_of_buffer(device, m_material_buffer) },
+      m_transform_buffer{ std::move(transform_buffer) },
+      m_transform_buffer_address{ address_of_buffer(device, m_transform_buffer) },
       m_primitive_buffer{ std::move(primitive_buffer) },
       m_primitive_buffer_address{ address_of_buffer(device, m_primitive_buffer) }
 {
@@ -70,6 +73,11 @@ auto Scene::vertex_buffer_address() const noexcept -> vk::DeviceSize
 auto Scene::material_buffer_address() const noexcept -> vk::DeviceSize
 {
     return m_material_buffer_address;
+}
+
+auto Scene::transform_buffer_address() const noexcept -> vk::DeviceSize
+{
+    return m_transform_buffer_address;
 }
 
 auto Scene::primitive_buffer_address() const noexcept -> vk::DeviceSize

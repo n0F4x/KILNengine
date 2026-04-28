@@ -1,7 +1,7 @@
 #ifndef __SLANG__
 #pragma once
 #define EXPORT
-#define EXPORT_MEMBER
+#define PUBLIC_MEMBER
 #include <cstdint>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -10,28 +10,28 @@
 #else
 module Material;
 #define EXPORT public
-#define EXPORT_MEMBER public
+#define PUBLIC_MEMBER public
 #endif
 
 EXPORT struct Material {
-    EXPORT_MEMBER float4 pbrMetallicRoughnessBaseColorFactor;
+    PUBLIC_MEMBER float4 pbrMetallicRoughnessBaseColorFactor;
 
-    EXPORT_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureIndex;
-    EXPORT_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureTexCoord;
-    EXPORT_MEMBER float    pbrMetallicRoughnessMetallicFactor;
-    EXPORT_MEMBER float    pbrMetallicRoughnessRoughnessFactor;
+    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureIndex;
+    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureTexCoord;
+    PUBLIC_MEMBER float    pbrMetallicRoughnessMetallicFactor;
+    PUBLIC_MEMBER float    pbrMetallicRoughnessRoughnessFactor;
 
-    EXPORT_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureIndex;
-    EXPORT_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureTexCoord;
-    EXPORT_MEMBER uint32_t normalTextureIndex;
-    EXPORT_MEMBER uint32_t normalTextureTexCoord;
+    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureIndex;
+    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureTexCoord;
+    PUBLIC_MEMBER uint32_t normalTextureIndex;
+    PUBLIC_MEMBER uint32_t normalTextureTexCoord;
 
-    EXPORT_MEMBER float    normalTextureScale;
-    EXPORT_MEMBER uint32_t occlusionTextureIndex;
-    EXPORT_MEMBER uint32_t occlusionTextureTexCoord;
-    EXPORT_MEMBER float    occlusionTextureScale;
-    EXPORT_MEMBER uint32_t emissiveTextureIndex;
-    EXPORT_MEMBER uint32_t emissiveTextureTexCoord;
-    EXPORT_MEMBER float3   emissiveFactor;
-    EXPORT_MEMBER float    alphaCutoff;
+    PUBLIC_MEMBER float    normalTextureScale;
+    PUBLIC_MEMBER uint32_t occlusionTextureIndex;
+    PUBLIC_MEMBER uint32_t occlusionTextureTexCoord;
+    PUBLIC_MEMBER float    occlusionTextureScale;
+    PUBLIC_MEMBER uint32_t emissiveTextureIndex;
+    PUBLIC_MEMBER uint32_t emissiveTextureTexCoord;
+    PUBLIC_MEMBER float3   emissiveFactor;
+    PUBLIC_MEMBER float    alphaCutoff;
 };

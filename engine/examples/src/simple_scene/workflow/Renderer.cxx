@@ -22,6 +22,8 @@ import kiln.gfx.renderer.pipeline.RenderPass;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
+import examples.simple_scene.shaders;
+
 namespace demo {
 
 Renderer::Renderer(Renderer&& other, [[maybe_unused]] const allocator_type& allocator)
@@ -137,21 +139,13 @@ auto create_per_frame_fences(
     return result;
 }
 
-struct ShaderScene {
-    vk::DeviceSize primitives;
-    vk::DeviceSize materials;
-    vk::DeviceSize indices;
-    vk::DeviceSize positions;
-    vk::DeviceSize vertices;
-};
-
 [[nodiscard]]
 auto create_graphics_pipeline_layout(const vk::raii::Device& device)
     -> vk::raii::PipelineLayout
 {
     constexpr static std::array push_constant_ranges{
         vk::PushConstantRange{ .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                              .size       = sizeof(ShaderScene) },
+                              .size       = sizeof(shaders::Scene) },
     };
 
     constexpr static vk::PipelineLayoutCreateInfo create_info{
@@ -195,7 +189,7 @@ Renderer::Renderer(
               std::filesystem::path{ std::source_location::current().file_name() }
                   .parent_path()
                   .parent_path()
-              / "shaders" / "scene.spv"
+              / "shaders" / "main.spv"
           )   //
       },
       m_graphics_pipeline{
@@ -305,17 +299,18 @@ auto Renderer::draw_scene(
     graphics_command_buffer.record_render_pass_start(render_pass);
 
 
-    const ShaderScene shader_scene{
-        .primitives = scene.primitive_buffer_address(),
-        .materials  = scene.material_buffer_address(),
+    const shaders::Scene shader_scene{
         .indices    = scene.index_buffer_address(),
         .positions  = scene.position_buffer_address(),
         .vertices   = scene.vertex_buffer_address(),
+        .materials  = scene.material_buffer_address(),
+        .transforms = 0,
+        .primitives = scene.primitive_buffer_address(),
     };
     const vk::PushConstantsInfo push_constants_info{
         .layout     = m_pipeline_layout,
         .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        .size       = sizeof(ShaderScene),
+        .size       = sizeof(shaders::Scene),
         .pValues    = &shader_scene,
     };
     graphics_command_buffer.record_push_constants(push_constants_info);
