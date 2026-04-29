@@ -12,14 +12,14 @@ module Scene;
 #define EXPORT public
 #define PUBLIC_MEMBER public
 import Material;
-import Primitive;
+import DrawCommand;
 #endif
 
 EXPORT struct Scene {
-    PUBLIC_MEMBER Ptr<uint32_t>  indices;
-    PUBLIC_MEMBER Ptr<float3>    positions;
-    PUBLIC_MEMBER Ptr<float>     vertices;
-    PUBLIC_MEMBER Ptr<Material>  materials;
-    PUBLIC_MEMBER Ptr<float4x4>  transforms;
-    PUBLIC_MEMBER Ptr<Primitive> primitives;
+    PUBLIC_MEMBER Ptr<uint32_t>    indices;
+    PUBLIC_MEMBER Ptr<float3>      positions;
+    PUBLIC_MEMBER Ptr<float>       vertices;
+    PUBLIC_MEMBER Ptr<Material>    materials;
+    PUBLIC_MEMBER Ptr<float4x4>    transforms;
+    PUBLIC_MEMBER Ptr<DrawCommand> draw_commands;
 };

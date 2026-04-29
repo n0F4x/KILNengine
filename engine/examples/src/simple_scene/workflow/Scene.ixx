@@ -9,6 +9,7 @@ import vulkan_hpp;
 import kiln.gfx.renderer.command.GraphicsCommandBuffer;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Buffer;
+import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.presentation.RenderSurface;
 
 namespace demo {
@@ -18,13 +19,13 @@ public:
     explicit Scene(
         const kiln::gfx::renderer::Device& device,
         kiln::gfx::renderer::Buffer&&      geometry_buffer,
-        uint32_t                           number_of_indices,
         vk::DeviceSize                     index_byte_offset,
         vk::DeviceSize                     position_byte_offset,
         vk::DeviceSize                     vertex_byte_offset,
         kiln::gfx::renderer::Buffer&&      material_buffer,
         kiln::gfx::renderer::Buffer&&      transform_buffer,
-        kiln::gfx::renderer::Buffer&&      primitive_buffer
+        kiln::gfx::renderer::Buffer&&      draw_command_buffer,
+        uint32_t                           draw_count
     );
 
 
@@ -39,24 +40,28 @@ public:
     [[nodiscard]]
     auto transform_buffer_address() const noexcept -> vk::DeviceSize;
     [[nodiscard]]
-    auto primitive_buffer_address() const noexcept -> vk::DeviceSize;
+    auto draw_command_buffer_address() const noexcept -> vk::DeviceSize;
 
     [[nodiscard]]
-    auto number_of_indices() const noexcept -> uint32_t;
+    auto draw_command_buffer_region() const noexcept
+        -> const kiln::gfx::renderer::BufferRegion&;
+    [[nodiscard]]
+    auto draw_count() const noexcept -> uint32_t;
 
 private:
-    kiln::gfx::renderer::Buffer m_geometry_buffer;
-    vk::DeviceSize              m_geometry_buffer_address;
-    uint32_t                    m_number_of_indices;
-    vk::DeviceSize              m_index_byte_offset;
-    vk::DeviceSize              m_position_byte_offset;
-    vk::DeviceSize              m_vertex_byte_offset;
-    kiln::gfx::renderer::Buffer m_material_buffer;
-    vk::DeviceSize              m_material_buffer_address;
-    kiln::gfx::renderer::Buffer m_transform_buffer;
-    vk::DeviceSize              m_transform_buffer_address;
-    kiln::gfx::renderer::Buffer m_primitive_buffer;
-    vk::DeviceSize              m_primitive_buffer_address;
+    kiln::gfx::renderer::Buffer       m_geometry_buffer;
+    vk::DeviceSize                    m_geometry_buffer_address;
+    vk::DeviceSize                    m_index_byte_offset;
+    vk::DeviceSize                    m_position_byte_offset;
+    vk::DeviceSize                    m_vertex_byte_offset;
+    kiln::gfx::renderer::Buffer       m_material_buffer;
+    vk::DeviceSize                    m_material_buffer_address;
+    kiln::gfx::renderer::Buffer       m_transform_buffer;
+    vk::DeviceSize                    m_transform_buffer_address;
+    kiln::gfx::renderer::Buffer       m_draw_command_buffer;
+    vk::DeviceSize                    m_draw_command_buffer_address;
+    kiln::gfx::renderer::BufferRegion m_draw_command_buffer_region;
+    uint32_t                          m_draw_count;
 };
 
 }   // namespace demo

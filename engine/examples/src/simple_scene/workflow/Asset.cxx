@@ -46,11 +46,6 @@ constexpr static std::array vertices{
     ShaderVertex{ .color{ 0, 0, 1, 1 } },
 };
 
-auto AssetLoader::materials_size_bytes() const noexcept -> uint32_t
-{
-    return 0;
-}
-
 auto AssetLoader::indices_size_bytes() const noexcept -> uint32_t
 {
     return indices.size() * sizeof(Index);
@@ -66,36 +61,14 @@ auto AssetLoader::vertices_size_bytes() const noexcept -> uint32_t
     return vertices.size() * sizeof(ShaderVertex);
 }
 
-auto AssetLoader::primitives_size_bytes() const noexcept -> uint32_t
+auto AssetLoader::materials_size_bytes() const noexcept -> uint32_t
 {
-    return sizeof(shaders::Primitive);
+    return 0;
 }
 
-auto AssetLoader::primitive() const noexcept -> shaders::Primitive
+auto AssetLoader::draw_command_size_bytes() const noexcept -> uint32_t
 {
-    return shaders::Primitive{
-        .index_offset =
-            indices_size_bytes() == 0
-                ? std::numeric_limits<decltype(shaders::Primitive::index_offset)>::max()
-                : *m_index_offset,
-        .position_offset = *m_position_offset,
-        .vertex_offset =
-            vertices_size_bytes() == 0
-                ? std::numeric_limits<decltype(shaders::Primitive::vertex_offset)>::max()
-                : *m_vertex_offset,
-        .stride       = sizeof(ShaderVertex) / 4,
-        .color_offset = offsetof(ShaderVertex, color) / 4,
-    };
-}
-
-auto AssetLoader::number_of_indices() const noexcept -> uint32_t
-{
-    return indices.empty() ? positions.size() : indices.size();
-}
-
-auto AssetLoader::material_alignment() const noexcept -> uint32_t
-{
-    return alignof(shaders::Material);
+    return sizeof(shaders::DrawCommand);
 }
 
 auto AssetLoader::index_alignment() const noexcept -> uint32_t
@@ -113,14 +86,14 @@ auto AssetLoader::vertex_alignment() const noexcept -> uint32_t
     return alignof(ShaderVertex);
 }
 
-auto AssetLoader::primitive_alignment() const noexcept -> uint32_t
+auto AssetLoader::material_alignment() const noexcept -> uint32_t
 {
-    return alignof(shaders::Primitive);
+    return alignof(shaders::Material);
 }
 
-auto AssetLoader::set_material_offset(const uint32_t material_offset) -> void
+auto AssetLoader::draw_command_alignment() const noexcept -> uint32_t
 {
-    m_material_offset = material_offset;
+    return alignof(shaders::DrawCommand);
 }
 
 auto AssetLoader::set_index_offset(const uint32_t index_offset) -> void
@@ -138,9 +111,9 @@ auto AssetLoader::set_vertex_offset(const uint32_t vertex_offset) -> void
     m_vertex_offset = vertex_offset;
 }
 
-auto AssetLoader::material_offset() const -> std::optional<uint32_t>
+auto AssetLoader::set_material_offset(const uint32_t material_offset) -> void
 {
-    return m_material_offset;
+    m_material_offset = material_offset;
 }
 
 auto AssetLoader::index_offset() const -> std::optional<uint32_t>
@@ -158,11 +131,9 @@ auto AssetLoader::vertex_offset() const -> std::optional<uint32_t>
     return m_vertex_offset;
 }
 
-auto AssetLoader::lazy_materials_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
+auto AssetLoader::material_offset() const -> std::optional<uint32_t>
 {
-    return kiln::gfx::renderer::LazyCopy{
-        [](const std::span<std::byte>) static -> void {}
-    };
+    return m_material_offset;
 }
 
 auto AssetLoader::lazy_indices_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
@@ -201,17 +172,50 @@ auto AssetLoader::lazy_vertices_copy() const noexcept -> kiln::gfx::renderer::La
     };
 }
 
-auto AssetLoader::lazy_primitives_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
+auto AssetLoader::lazy_materials_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
+{
+    return kiln::gfx::renderer::LazyCopy{
+        [](const std::span<std::byte>) static -> void {}
+    };
+}
+
+auto AssetLoader::lazy_draw_commands_copy() const noexcept
+    -> kiln::gfx::renderer::LazyCopy
 {
     return kiln::gfx::renderer::LazyCopy{
         [this](const std::span<std::byte> out) -> void
         {
-            PRECOND(out.size() == primitives_size_bytes());
+            PRECOND(out.size() == draw_command_size_bytes());
 
-            const shaders::Primitive shader_primitive{ primitive() };
+            const shaders::DrawCommand shader_draw_command{ draw_command() };
 
-            std::memcpy(out.data(), &shader_primitive, out.size());
+            std::memcpy(out.data(), &shader_draw_command, out.size());
         }   //
+    };
+}
+
+auto AssetLoader::draw_count() const noexcept -> uint32_t
+{
+    return 1;
+}
+
+auto AssetLoader::draw_command() const noexcept -> shaders::DrawCommand
+{
+    return shaders::DrawCommand{
+        .vertex_count   = indices.empty() ? positions.size() : indices.size(),
+        .instance_count = 1,
+        .primitive{
+                   .index_offset =
+                indices_size_bytes() == 0
+                    ? std::numeric_limits<decltype(shaders::Primitive::index_offset)>::max()
+                    : *m_index_offset,
+                   .position_offset = *m_position_offset,
+                   .vertex_offset   = vertices_size_bytes() == 0
+                                 ? std::numeric_limits<
+                                       decltype(shaders::Primitive::vertex_offset)>::max()
+                                 : *m_vertex_offset,
+                   .stride          = sizeof(ShaderVertex) / 4,
+                   .color_offset    = offsetof(ShaderVertex, color) / 4 }
     };
 }
 

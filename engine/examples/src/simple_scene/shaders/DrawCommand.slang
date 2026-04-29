@@ -13,10 +13,9 @@ import Primitive;
 
 EXPORT struct DrawCommand
 {
-    PUBLIC_MEMBER uint32_t  index_count;
+    PUBLIC_MEMBER uint32_t  vertex_count;
     PUBLIC_MEMBER uint32_t  instance_count;
-    PUBLIC_MEMBER uint32_t  first_index;
-    PUBLIC_MEMBER int32_t   vertex_offset;
+    PUBLIC_MEMBER uint32_t  first_vertex;
     PUBLIC_MEMBER uint32_t  first_instance;
     PUBLIC_MEMBER Primitive primitive;
 };

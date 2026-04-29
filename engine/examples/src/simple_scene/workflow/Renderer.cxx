@@ -305,12 +305,12 @@ auto Renderer::draw_scene(
 
 
     const shaders::Scene shader_scene{
-        .indices    = scene.index_buffer_address(),
-        .positions  = scene.position_buffer_address(),
-        .vertices   = scene.vertex_buffer_address(),
-        .materials  = scene.material_buffer_address(),
-        .transforms = 0,
-        .primitives = scene.primitive_buffer_address(),
+        .indices       = scene.index_buffer_address(),
+        .positions     = scene.position_buffer_address(),
+        .vertices      = scene.vertex_buffer_address(),
+        .materials     = scene.material_buffer_address(),
+        .transforms    = scene.transform_buffer_address(),
+        .draw_commands = scene.draw_command_buffer_address(),
     };
     const vk::PushConstantsInfo push_constants_info{
         .layout     = m_pipeline_layout,
@@ -320,7 +320,8 @@ auto Renderer::draw_scene(
     };
     graphics_command_buffer.record_push_constants(push_constants_info);
     graphics_command_buffer.record_pipeline_bind(m_graphics_pipeline);
-    graphics_command_buffer.record_draw(scene.number_of_indices());
+    graphics_command_buffer
+        .record_indirect_draw(scene.draw_command_buffer_region(), scene.draw_count());
 
 
     graphics_command_buffer.record_render_pass_finish();

@@ -182,7 +182,11 @@ auto Context::Builder::create(
 ) -> Builder
 {
     instance_builder.target_api_version(vk::ApiVersion14);
-    device_builder.enable_features(vk::PhysicalDeviceFeatures{ .shaderInt64 = vk::True });
+    device_builder.enable_features(
+        vk::PhysicalDeviceFeatures{
+            .multiDrawIndirect = vk::True,
+        }
+    );
     device_builder.enable_features(
         vk::PhysicalDeviceVulkan12Features{
             .scalarBlockLayout   = vk::True,

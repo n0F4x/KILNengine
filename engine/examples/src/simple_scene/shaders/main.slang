@@ -16,7 +16,7 @@ VertexOutput main(
     uniform Scene scene
 )
 {
-    Primitive primitive = scene.primitives[draw_id];
+    Primitive primitive = scene.draw_commands[draw_id].primitive;
 
     uint32_t vertex_index = vertex_id;
     if (primitive.index_offset != UINT32_MAX) {

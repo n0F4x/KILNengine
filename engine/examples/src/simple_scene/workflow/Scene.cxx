@@ -26,17 +26,16 @@ auto address_of_buffer(
 Scene::Scene(
     const kiln::gfx::renderer::Device& device,
     kiln::gfx::renderer::Buffer&&      geometry_buffer,
-    const uint32_t                     number_of_indices,
     const vk::DeviceSize               index_byte_offset,
     const vk::DeviceSize               position_byte_offset,
     const vk::DeviceSize               vertex_byte_offset,
     kiln::gfx::renderer::Buffer&&      material_buffer,
     kiln::gfx::renderer::Buffer&&      transform_buffer,
-    kiln::gfx::renderer::Buffer&&      primitive_buffer
+    kiln::gfx::renderer::Buffer&&      draw_command_buffer,
+    const uint32_t                     draw_count
 )
     : m_geometry_buffer{ std::move(geometry_buffer) },
       m_geometry_buffer_address{ address_of_buffer(device, m_geometry_buffer) },
-      m_number_of_indices{ number_of_indices },
       m_index_byte_offset{ index_byte_offset },
       m_position_byte_offset{ position_byte_offset },
       m_vertex_byte_offset{ vertex_byte_offset },
@@ -44,8 +43,10 @@ Scene::Scene(
       m_material_buffer_address{ address_of_buffer(device, m_material_buffer) },
       m_transform_buffer{ std::move(transform_buffer) },
       m_transform_buffer_address{ address_of_buffer(device, m_transform_buffer) },
-      m_primitive_buffer{ std::move(primitive_buffer) },
-      m_primitive_buffer_address{ address_of_buffer(device, m_primitive_buffer) }
+      m_draw_command_buffer{ std::move(draw_command_buffer) },
+      m_draw_command_buffer_address{ address_of_buffer(device, m_draw_command_buffer) },
+      m_draw_command_buffer_region{ m_draw_command_buffer },
+      m_draw_count{ draw_count }
 {
 }
 
@@ -80,14 +81,20 @@ auto Scene::transform_buffer_address() const noexcept -> vk::DeviceSize
     return m_transform_buffer_address;
 }
 
-auto Scene::primitive_buffer_address() const noexcept -> vk::DeviceSize
+auto Scene::draw_command_buffer_address() const noexcept -> vk::DeviceSize
 {
-    return m_primitive_buffer_address;
+    return m_draw_command_buffer_address;
 }
 
-auto Scene::number_of_indices() const noexcept -> uint32_t
+auto Scene::draw_command_buffer_region() const noexcept
+    -> const kiln::gfx::renderer::BufferRegion&
 {
-    return m_number_of_indices;
+    return m_draw_command_buffer_region;
+}
+
+auto Scene::draw_count() const noexcept -> uint32_t
+{
+    return m_draw_count;
 }
 
 }   // namespace demo

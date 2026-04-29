@@ -128,18 +128,19 @@ auto create_material_buffer(
 }
 
 [[nodiscard]]
-auto create_primitive_buffer(
+auto create_draw_command_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
     const AssetLoader&              asset_loader
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
         .usage = vk::BufferUsageFlagBits2::eTransferDst
+               | vk::BufferUsageFlagBits2::eIndirectBuffer
                | vk::BufferUsageFlagBits2::eShaderDeviceAddress,
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = asset_loader.primitives_size_bytes(),
+        .size        = asset_loader.draw_command_size_bytes(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -148,7 +149,7 @@ auto create_primitive_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        asset_loader.primitive_alignment()
+        asset_loader.draw_command_alignment()
     );
 }
 
@@ -366,33 +367,33 @@ auto stage_materials(
     }
 }
 
-auto stage_primitives(
+auto stage_draw_commands(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
     const AssetLoader&                  asset_loader,
-    kiln::gfx::renderer::Buffer&        primitive_buffer
+    kiln::gfx::renderer::Buffer&        draw_command_buffer
 ) -> void
 {
-    if (primitive_buffer.allocation().memory_properties()
+    if (draw_command_buffer.allocation().memory_properties()
         & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        allocator.host_copy(asset_loader.lazy_primitives_copy(), primitive_buffer);
+        allocator.host_copy(asset_loader.lazy_draw_commands_copy(), draw_command_buffer);
         std::println(
-            "Copied {} bytes (primitives) from host to gpu",
-            primitive_buffer.size()
+            "Copied {} bytes (draw commands) from host to gpu",
+            draw_command_buffer.size()
         );
     }
     else
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                asset_loader.lazy_primitives_copy(),
-                primitive_buffer,
+                asset_loader.lazy_draw_commands_copy(),
+                draw_command_buffer,
             }
         );
         std::println(
-            "Staged {} bytes (primitives) from host to gpu",
-            primitive_buffer.size()
+            "Staged {} bytes (draw commands) from host to gpu",
+            draw_command_buffer.size()
         );
     }
 }
@@ -403,7 +404,7 @@ auto stage_asset(
     AssetLoader&                        asset_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     kiln::gfx::renderer::Buffer&        material_buffer,
-    kiln::gfx::renderer::Buffer&        primitive_buffer
+    kiln::gfx::renderer::Buffer&        draw_command_buffer
 ) -> void
 {
     if (geometry_buffer.size() != 0)
@@ -414,9 +415,9 @@ auto stage_asset(
     {
         stage_materials(allocator, staging_stream, asset_loader, material_buffer);
     }
-    if (primitive_buffer.size() != 0)
+    if (draw_command_buffer.size() != 0)
     {
-        stage_primitives(allocator, staging_stream, asset_loader, primitive_buffer);
+        stage_draw_commands(allocator, staging_stream, asset_loader, draw_command_buffer);
     }
 }
 
@@ -428,7 +429,6 @@ auto load_scene(
     kiln::gfx::renderer::StagingStream& staging_stream
 ) -> Scene
 {
-    uint32_t       number_of_indices{};
     vk::DeviceSize index_byte_offset;
     vk::DeviceSize position_byte_offset;
     vk::DeviceSize vertex_byte_offset;
@@ -436,7 +436,8 @@ auto load_scene(
     kiln::gfx::renderer::Buffer geometry_buffer;
     kiln::gfx::renderer::Buffer material_buffer;
     kiln::gfx::renderer::Buffer transform_buffer;
-    kiln::gfx::renderer::Buffer primitive_buffer;
+    kiln::gfx::renderer::Buffer draw_command_buffer;
+    uint32_t                    draw_count{};
 
     {
         const auto asset{
@@ -459,14 +460,14 @@ auto load_scene(
 
         AssetLoader asset_loader{ asset };
 
-        number_of_indices += asset_loader.number_of_indices();
         index_byte_offset    = index_buffer_byte_offset(asset_loader);
         position_byte_offset = position_buffer_byte_offset(asset_loader);
         vertex_byte_offset   = vertex_buffer_byte_offset(asset_loader);
 
-        geometry_buffer  = create_geometry_buffer(gpu_allocator, asset_loader);
-        material_buffer  = create_material_buffer(gpu_allocator, asset_loader);
-        primitive_buffer = create_primitive_buffer(gpu_allocator, asset_loader);
+        geometry_buffer     = create_geometry_buffer(gpu_allocator, asset_loader);
+        material_buffer     = create_material_buffer(gpu_allocator, asset_loader);
+        draw_command_buffer = create_draw_command_buffer(gpu_allocator, asset_loader);
+        draw_count          = asset_loader.draw_count();
 
         stage_asset(
             gpu_allocator,
@@ -474,7 +475,7 @@ auto load_scene(
             asset_loader,
             geometry_buffer,
             material_buffer,
-            primitive_buffer
+            draw_command_buffer
         );
 
         if (!staging_stream.empty())
@@ -488,13 +489,13 @@ auto load_scene(
     return Scene{
         device,
         std::move(geometry_buffer),
-        number_of_indices,
         index_byte_offset,
         position_byte_offset,
         vertex_byte_offset,
         std::move(material_buffer),
         std::move(transform_buffer),
-        std::move(primitive_buffer),
+        std::move(draw_command_buffer),
+        draw_count,
     };
 }
 

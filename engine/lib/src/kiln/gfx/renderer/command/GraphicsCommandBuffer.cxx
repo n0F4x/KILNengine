@@ -56,4 +56,20 @@ auto GraphicsCommandBuffer::record_draw(const uint32_t vertex_count) -> void
     get().draw(vertex_count, 1, 0, 0);
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto GraphicsCommandBuffer::record_indirect_draw(
+    const BufferRegion& draw_command_buffer_region,
+    const uint32_t      draw_count
+) -> void
+{
+    get().drawIndirect(
+        draw_command_buffer_region.buffer().get(),
+        draw_command_buffer_region.offset(),
+        draw_count,
+        static_cast<uint32_t>(
+            draw_command_buffer_region.size() / static_cast<vk::DeviceSize>(draw_count)
+        )
+    );
+}
+
 }   // namespace kiln::gfx::renderer
