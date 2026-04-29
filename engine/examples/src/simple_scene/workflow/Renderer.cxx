@@ -320,8 +320,12 @@ auto Renderer::draw_scene(
     };
     graphics_command_buffer.record_push_constants(push_constants_info);
     graphics_command_buffer.record_pipeline_bind(m_graphics_pipeline);
-    graphics_command_buffer
-        .record_indirect_draw(scene.draw_command_buffer_region(), scene.draw_count());
+    graphics_command_buffer.record_indirect_draw_count(
+        scene.draw_command_buffer_region(),
+        scene.draw_command_count_buffer_region(),
+        scene.max_draw_count(),
+        sizeof(shaders::DrawCommand)
+    );
 
 
     graphics_command_buffer.record_render_pass_finish();

@@ -56,7 +56,7 @@ public:
     ) -> void;
     auto host_copy(std::span<const std::byte> source, const BufferRegion& destination)
         -> void;
-    auto host_copy(LazyCopy&& lazy_copy, const BufferRegion& destination) -> void;
+    auto host_copy(const LazyCopy& lazy_copy, const BufferRegion& destination) -> void;
 
     [[nodiscard]]
     auto map(Allocation& allocation) -> std::span<std::byte>;

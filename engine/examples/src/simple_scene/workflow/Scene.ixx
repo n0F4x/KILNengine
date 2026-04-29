@@ -25,7 +25,8 @@ public:
         kiln::gfx::renderer::Buffer&&      material_buffer,
         kiln::gfx::renderer::Buffer&&      transform_buffer,
         kiln::gfx::renderer::Buffer&&      draw_command_buffer,
-        uint32_t                           draw_count
+        uint32_t                           draw_command_count_size,
+        uint32_t                           max_draw_count
     );
 
 
@@ -46,7 +47,10 @@ public:
     auto draw_command_buffer_region() const noexcept
         -> const kiln::gfx::renderer::BufferRegion&;
     [[nodiscard]]
-    auto draw_count() const noexcept -> uint32_t;
+    auto draw_command_count_buffer_region() const noexcept
+        -> const kiln::gfx::renderer::BufferRegion&;
+    [[nodiscard]]
+    auto max_draw_count() const noexcept -> uint32_t;
 
 private:
     kiln::gfx::renderer::Buffer       m_geometry_buffer;
@@ -61,7 +65,8 @@ private:
     kiln::gfx::renderer::Buffer       m_draw_command_buffer;
     vk::DeviceSize                    m_draw_command_buffer_address;
     kiln::gfx::renderer::BufferRegion m_draw_command_buffer_region;
-    uint32_t                          m_draw_count;
+    kiln::gfx::renderer::BufferRegion m_draw_command_count_buffer_region;
+    uint32_t                          m_max_draw_count;
 };
 
 }   // namespace demo

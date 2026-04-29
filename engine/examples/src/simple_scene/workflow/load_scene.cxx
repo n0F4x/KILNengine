@@ -128,6 +128,12 @@ auto create_material_buffer(
 }
 
 [[nodiscard]]
+consteval auto draw_command_count_size() noexcept -> uint32_t
+{
+    return sizeof(uint32_t);
+}
+
+[[nodiscard]]
 auto create_draw_command_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
     const AssetLoader&              asset_loader
@@ -140,7 +146,7 @@ auto create_draw_command_buffer(
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = asset_loader.draw_command_size_bytes(),
+        .size        = draw_command_count_size() + asset_loader.draw_command_size_bytes(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -367,6 +373,24 @@ auto stage_materials(
     }
 }
 
+[[nodiscard]]
+auto lazy_copy_draw_commands(const AssetLoader& asset_loader)
+    -> kiln::gfx::renderer::LazyCopy
+{
+    return kiln::gfx::renderer::LazyCopy{
+        [draw_count                    = asset_loader.max_draw_count(),
+         lazy_asset_draw_commands_copy = asset_loader.lazy_draw_commands_copy()](
+            const std::span<std::byte> staging_buffer
+        ) -> void
+        {
+            std::memcpy(staging_buffer.data(), &draw_count, sizeof(decltype(draw_count)));
+            lazy_asset_draw_commands_copy(
+                staging_buffer.subspan(draw_command_count_size())
+            );
+        }
+    };
+}
+
 auto stage_draw_commands(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
@@ -377,7 +401,7 @@ auto stage_draw_commands(
     if (draw_command_buffer.allocation().memory_properties()
         & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        allocator.host_copy(asset_loader.lazy_draw_commands_copy(), draw_command_buffer);
+        allocator.host_copy(lazy_copy_draw_commands(asset_loader), draw_command_buffer);
         std::println(
             "Copied {} bytes (draw commands) from host to gpu",
             draw_command_buffer.size()
@@ -387,7 +411,7 @@ auto stage_draw_commands(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                asset_loader.lazy_draw_commands_copy(),
+                lazy_copy_draw_commands(asset_loader),
                 draw_command_buffer,
             }
         );
@@ -437,7 +461,7 @@ auto load_scene(
     kiln::gfx::renderer::Buffer material_buffer;
     kiln::gfx::renderer::Buffer transform_buffer;
     kiln::gfx::renderer::Buffer draw_command_buffer;
-    uint32_t                    draw_count{};
+    uint32_t                    max_draw_count{};
 
     {
         const auto asset{
@@ -467,7 +491,7 @@ auto load_scene(
         geometry_buffer     = create_geometry_buffer(gpu_allocator, asset_loader);
         material_buffer     = create_material_buffer(gpu_allocator, asset_loader);
         draw_command_buffer = create_draw_command_buffer(gpu_allocator, asset_loader);
-        draw_count          = asset_loader.draw_count();
+        max_draw_count      = asset_loader.max_draw_count();
 
         stage_asset(
             gpu_allocator,
@@ -495,7 +519,8 @@ auto load_scene(
         std::move(material_buffer),
         std::move(transform_buffer),
         std::move(draw_command_buffer),
-        draw_count,
+        draw_command_count_size(),
+        max_draw_count,
     };
 }
 

@@ -66,7 +66,7 @@ public:
     auto lazy_draw_commands_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
 
     [[nodiscard]]
-    auto draw_count() const noexcept -> uint32_t;
+    auto max_draw_count() const noexcept -> uint32_t;
 
 private:
     std::reference_wrapper<const fastgltf::Asset> m_asset;
@@ -76,8 +76,6 @@ private:
     std::optional<uint32_t>                       m_material_offset;
 
 
-    [[nodiscard]]
-    auto number_of_indices() const noexcept -> uint32_t;
     [[nodiscard]]
     auto draw_command() const noexcept -> shaders::DrawCommand;
 };

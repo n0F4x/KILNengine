@@ -32,7 +32,8 @@ Scene::Scene(
     kiln::gfx::renderer::Buffer&&      material_buffer,
     kiln::gfx::renderer::Buffer&&      transform_buffer,
     kiln::gfx::renderer::Buffer&&      draw_command_buffer,
-    const uint32_t                     draw_count
+    const uint32_t                     draw_command_count_size,
+    const uint32_t                     max_draw_count
 )
     : m_geometry_buffer{ std::move(geometry_buffer) },
       m_geometry_buffer_address{ address_of_buffer(device, m_geometry_buffer) },
@@ -44,9 +45,16 @@ Scene::Scene(
       m_transform_buffer{ std::move(transform_buffer) },
       m_transform_buffer_address{ address_of_buffer(device, m_transform_buffer) },
       m_draw_command_buffer{ std::move(draw_command_buffer) },
-      m_draw_command_buffer_address{ address_of_buffer(device, m_draw_command_buffer) },
-      m_draw_command_buffer_region{ m_draw_command_buffer },
-      m_draw_count{ draw_count }
+      m_draw_command_buffer_address{
+          address_of_buffer(device, m_draw_command_buffer) + draw_command_count_size,
+      },
+      m_draw_command_buffer_region{ m_draw_command_buffer, draw_command_count_size },
+      m_draw_command_count_buffer_region{
+          m_draw_command_buffer,
+          0,
+          draw_command_count_size,
+      },
+      m_max_draw_count{ max_draw_count }
 {
 }
 
@@ -92,9 +100,15 @@ auto Scene::draw_command_buffer_region() const noexcept
     return m_draw_command_buffer_region;
 }
 
-auto Scene::draw_count() const noexcept -> uint32_t
+auto Scene::draw_command_count_buffer_region() const noexcept
+    -> const kiln::gfx::renderer::BufferRegion&
 {
-    return m_draw_count;
+    return m_draw_command_count_buffer_region;
+}
+
+auto Scene::max_draw_count() const noexcept -> uint32_t
+{
+    return m_max_draw_count;
 }
 
 }   // namespace demo

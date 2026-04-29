@@ -21,9 +21,18 @@ public:
 
     explicit BufferRegionPrecondition(
         [[maybe_unused]] const Buffer&        buffer,
+        [[maybe_unused]] const vk::DeviceSize offset
+    )
+    {
+        PRECOND(buffer.size() >= offset);
+    }
+
+    explicit BufferRegionPrecondition(
+        [[maybe_unused]] const Buffer&        buffer,
         [[maybe_unused]] const vk::DeviceSize offset,
         [[maybe_unused]] const vk::DeviceSize size
     )
+        : BufferRegionPrecondition{ buffer, offset }
     {
         PRECOND(buffer.size() - offset >= size);
     }
@@ -38,6 +47,17 @@ public:
         : m_buffer{ buffer },
           m_offset{ 0 },
           m_size{ buffer.size() }
+    {
+    }
+
+    explicit BufferRegion(
+        [[kiln_lifetimebound]] Buffer& buffer,
+        const vk::DeviceSize           offset
+    )
+        : BufferRegionPrecondition{ buffer, offset },
+          m_buffer{ buffer },
+          m_offset{ offset },
+          m_size{ buffer.size() - offset }
     {
     }
 

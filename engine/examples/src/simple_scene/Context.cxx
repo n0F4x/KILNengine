@@ -189,6 +189,7 @@ auto Context::Builder::create(
     );
     device_builder.enable_features(
         vk::PhysicalDeviceVulkan12Features{
+            .drawIndirectCount   = vk::True,
             .scalarBlockLayout   = vk::True,
             .bufferDeviceAddress = vk::True,
         }

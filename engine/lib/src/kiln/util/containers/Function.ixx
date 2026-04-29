@@ -122,7 +122,9 @@ struct FunctionTraits<
         }
 
         template <typename Self_T>
-            requires(mimics_qualifiers<Self_T &&>())
+            requires std::convertible_to<
+                Self_T&&,
+                invoke_qualified_self_t<std::remove_cvref_t<Self_T>>>
         constexpr auto operator()(this Self_T&& self, FArgs_T... args) noexcept(
             is_noexcept()
         ) -> Result

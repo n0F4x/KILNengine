@@ -194,7 +194,7 @@ auto AssetLoader::lazy_draw_commands_copy() const noexcept
     };
 }
 
-auto AssetLoader::draw_count() const noexcept -> uint32_t
+auto AssetLoader::max_draw_count() const noexcept -> uint32_t
 {
     return 1;
 }

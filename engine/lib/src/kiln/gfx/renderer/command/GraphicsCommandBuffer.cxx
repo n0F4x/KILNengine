@@ -72,4 +72,22 @@ auto GraphicsCommandBuffer::record_indirect_draw(
     );
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
+auto GraphicsCommandBuffer::record_indirect_draw_count(
+    const BufferRegion& draw_command_buffer_region,
+    const BufferRegion& draw_command_count_buffer_region,
+    const uint32_t      max_draw_count,
+    const uint32_t      stride
+) -> void
+{
+    get().drawIndirectCount(
+        draw_command_buffer_region.buffer().get(),
+        draw_command_buffer_region.offset(),
+        draw_command_count_buffer_region.buffer().get(),
+        draw_command_count_buffer_region.offset(),
+        max_draw_count,
+        stride
+    );
+}
+
 }   // namespace kiln::gfx::renderer

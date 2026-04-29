@@ -291,7 +291,7 @@ auto Allocator::host_copy(
     host_copy(source, destination.allocation(), destination.offset(), destination.size());
 }
 
-auto Allocator::host_copy(LazyCopy&& lazy_copy, const BufferRegion& destination) -> void
+auto Allocator::host_copy(const LazyCopy& lazy_copy, const BufferRegion& destination) -> void
 {
     const vk::MemoryPropertyFlags memory_properties{
         destination.allocation().memory_properties()
@@ -303,7 +303,7 @@ auto Allocator::host_copy(LazyCopy&& lazy_copy, const BufferRegion& destination)
         return;
     }
 
-    std::move(lazy_copy)(map(destination));
+    lazy_copy(map(destination));
     unmap(destination);
     if (!(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
     {

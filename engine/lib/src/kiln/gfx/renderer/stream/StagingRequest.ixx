@@ -33,9 +33,9 @@ public:
     {
     }
 
-    auto operator()(const std::span<std::byte> out) && -> void
+    auto operator()(const std::span<std::byte> out) const -> void
     {
-        std::move(m_callback)(out);
+        m_callback(out);
     }
 
     [[nodiscard]]

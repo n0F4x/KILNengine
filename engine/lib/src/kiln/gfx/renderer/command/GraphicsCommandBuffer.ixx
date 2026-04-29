@@ -28,6 +28,12 @@ public:
         const BufferRegion& draw_command_buffer_region,
         uint32_t            draw_count
     ) -> void;
+    auto record_indirect_draw_count(
+        const BufferRegion& draw_command_buffer_region,
+        const BufferRegion& draw_command_count_buffer_region,
+        uint32_t            max_draw_count,
+        uint32_t            stride
+    ) -> void;
 };
 
 }   // namespace kiln::gfx::renderer
