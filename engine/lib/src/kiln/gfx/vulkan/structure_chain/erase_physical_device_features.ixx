@@ -63,10 +63,12 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.storageBuffer16BitAccess, in.storageBuffer16BitAccess
+        inout.storageBuffer16BitAccess,
+        in.storageBuffer16BitAccess
     );
     erase_feature_struct_member(
-        inout.uniformAndStorageBuffer16BitAccess, in.uniformAndStorageBuffer16BitAccess
+        inout.uniformAndStorageBuffer16BitAccess,
+        in.uniformAndStorageBuffer16BitAccess
     );
     erase_feature_struct_member(inout.storagePushConstant16, in.storagePushConstant16);
     erase_feature_struct_member(inout.storageInputOutput16, in.storageInputOutput16);
@@ -80,7 +82,8 @@ constexpr auto erase_physical_device_features_impl(
     erase_feature_struct_member(inout.multiview, in.multiview);
     erase_feature_struct_member(inout.multiviewGeometryShader, in.multiviewGeometryShader);
     erase_feature_struct_member(
-        inout.multiviewTessellationShader, in.multiviewTessellationShader
+        inout.multiviewTessellationShader,
+        in.multiviewTessellationShader
     );
 }
 
@@ -90,7 +93,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.variablePointersStorageBuffer, in.variablePointersStorageBuffer
+        inout.variablePointersStorageBuffer,
+        in.variablePointersStorageBuffer
     );
     erase_feature_struct_member(inout.variablePointers, in.variablePointers);
 }
@@ -126,7 +130,8 @@ constexpr auto erase_physical_device_features_impl(
 {
     erase_feature_struct_member(inout.storageBuffer8BitAccess, in.storageBuffer8BitAccess);
     erase_feature_struct_member(
-        inout.uniformAndStorageBuffer8BitAccess, in.uniformAndStorageBuffer8BitAccess
+        inout.uniformAndStorageBuffer8BitAccess,
+        in.uniformAndStorageBuffer8BitAccess
     );
     erase_feature_struct_member(inout.storagePushConstant8, in.storagePushConstant8);
 }
@@ -137,10 +142,12 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.shaderBufferInt64Atomics, in.shaderBufferInt64Atomics
+        inout.shaderBufferInt64Atomics,
+        in.shaderBufferInt64Atomics
     );
     erase_feature_struct_member(
-        inout.shaderSharedInt64Atomics, in.shaderSharedInt64Atomics
+        inout.shaderSharedInt64Atomics,
+        in.shaderSharedInt64Atomics
     );
 }
 
@@ -227,7 +234,8 @@ constexpr auto erase_physical_device_features_impl(
         in.descriptorBindingUpdateUnusedWhilePending
     );
     erase_feature_struct_member(
-        inout.descriptorBindingPartiallyBound, in.descriptorBindingPartiallyBound
+        inout.descriptorBindingPartiallyBound,
+        in.descriptorBindingPartiallyBound
     );
     erase_feature_struct_member(
         inout.descriptorBindingVariableDescriptorCount,
@@ -258,7 +266,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.uniformBufferStandardLayout, in.uniformBufferStandardLayout
+        inout.uniformBufferStandardLayout,
+        in.uniformBufferStandardLayout
     );
 }
 
@@ -268,7 +277,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.shaderSubgroupExtendedTypes, in.shaderSubgroupExtendedTypes
+        inout.shaderSubgroupExtendedTypes,
+        in.shaderSubgroupExtendedTypes
     );
 }
 
@@ -278,7 +288,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.separateDepthStencilLayouts, in.separateDepthStencilLayouts
+        inout.separateDepthStencilLayouts,
+        in.separateDepthStencilLayouts
     );
 }
 
@@ -305,10 +316,12 @@ constexpr auto erase_physical_device_features_impl(
 {
     erase_feature_struct_member(inout.bufferDeviceAddress, in.bufferDeviceAddress);
     erase_feature_struct_member(
-        inout.bufferDeviceAddressCaptureReplay, in.bufferDeviceAddressCaptureReplay
+        inout.bufferDeviceAddressCaptureReplay,
+        in.bufferDeviceAddressCaptureReplay
     );
     erase_feature_struct_member(
-        inout.bufferDeviceAddressMultiDevice, in.bufferDeviceAddressMultiDevice
+        inout.bufferDeviceAddressMultiDevice,
+        in.bufferDeviceAddressMultiDevice
     );
 }
 
@@ -319,7 +332,8 @@ constexpr auto erase_physical_device_features_impl(
 {
     erase_feature_struct_member(inout.vulkanMemoryModel, in.vulkanMemoryModel);
     erase_feature_struct_member(
-        inout.vulkanMemoryModelDeviceScope, in.vulkanMemoryModelDeviceScope
+        inout.vulkanMemoryModelDeviceScope,
+        in.vulkanMemoryModelDeviceScope
     );
     erase_feature_struct_member(
         inout.vulkanMemoryModelAvailabilityVisibilityChains,
@@ -353,7 +367,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.pipelineCreationCacheControl, in.pipelineCreationCacheControl
+        inout.pipelineCreationCacheControl,
+        in.pipelineCreationCacheControl
     );
 }
 
@@ -371,7 +386,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.shaderDemoteToHelperInvocation, in.shaderDemoteToHelperInvocation
+        inout.shaderDemoteToHelperInvocation,
+        in.shaderDemoteToHelperInvocation
     );
 }
 
@@ -381,7 +397,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.shaderTerminateInvocation, in.shaderTerminateInvocation
+        inout.shaderTerminateInvocation,
+        in.shaderTerminateInvocation
     );
 }
 
@@ -408,7 +425,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.textureCompressionASTC_HDR, in.textureCompressionASTC_HDR
+        inout.textureCompressionASTC_HDR,
+        in.textureCompressionASTC_HDR
     );
 }
 
@@ -418,7 +436,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.shaderZeroInitializeWorkgroupMemory, in.shaderZeroInitializeWorkgroupMemory
+        inout.shaderZeroInitializeWorkgroupMemory,
+        in.shaderZeroInitializeWorkgroupMemory
     );
 }
 
@@ -461,7 +480,8 @@ constexpr auto erase_physical_device_features_impl(
 {
     erase_feature_struct_member(inout.shaderSubgroupRotate, in.shaderSubgroupRotate);
     erase_feature_struct_member(
-        inout.shaderSubgroupRotateClustered, in.shaderSubgroupRotateClustered
+        inout.shaderSubgroupRotateClustered,
+        in.shaderSubgroupRotateClustered
     );
 }
 
@@ -490,7 +510,8 @@ constexpr auto erase_physical_device_features_impl(
     erase_feature_struct_member(inout.bresenhamLines, in.bresenhamLines);
     erase_feature_struct_member(inout.smoothLines, in.smoothLines);
     erase_feature_struct_member(
-        inout.stippledRectangularLines, in.stippledRectangularLines
+        inout.stippledRectangularLines,
+        in.stippledRectangularLines
     );
     erase_feature_struct_member(inout.stippledBresenhamLines, in.stippledBresenhamLines);
     erase_feature_struct_member(inout.stippledSmoothLines, in.stippledSmoothLines);
@@ -502,7 +523,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.vertexAttributeInstanceRateDivisor, in.vertexAttributeInstanceRateDivisor
+        inout.vertexAttributeInstanceRateDivisor,
+        in.vertexAttributeInstanceRateDivisor
     );
     erase_feature_struct_member(
         inout.vertexAttributeInstanceRateZeroDivisor,
@@ -524,7 +546,8 @@ constexpr auto erase_physical_device_features_impl(
 ) -> void
 {
     erase_feature_struct_member(
-        inout.dynamicRenderingLocalRead, in.dynamicRenderingLocalRead
+        inout.dynamicRenderingLocalRead,
+        in.dynamicRenderingLocalRead
     );
 }
 

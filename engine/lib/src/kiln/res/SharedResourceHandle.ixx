@@ -22,4 +22,4 @@ auto make_shared_resource_handle(Args_T&&... args) -> SharedResourceHandle<Resou
     return std::make_shared<Resource_T>(std::forward<Args_T>(args)...);
 }
 
-}   // namespace kiln::resource
+}   // namespace kiln::res

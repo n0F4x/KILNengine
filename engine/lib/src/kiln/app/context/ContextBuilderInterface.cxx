@@ -5,11 +5,7 @@ module;
 #include <span>
 #include <vector>
 
-#include "kiln/util/contract_macros.hpp"
-
 module kiln.app.context.ContextBuilderInterface;
-
-import kiln.util.contracts;
 
 namespace kiln::app {
 
@@ -38,7 +34,8 @@ auto ContextBuilderInterface::insert_configuration_dependency_hash(
 ) -> void
 {
     if (const auto config_iter{ std::ranges::lower_bound(
-            m_configuration_dependency_hash_set, dependency_hash
+            m_configuration_dependency_hash_set,
+            dependency_hash
         ) };
         config_iter == m_configuration_dependency_hash_set.cend()
         || *config_iter != dependency_hash)
@@ -47,7 +44,8 @@ auto ContextBuilderInterface::insert_configuration_dependency_hash(
 
         if (const auto general_iter{
                 std::ranges::lower_bound(m_dependency_hashes, dependency_hash) };
-            general_iter == m_dependency_hashes.cend() || *general_iter != dependency_hash)
+            general_iter == m_dependency_hashes.cend()
+            || *general_iter != dependency_hash)
         {
             m_dependency_hashes.insert(general_iter, dependency_hash);
         }

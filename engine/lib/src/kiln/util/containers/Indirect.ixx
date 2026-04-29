@@ -170,9 +170,8 @@ Indirect<T>::Indirect(Indirect&& other, const allocator_type& allocator)
 template <typename T>
 [[nodiscard]]
 auto assert_allocator_upon_move_only_move_construct(
-    const std::pmr::polymorphic_allocator<T>& new_allocator,
-    [[maybe_unused]]
-    const std::pmr::polymorphic_allocator<T>& other_allocator
+    const std::pmr::polymorphic_allocator<T>&                  new_allocator,
+    [[maybe_unused]] const std::pmr::polymorphic_allocator<T>& other_allocator
 ) -> std::pmr::polymorphic_allocator<T>
 {
     PRECOND(new_allocator == other_allocator);

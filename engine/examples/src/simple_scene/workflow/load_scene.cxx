@@ -37,7 +37,8 @@ auto position_buffer_byte_offset(const AssetLoader& asset_loader) -> vk::DeviceS
         index_buffer_byte_offset(asset_loader) + asset_loader.indices_size_bytes()   //
     };
 
-    if (const auto remainder{ result % asset_loader.position_alignment() }; remainder != 0)
+    if (const auto remainder{ result % asset_loader.position_alignment() };
+        remainder != 0)
     {
         result += asset_loader.position_alignment() - remainder;
     }
@@ -95,7 +96,9 @@ auto create_geometry_buffer(
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
     return gpu_allocator.create_buffer(
-        buffer_create_info, allocation_create_info, geometry_alignment_from(asset_loader)
+        buffer_create_info,
+        allocation_create_info,
+        geometry_alignment_from(asset_loader)
     );
 }
 
@@ -118,7 +121,9 @@ auto create_material_buffer(
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
     return gpu_allocator.create_buffer(
-        buffer_create_info, allocation_create_info, asset_loader.material_alignment()
+        buffer_create_info,
+        allocation_create_info,
+        asset_loader.material_alignment()
     );
 }
 
@@ -141,7 +146,9 @@ auto create_primitive_buffer(
         .usage = VMA_MEMORY_USAGE_AUTO,
     };
     return gpu_allocator.create_buffer(
-        buffer_create_info, allocation_create_info, asset_loader.primitive_alignment()
+        buffer_create_info,
+        allocation_create_info,
+        asset_loader.primitive_alignment()
     );
 }
 
@@ -340,7 +347,8 @@ auto stage_materials(
     {
         allocator.host_copy(asset_loader.lazy_materials_copy(), material_buffer);
         std::println(
-            "Copied {} bytes (materials) from host to gpu", material_buffer.size()
+            "Copied {} bytes (materials) from host to gpu",
+            material_buffer.size()
         );
     }
     else
@@ -352,7 +360,8 @@ auto stage_materials(
             }
         );
         std::println(
-            "Staged {} bytes (materials) from host to gpu", material_buffer.size()
+            "Staged {} bytes (materials) from host to gpu",
+            material_buffer.size()
         );
     }
 }
@@ -369,7 +378,8 @@ auto stage_primitives(
     {
         allocator.host_copy(asset_loader.lazy_primitives_copy(), primitive_buffer);
         std::println(
-            "Copied {} bytes (primitives) from host to gpu", primitive_buffer.size()
+            "Copied {} bytes (primitives) from host to gpu",
+            primitive_buffer.size()
         );
     }
     else
@@ -381,7 +391,8 @@ auto stage_primitives(
             }
         );
         std::println(
-            "Staged {} bytes (primitives) from host to gpu", primitive_buffer.size()
+            "Staged {} bytes (primitives) from host to gpu",
+            primitive_buffer.size()
         );
     }
 }

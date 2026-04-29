@@ -2,8 +2,8 @@ module;
 
 #include <cstdint>
 #include <memory_resource>
-#include <vector>
 #include <span>
+#include <vector>
 
 export module kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 

@@ -6,4 +6,4 @@ namespace kiln::res {
 
 export using internal::ResourceManagerBuilder;
 
-}   // namespace kiln::resource
+}   // namespace kiln::res

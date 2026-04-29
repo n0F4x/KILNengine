@@ -103,7 +103,9 @@ auto StagingStream::reset(const Device& device) -> void
     }
 
     vulkan::check_result(device.logical_device().waitForFences(
-        *m_staging_finished_fence, vk::True, std::numeric_limits<uint64_t>::max()
+        *m_staging_finished_fence,
+        vk::True,
+        std::numeric_limits<uint64_t>::max()
     ));
     device.logical_device().resetFences(*m_staging_finished_fence);
 
@@ -159,9 +161,8 @@ auto stage(
     };
     command_buffer.record_barrier(staging_dependencies);
 
-    command_buffer.record_buffer_copy(
-        staging_buffer_region, staging_request.destination()
-    );
+    command_buffer
+        .record_buffer_copy(staging_buffer_region, staging_request.destination());
 }
 
 auto StagingStream::flush(Allocator& allocator, SubmitInfo&& submit_info) -> void
@@ -170,7 +171,8 @@ auto StagingStream::flush(Allocator& allocator, SubmitInfo&& submit_info) -> voi
     PRECOND(
         !submit_info.fence().has_value(),
         std::format(
-            "Use `{}::reset()` instead of another fence", util::name_of<StagingStream>()
+            "Use `{}::reset()` instead of another fence",
+            util::name_of<StagingStream>()
         )
     );
 

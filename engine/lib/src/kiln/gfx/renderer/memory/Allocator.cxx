@@ -199,7 +199,8 @@ auto create_allocator(const vulkan::Instance& instance, const Device& device)
     vulkan::check_result(::vmaCreateAllocator(&create_info, &allocator));
 
     return std::unique_ptr<VmaAllocator_T, decltype(&::vmaDestroyAllocator)>{
-        allocator, ::vmaDestroyAllocator
+        allocator,
+        vmaDestroyAllocator
     };
 }
 
@@ -344,7 +345,10 @@ auto Allocator::invalidate(
 {
     vulkan::check_result(
         vmaInvalidateAllocation(
-            m_handle.get(), allocation.get(), destination_offset, destination_size
+            m_handle.get(),
+            allocation.get(),
+            destination_offset,
+            destination_size
         )   //
     );
 }
@@ -362,7 +366,10 @@ auto Allocator::flush(
 {
     vulkan::check_result(
         vmaFlushAllocation(
-            m_handle.get(), allocation.get(), destination_offset, destination_size
+            m_handle.get(),
+            allocation.get(),
+            destination_offset,
+            destination_size
         )   //
     );
 }

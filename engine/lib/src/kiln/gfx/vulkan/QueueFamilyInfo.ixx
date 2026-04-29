@@ -21,7 +21,10 @@ public:
     QueueFamilyInfo(const QueueFamilyInfo&, const allocator_type& allocator);
     QueueFamilyInfo(QueueFamilyInfo&&, const allocator_type& allocator);
 
-    explicit QueueFamilyInfo(QueueFamilyIndex index, vk::DeviceQueueCreateFlags flags = {});
+    explicit QueueFamilyInfo(
+        QueueFamilyIndex           index,
+        vk::DeviceQueueCreateFlags flags = {}
+    );
     explicit QueueFamilyInfo(
         std::allocator_arg_t,
         const allocator_type&      allocator,

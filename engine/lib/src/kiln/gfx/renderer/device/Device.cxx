@@ -171,7 +171,7 @@ auto Device::Builder::request_queue(const QueueType type) -> void
 }
 
 auto Device::Builder::build(
-    app::MemoryArena&             memory_arena,
+    app::MemoryArena&       memory_arena,
     const vulkan::Instance& instance,
     const wsi::Context&     wsi_context
 ) const&& -> Device
@@ -224,14 +224,15 @@ auto Device::Builder::build(
     }
 
     vulkan::StructureChain<vk::PhysicalDeviceFeatures2> supported_optional_features{
-        m_optional_capabilities.features_chain(), &transient_memory_resource
+        m_optional_capabilities.features_chain(),
+        &transient_memory_resource
     };
     vulkan::StructureChain<vk::PhysicalDeviceFeatures2> optional_feature_support{
-        m_optional_capabilities.features_chain(), &transient_memory_resource
+        m_optional_capabilities.features_chain(),
+        &transient_memory_resource
     };
-    physical_device.getDispatcher()->vkGetPhysicalDeviceFeatures2(
-        *physical_device, optional_feature_support.root()
-    );
+    physical_device.getDispatcher()
+        ->vkGetPhysicalDeviceFeatures2(*physical_device, optional_feature_support.root());
     supported_optional_features.erase_unsupported_features(
         optional_feature_support.root()
     );
@@ -241,7 +242,11 @@ auto Device::Builder::build(
     // TODO: use std::inplace_vector
     const std::pmr::vector queue_family_infos{
         create_queue_family_infos(
-            instance, wsi_context, physical_device, queue_infos, &transient_memory_resource
+            instance,
+            wsi_context,
+            physical_device,
+            queue_infos,
+            &transient_memory_resource
         )   //
     };
     const std::pmr::vector queue_create_infos{
@@ -336,7 +341,8 @@ auto emplace_graphics_queue(
 ) -> std::optional<vulkan::QueueInfo>
 {
     for (auto&& [family_index, family_properties] : std::views::zip(
-             std::views::iota(uint32_t{}), physical_device.getQueueFamilyProperties2()
+             std::views::iota(uint32_t{}),
+             physical_device.getQueueFamilyProperties2()
          ))
     {
         // TODO: move presentation support logic elsewhere
@@ -371,7 +377,8 @@ auto emplace_graphics_queue(
 [[nodiscard]]
 auto is_dedicated_transfer_queue_family(const vk::QueueFlags flags) -> bool
 {
-    return flags & vk::QueueFlagBits::eTransfer && !(flags & vk::QueueFlagBits::eGraphics)
+    return flags & vk::QueueFlagBits::eTransfer
+        && !(flags & vk::QueueFlagBits::eGraphics)
         && !(flags & vk::QueueFlagBits::eCompute);
 }
 

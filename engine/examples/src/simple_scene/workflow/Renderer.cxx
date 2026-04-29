@@ -189,7 +189,8 @@ Renderer::Renderer(
               std::filesystem::path{ std::source_location::current().file_name() }
                   .parent_path()
                   .parent_path()
-              / "shaders" / "main.spv"
+              / "shaders"
+              / "main.spv"
           )   //
       },
       m_graphics_pipeline{
@@ -231,7 +232,11 @@ auto Renderer::render(
 
 
     draw_scene(
-        graphics_queue, surface, scene, *swapchain_image_index, transient_memory_resource
+        graphics_queue,
+        surface,
+        scene,
+        *swapchain_image_index,
+        transient_memory_resource
     );
 
 

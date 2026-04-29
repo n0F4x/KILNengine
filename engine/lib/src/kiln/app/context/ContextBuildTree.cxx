@@ -51,7 +51,8 @@ auto ContextBuildTree::build(
          std::views::zip(m_builder_dependencies, m_builders))
     {
         set_resolved_dependency_hashes(
-            *builder, dependency_descriptor.resolved_dependencies()
+            *builder,
+            dependency_descriptor.resolved_dependencies()
         );
     }
     PRECOND(!check_for_configuration_dependencies());
@@ -179,7 +180,8 @@ auto ContextBuildTree::DependencyDescriptor::resolved_dependencies() const noexc
     -> std::span<const uint64_t>
 {
     return std::views::drop(
-        m_all_missing_and_resolved_dependency_hashes, m_number_of_missing_dependencies
+        m_all_missing_and_resolved_dependency_hashes,
+        m_number_of_missing_dependencies
     );
 }
 
@@ -220,7 +222,8 @@ auto ContextBuildTree::find_context_builder(const uint64_t hash)
     }
 
     return *std::next(
-        m_builders.begin(), std::distance(m_builder_hashes.begin(), builder_hash_iter)
+        m_builders.begin(),
+        std::distance(m_builder_hashes.begin(), builder_hash_iter)
     );
 }
 
@@ -234,7 +237,8 @@ auto ContextBuildTree::find_context_builder(const uint64_t hash) const
     }
 
     return *std::next(
-        m_builders.cbegin(), std::distance(m_builder_hashes.begin(), builder_hash_iter)
+        m_builders.cbegin(),
+        std::distance(m_builder_hashes.begin(), builder_hash_iter)
     );
 }
 
@@ -265,7 +269,8 @@ auto ContextBuildTree::fix_order_of_builders(
         std::next(
             m_builders.begin(),
             std::distance(
-                m_builder_dependencies.begin(), first_dependent_builder_descriptor_iter
+                m_builder_dependencies.begin(),
+                first_dependent_builder_descriptor_iter
             )
         )   //
     };
@@ -273,7 +278,8 @@ auto ContextBuildTree::fix_order_of_builders(
         std::next(
             m_builder_hashes.begin(),
             std::distance(
-                m_builder_dependencies.begin(), first_dependent_builder_descriptor_iter
+                m_builder_dependencies.begin(),
+                first_dependent_builder_descriptor_iter
             )
         )   //
     };
@@ -368,7 +374,8 @@ auto ContextBuildTree::fix_order_of_injections(
         std::next(
             m_injections.begin(),
             std::distance(
-                m_injection_dependencies.begin(), first_dependent_injection_descriptor_iter
+                m_injection_dependencies.begin(),
+                first_dependent_injection_descriptor_iter
             )
         )   //
     };
@@ -376,7 +383,8 @@ auto ContextBuildTree::fix_order_of_injections(
         std::next(
             m_injection_hashes.begin(),
             std::distance(
-                m_injection_dependencies.begin(), first_dependent_injection_descriptor_iter
+                m_injection_dependencies.begin(),
+                first_dependent_injection_descriptor_iter
             )
         )   //
     };

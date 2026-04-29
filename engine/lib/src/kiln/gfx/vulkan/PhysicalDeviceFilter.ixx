@@ -49,8 +49,10 @@ public:
     template <typename Self_T>
     auto require_queue_flag(this Self_T&&, vk::QueueFlagBits flag) -> Self_T&&;
     template <typename Self_T>
-    auto require_capabilities(this Self_T&&, const PhysicalDeviceCapabilities& capabilities)
-        -> Self_T&&;
+    auto require_capabilities(
+        this Self_T&&,
+        const PhysicalDeviceCapabilities& capabilities
+    ) -> Self_T&&;
     template <typename Self_T, typename... Args_T>
     auto add_custom_requirement(this Self_T&&, Args_T&&... args) -> Self_T&&
         requires std::constructible_from<CustomRequirement, Args_T&&...>;

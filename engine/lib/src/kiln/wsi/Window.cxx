@@ -203,7 +203,8 @@ auto Window::create_vulkan_surface(const vk::raii::Instance& instance)
     [[maybe_unused]]
     const int error_code = glfwGetError(nullptr);
     assert(
-        (error_code != GLFW_API_UNAVAILABLE && error_code != GLFW_INVALID_VALUE
+        (error_code != GLFW_API_UNAVAILABLE
+         && error_code != GLFW_INVALID_VALUE
          && error_code != GLFW_PLATFORM_ERROR)
         && "A precondition should have already been violated"
     );

@@ -24,10 +24,6 @@ VertexOutput main(
     }
 
     float3 position = scene.positions[primitive.position_offset + vertex_index];
-    if (scene.transforms != nullptr) {
-        float4 world_position = mul(scene.transforms[0], float4(position, 1.0));
-        position = divide(world_position.xyz, world_position.w);
-    }
 
     float4 color = float4(0, 0, 0, 1);
     if (primitive.color_offset != UINT32_MAX) {

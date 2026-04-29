@@ -91,7 +91,8 @@ auto create_swapchain(
     };
     const vk::PresentModeKHR present_mode{
         pick_present_mode(
-            device.physical_device().getSurfacePresentModesKHR(surface), vsync
+            device.physical_device().getSurfacePresentModesKHR(surface),
+            vsync
         )   //
     };
     const uint32_t image_count{

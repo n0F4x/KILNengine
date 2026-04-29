@@ -27,7 +27,9 @@ auto vulkan_queue_family_supports_presenting(
 {
     const int result{
         glfwGetPhysicalDevicePresentationSupport(
-            *instance, *physical_device, queue_family_index.underlying()
+            *instance,
+            *physical_device,
+            queue_family_index.underlying()
         )   //
     };
     if (result != GLFW_TRUE)

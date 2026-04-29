@@ -189,7 +189,9 @@ template <basic_generic_stack_item_c<Any_T> Item_T>
 auto BasicGenericStack<Any_T>::contains() const noexcept -> bool
 {
     return std::ranges::contains(
-        m_types_and_items, hash_u64<Item_T>(), &std::pair<uint64_t, Any>::first
+        m_types_and_items,
+        hash_u64<Item_T>(),
+        &std::pair<uint64_t, Any>::first
     );
 }
 

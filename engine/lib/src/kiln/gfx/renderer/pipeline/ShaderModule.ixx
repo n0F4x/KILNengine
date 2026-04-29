@@ -51,7 +51,8 @@ auto ShaderModule::load_from_file(const std::filesystem::path& filepath)
 
     file.seekg(0, std::ios::beg);
     file.read(
-        reinterpret_cast<std::istream::char_type*>(result->m_code.data()), file_size
+        reinterpret_cast<std::istream::char_type*>(result->m_code.data()),
+        file_size
     );
 
     return result;

@@ -37,7 +37,7 @@ public:
         const allocator_type&              allocator,
         const kiln::gfx::renderer::Device& device,
         uint32_t                           number_of_frames_in_flight,
-        vk::Format                   swapchain_surface_format,
+        vk::Format                         swapchain_surface_format,
         uint32_t                           number_of_swapchain_images
     );
 

@@ -14,4 +14,4 @@ export using ::Material;
 export using ::Primitive;
 export using ::Scene;
 
-}   // namespace demo
+}   // namespace demo::shaders

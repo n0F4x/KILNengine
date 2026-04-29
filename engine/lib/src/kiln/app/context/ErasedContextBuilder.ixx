@@ -37,8 +37,9 @@ public:
             && !util::specialization_of_c<
                 std::remove_cvref_t<ContextBuilder_T>,
                 std::in_place_type_t>
-            && std::
-                is_constructible_v<std::remove_cvref_t<ContextBuilder_T>, ContextBuilder_T &&>
+            && std::is_constructible_v<
+                std::remove_cvref_t<ContextBuilder_T>,
+                ContextBuilder_T &&>
             && storable<ContextBuilder_T>()
         );
     template <util::naked_c ContextBuilder_T, typename... Args_T>
@@ -155,8 +156,7 @@ ErasedContextBuilder::ErasedContextBuilder(
         && !util::specialization_of_c<
             std::remove_cvref_t<ContextBuilder_T>,
             std::in_place_type_t>
-        && std::
-            is_constructible_v<std::remove_cvref_t<ContextBuilder_T>, ContextBuilder_T &&>
+        && std::is_constructible_v<std::remove_cvref_t<ContextBuilder_T>, ContextBuilder_T &&>
         && storable<ContextBuilder_T>()
     )
     : ErasedContextBuilder{

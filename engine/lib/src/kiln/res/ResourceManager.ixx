@@ -70,11 +70,12 @@ public:
 
 }   // namespace internal
 
-}   // namespace kiln::resource
+}   // namespace kiln::res
 
 namespace kiln::res {
 
-ResourceManager::ResourceManager(const allocator_type& allocator) : m_resource_pools{ allocator }
+ResourceManager::ResourceManager(const allocator_type& allocator)
+    : m_resource_pools{ allocator }
 {
 }
 
@@ -105,9 +106,8 @@ template <resource_c Resource_T, typename... Args_T>
 auto ResourceManager::try_emplace(const ResourceID id, Args_T&&... args)
     -> SharedResourceHandle<Resource_T>
 {
-    return m_resource_pools[util::hash_u64<Resource_T>()].try_emplace(
-        id, std::forward<Args_T>(args)...
-    );
+    return m_resource_pools[util::hash_u64<Resource_T>()]
+        .try_emplace(id, std::forward<Args_T>(args)...);
 }
 
-}   // namespace kiln::resource
+}   // namespace kiln::res

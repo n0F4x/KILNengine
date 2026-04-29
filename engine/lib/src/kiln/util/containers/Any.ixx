@@ -338,8 +338,8 @@ namespace kiln::util {
 namespace internal {
 
 template <typename T, std::size_t size_T, std::size_t alignment_T>
-concept small_c = sizeof(T) <= size_T && alignment_T % alignof(T) == 0
-               && nothrow_movable_c<T>;
+concept small_c =
+    sizeof(T) <= size_T && alignment_T % alignof(T) == 0 && nothrow_movable_c<T>;
 
 template <typename T, std::size_t size_T, std::size_t alignment_T>
 concept large_c = !small_c<T, size_T, alignment_T>;
@@ -472,7 +472,8 @@ private:
         SmallBuffer& small_buffer = out.template emplace<SmallBuffer>();
 
         allocator.construct(
-            reinterpret_cast<T*>(small_buffer.data.data()), std::forward<Args_T>(args)...
+            reinterpret_cast<T*>(small_buffer.data.data()),
+            std::forward<Args_T>(args)...
         );
     }
 };
@@ -665,7 +666,9 @@ template <typename Traits_T>
 template <typename T>
 consteval auto BasicAny<Traits_T>::storable() -> bool
 {
-    return storable_c<T> && decayed_c<T> && (is_move_only() || std::copy_constructible<T>)
+    return storable_c<T>
+        && decayed_c<T>
+        && (is_move_only() || std::copy_constructible<T>)
         && Traits::template meets_custom_requirements<T>();
 }
 
@@ -738,7 +741,9 @@ constexpr BasicAny<Traits_T>::BasicAny(
       m_vtable{ &internal::Operations<T, Traits>::vtable }
 {
     internal::Operations<T, Traits>::create(
-        m_allocator, m_storage, std::forward<Args_T>(args)...
+        m_allocator,
+        m_storage,
+        std::forward<Args_T>(args)...
     );
 }
 

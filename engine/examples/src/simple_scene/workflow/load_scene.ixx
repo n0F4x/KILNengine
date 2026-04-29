@@ -17,11 +17,11 @@ namespace demo {
 
 export [[nodiscard]]
 auto load_scene(
-    const std::filesystem::path&              model_path,
-    const kiln::gfx::renderer::Device&        device,
-    kiln::gfx::renderer::Allocator&           gpu_allocator,
-    kiln::gfx::asset::gltf::Parser&           model_parser,
-    kiln::gfx::renderer::StagingStream&       staging_stream
+    const std::filesystem::path&        model_path,
+    const kiln::gfx::renderer::Device&  device,
+    kiln::gfx::renderer::Allocator&     gpu_allocator,
+    kiln::gfx::asset::gltf::Parser&     model_parser,
+    kiln::gfx::renderer::StagingStream& staging_stream
 ) -> Scene;
 
 }   // namespace demo

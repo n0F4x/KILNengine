@@ -20,8 +20,8 @@ public:
     auto contexts(this Self_T&&) noexcept -> util::forward_like_t<Contexts, Self_T>;
 
 private:
-    MemoryArena    m_arena;
-    Contexts m_contexts;
+    MemoryArena m_arena;
+    Contexts    m_contexts;
 };
 
 }   // namespace kiln::app

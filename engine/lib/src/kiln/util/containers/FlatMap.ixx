@@ -16,7 +16,7 @@ namespace kiln::util {
 export template <typename Key_T, typename Value_T>
 class FlatMap final {
 public:
-    using key_container_type = std::pmr::vector<Key_T>;
+    using key_container_type    = std::pmr::vector<Key_T>;
     using mapped_container_type = std::pmr::vector<Value_T>;
     template <bool is_const_T>
     class Iterator;
@@ -157,7 +157,7 @@ public:
     }
 
 private:
-    key_container_type   m_keys;
+    key_container_type    m_keys;
     mapped_container_type m_values;
 };
 

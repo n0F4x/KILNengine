@@ -3,7 +3,6 @@ module;
 #include <cstdint>
 #include <functional>
 #include <optional>
-#include <ranges>
 #include <vector>
 
 module kiln.gfx.renderer.command.QueueProvider;
@@ -113,9 +112,12 @@ auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
             queue_pack_from(std::in_place_type<GraphicsQueue>, QueueType::eGraphics)
         ),
         .host_to_device_transfer_queue_pack =
-            device.host_to_device_transfer_queue_info().transform(queue_pack_from(
-                std::in_place_type<TransferQueue>, QueueType::eHostToDeviceTransfer
-            )),
+            device.host_to_device_transfer_queue_info().transform(
+                queue_pack_from(
+                    std::in_place_type<TransferQueue>,
+                    QueueType::eHostToDeviceTransfer
+                )   //
+            ),
     };
 
     return QueueProvider{ std::move(queues) };

@@ -5,7 +5,7 @@ module;
 #include <utility>
 #include <variant>
 
-#include <vulkan/vulkan_core.h> // used for VkResult
+#include <vulkan/vulkan_core.h>   // used for VkResult
 
 #include "kiln/util/contract_macros.hpp"
 

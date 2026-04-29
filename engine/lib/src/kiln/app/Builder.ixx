@@ -39,7 +39,7 @@ public:
     auto build() && -> App;
 
 private:
-    MemoryArena            m_arena;
+    MemoryArena      m_arena;
     ContextBuildTree m_context_build_tree;
 };
 

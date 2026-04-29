@@ -89,8 +89,9 @@ auto PhysicalDeviceCapabilities::supported_by(
             {
                 return std::ranges::none_of(
                     supported_extension_properties,
-                    [extension_name](const vk::ExtensionProperties& extension_properties)
-                        -> bool
+                    [extension_name](
+                        const vk::ExtensionProperties& extension_properties
+                    ) -> bool
                     {
                         return extension_name
                             == util::StringLiteral::unsafe_create(
@@ -105,9 +106,8 @@ auto PhysicalDeviceCapabilities::supported_by(
     }
 
     StructureChain<vk::PhysicalDeviceFeatures2> supported_features{ m_features };
-    physical_device.getDispatcher()->vkGetPhysicalDeviceFeatures2(
-        *physical_device, supported_features.root()
-    );
+    physical_device.getDispatcher()
+        ->vkGetPhysicalDeviceFeatures2(*physical_device, supported_features.root());
     if (!m_features.matches(supported_features.root()))
     {
         return false;
@@ -432,7 +432,8 @@ auto PhysicalDeviceCapabilities::upgrade_to_Vulkan11() -> void
         [&vulkan11_features](const util::StringLiteral extension_name) -> bool
         {
             return try_promote_extension_to_vulkan11(
-                extension_name, vulkan11_features
+                extension_name,
+                vulkan11_features
             );   //
         }
     );
@@ -457,7 +458,8 @@ auto PhysicalDeviceCapabilities::upgrade_to_Vulkan12() -> void
         [&vulkan12_features](const util::StringLiteral extension_name) -> bool
         {
             return try_promote_extension_to_vulkan12(
-                extension_name, vulkan12_features
+                extension_name,
+                vulkan12_features
             );   //
         }
     );
@@ -482,7 +484,8 @@ auto PhysicalDeviceCapabilities::upgrade_to_Vulkan13() -> void
         [&vulkan13_features](const util::StringLiteral extension_name) -> bool
         {
             return try_promote_extension_to_vulkan13(
-                extension_name, vulkan13_features
+                extension_name,
+                vulkan13_features
             );   //
         }
     );
@@ -507,7 +510,8 @@ auto PhysicalDeviceCapabilities::upgrade_to_Vulkan14() -> void
         [&vulkan14_features](const util::StringLiteral extension_name) -> bool
         {
             return try_promote_extension_to_vulkan14(
-                extension_name, vulkan14_features
+                extension_name,
+                vulkan14_features
             );   //
         }
     );

@@ -350,9 +350,8 @@ concept creates_builder_c = requires {
 };
 
 template <typename T>
-concept represents_optional_dependency_c = requires {
-    requires util::specialization_of_c<T, util::OptionalRef>;
-};
+concept represents_optional_dependency_c =
+    requires { requires util::specialization_of_c<T, util::OptionalRef>; };
 
 template <context_c Context_T>
 auto ContextBuildTree::register_context(
@@ -392,7 +391,8 @@ auto ContextBuildTree::Injector::insert_builder(
 ) -> void
 {
     m_build_tree.emplace_builder<std::remove_cvref_t<Builder_T>>(
-        transient_memory_resource, std::forward<Builder_T>(builder)
+        transient_memory_resource,
+        std::forward<Builder_T>(builder)
     );
 }
 
@@ -438,7 +438,8 @@ auto ContextBuildTree::unsafe_register_context_builder(
 
     resolve_build_dependencies<StrippedBuilder>(transient_memory_resource);
     emplace_builder<StrippedBuilder>(
-        transient_memory_resource, std::forward<ContextBuilder_T>(context_builder)
+        transient_memory_resource,
+        std::forward<ContextBuilder_T>(context_builder)
     );
 
     m_contained_hashes.insert(std::ranges::upper_bound(m_contained_hashes, hash), hash);
@@ -467,7 +468,9 @@ auto ContextBuildTree::check_for_cyclic_dependency(
         };
 
         return check_for_cyclic_dependency_via_builder<typename Context_T::Builder>(
-            dependency_chain_node, hash_cache, transient_memory_resource
+            dependency_chain_node,
+            hash_cache,
+            transient_memory_resource
         );
     }
 
@@ -519,7 +522,9 @@ auto ContextBuildTree::check_for_cyclic_dependency(
         };
 
         return check_for_cyclic_dependency_via_builder<typename Context_T::Builder>(
-            dependency_chain_node, hash_cache, transient_memory_resource
+            dependency_chain_node,
+            hash_cache,
+            transient_memory_resource
         );
     }
 
@@ -534,10 +539,14 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_builder(
 ) const -> bool
 {
     return check_for_cyclic_dependency_via_create<Builder_T>(
-               dependency_chain, hash_cache, transient_memory_resource
+               dependency_chain,
+               hash_cache,
+               transient_memory_resource
            )
         || check_for_cyclic_dependency_via_build<Builder_T>(
-               dependency_chain, hash_cache, transient_memory_resource
+               dependency_chain,
+               hash_cache,
+               transient_memory_resource
         );
 }
 
@@ -560,7 +569,9 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_create(
                     util::result_of_t<decltype(&strip_dependency_t<Dependency_T>::build)>;
 
                 return check_for_cyclic_dependency<DependencyContext>(
-                    dependency_chain, hash_cache, transient_memory_resource
+                    dependency_chain,
+                    hash_cache,
+                    transient_memory_resource
                 );
             }
         );
@@ -583,7 +594,9 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_build(
             using DependencyContext = strip_dependency_t<Dependency_T>;
 
             return check_for_cyclic_dependency<DependencyContext>(
-                dependency_chain, hash_cache, transient_memory_resource
+                dependency_chain,
+                hash_cache,
+                transient_memory_resource
             );
         }
     );
@@ -719,7 +732,9 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
 
             if (const auto iter{
                     std::ranges::lower_bound(
-                        std::next(out.begin(), starting_index), out.end(), dependency_hash
+                        std::next(out.begin(), starting_index),
+                        out.end(),
+                        dependency_hash
                     )   //
                 };
                 (iter == out.cend() || *iter != dependency_hash)
@@ -758,7 +773,9 @@ auto ContextBuildTree::emplace_builder(
         );
 
     fix_order_of_builders(
-        hash, dependency_descriptor.resolved_dependencies(), transient_memory_resource
+        hash,
+        dependency_descriptor.resolved_dependencies(),
+        transient_memory_resource
     );
     mark_builder_as_resolved(hash);
 }
@@ -834,7 +851,8 @@ auto ContextBuildTree::emplace_injection(
                 std::apply(
                     Builder_T::create,
                     collect_creation_dependencies(
-                        util::arguments_of_t<decltype(Builder_T::create)>{}, injector
+                        util::arguments_of_t<decltype(Builder_T::create)>{},
+                        injector
                     )
                 ),
                 u_transient_memory_resource
@@ -851,7 +869,9 @@ auto ContextBuildTree::emplace_injection(
         );
 
     fix_order_of_injections(
-        hash, dependency_descriptor.resolved_dependencies(), transient_memory_resource
+        hash,
+        dependency_descriptor.resolved_dependencies(),
+        transient_memory_resource
     );
     mark_injection_as_resolved(hash);
 }
@@ -883,7 +903,8 @@ auto ContextBuildTree::collect_all_missing_injection_dependency_hashes(
             if constexpr (requires { StrippedDependency::create; })
             {
                 util::for_each(
-                    util::arguments_of_t<decltype(StrippedDependency::create)>{}, x_self
+                    util::arguments_of_t<decltype(StrippedDependency::create)>{},
+                    x_self
                 );
             }
         }
@@ -924,7 +945,8 @@ auto ContextBuildTree::collect_all_resolved_injection_dependency_hashes(
             if constexpr (requires { StrippedDependency::create; })
             {
                 util::for_each(
-                    util::arguments_of_t<decltype(StrippedDependency::create)>{}, x_self
+                    util::arguments_of_t<decltype(StrippedDependency::create)>{},
+                    x_self
                 );
             }
         }

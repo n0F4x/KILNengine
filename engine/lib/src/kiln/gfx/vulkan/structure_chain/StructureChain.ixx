@@ -210,7 +210,8 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         PRECOND(Struct_T::structureType == other.sType);
 
         return match_physical_device_features(
-            util::any_cast<Struct_T>(that), reinterpret_cast<const Struct_T&>(other)
+            util::any_cast<Struct_T>(that),
+            reinterpret_cast<const Struct_T&>(other)
         );
     }
 
@@ -221,7 +222,8 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         PRECOND(Struct_T::structureType == other.sType);
 
         merge_physical_device_features(
-            util::any_cast<Struct_T>(that), reinterpret_cast<const Struct_T&>(other)
+            util::any_cast<Struct_T>(that),
+            reinterpret_cast<const Struct_T&>(other)
         );
     }
 
@@ -268,7 +270,8 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         PRECOND(Struct_T::structureType == other.sType);
 
         filter_physical_device_features(
-            util::any_cast<Struct_T>(that), reinterpret_cast<const Struct_T&>(other)
+            util::any_cast<Struct_T>(that),
+            reinterpret_cast<const Struct_T&>(other)
         );
     }
 
@@ -279,7 +282,8 @@ struct ErasedStructExtraVTable<Any_T>::Operations {
         PRECOND(Struct_T::structureType == other.sType);
 
         erase_physical_device_features(
-            util::any_cast<Struct_T>(that), reinterpret_cast<const Struct_T&>(other)
+            util::any_cast<Struct_T>(that),
+            reinterpret_cast<const Struct_T&>(other)
         );
     }
 
@@ -664,7 +668,8 @@ constexpr auto StructureChain<RootStruct_T>::matches(
     requires std::same_as<RootStruct_T, vk::PhysicalDeviceFeatures2>
 {
     if (!match_physical_device_features(
-            m_root_struct.features, physical_device_features.features
+            m_root_struct.features,
+            physical_device_features.features
         ))
     {
         return false;
@@ -850,7 +855,8 @@ constexpr auto StructureChain<RootStruct_T>::erase_features(
     requires std::same_as<RootStruct_T, vk::PhysicalDeviceFeatures2>
 {
     erase_physical_device_features(
-        m_root_struct.features, physical_device_features.features
+        m_root_struct.features,
+        physical_device_features.features
     );
 
     bool needs_reconnect{};

@@ -76,7 +76,8 @@ auto Bin::insert(T&& garbage_bag) -> T&
     requires(storable<T>() && std::is_constructible_v<T, T &&>)
 {
     return emplace(
-        std::in_place_type<std::remove_cvref_t<T>>, std::forward<T>(garbage_bag)
+        std::in_place_type<std::remove_cvref_t<T>>,
+        std::forward<T>(garbage_bag)
     );
 }
 

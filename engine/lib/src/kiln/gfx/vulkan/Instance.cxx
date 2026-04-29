@@ -208,14 +208,13 @@ auto InstanceBuilder::build() const -> Instance
     };
 
     const vk::InstanceCreateInfo instance_create_info{
-        .pApplicationInfo        = &application_info,
-        .enabledLayerCount       = static_cast<uint32_t>(m_layer_names.size()),
-        .ppEnabledLayerNames     = m_layer_names.empty() ? nullptr
-                                                         : m_layer_names.front().address(),
-        .enabledExtensionCount   = static_cast<uint32_t>(m_extension_names.size()),
-        .ppEnabledExtensionNames = m_extension_names.empty()
-                                     ? nullptr
-                                     : m_extension_names.front().address(),
+        .pApplicationInfo      = &application_info,
+        .enabledLayerCount     = static_cast<uint32_t>(m_layer_names.size()),
+        .ppEnabledLayerNames   = m_layer_names.empty() ? nullptr
+                                                       : m_layer_names.front().address(),
+        .enabledExtensionCount = static_cast<uint32_t>(m_extension_names.size()),
+        .ppEnabledExtensionNames =
+            m_extension_names.empty() ? nullptr : m_extension_names.front().address(),
     };
 
     return Instance{

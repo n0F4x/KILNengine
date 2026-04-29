@@ -38,15 +38,15 @@ struct IsContextDependencyRef {
 };
 
 template <typename T, typename ContextBuilder_T>
-concept configures_c =
-    util::naked_c<ContextBuilder_T>   //
-    && requires {
-           requires std::
-               same_as<util::type_list_front_t<util::arguments_of_t<T>>, ContextBuilder_T&>;
-           requires util::type_list_all_of_c<
-               util::type_list_drop_front_t<util::arguments_of_t<T>>,
-               IsContextDependencyRef<ContextBuilder_T>::template type>;
-       };
+concept configures_c = util::naked_c<ContextBuilder_T>   //
+                    && requires {
+                           requires std::same_as<
+                               util::type_list_front_t<util::arguments_of_t<T>>,
+                               ContextBuilder_T&>;
+                           requires util::type_list_all_of_c<
+                               util::type_list_drop_front_t<util::arguments_of_t<T>>,
+                               IsContextDependencyRef<ContextBuilder_T>::template type>;
+                       };
 
 
 export class ContextBuilderInterface;
@@ -128,9 +128,8 @@ auto invoke(ContextBuilder_T&& builder, Contexts& contexts) -> void
     ) -> void
     {
         contexts.insert(
-            std::forward<ContextBuilder_T>(builder).build(
-                fetch_dependency<PotentiallyOptionalContextRefs_T>(contexts)...
-            )
+            std::forward<ContextBuilder_T>(builder)
+                .build(fetch_dependency<PotentiallyOptionalContextRefs_T>(contexts)...)
         );
     }(util::arguments_of_t<decltype(&ContextBuilder_T::build)>{});
 }
@@ -168,7 +167,8 @@ auto ContextBuilderInterface::register_configuration(
 
         self.ContextBuilderInterface::m_configurators.emplace_back(
             [x_configuration = std::forward<Configuration_T>(configuration)](
-                ContextBuilderInterface& future_self, Contexts& contexts
+                ContextBuilderInterface& future_self,
+                Contexts&                contexts   //
             ) mutable -> void
             {
                 std::invoke(

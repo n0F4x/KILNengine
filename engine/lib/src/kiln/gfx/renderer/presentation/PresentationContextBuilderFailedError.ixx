@@ -4,7 +4,9 @@ import kiln.app.context.ContextBuilderFailedError;
 
 namespace kiln::gfx::renderer {
 
-export class PresentationContextBuilderFailedError : public app::ContextBuilderFailedError {
+export class PresentationContextBuilderFailedError
+    : public app::ContextBuilderFailedError   //
+{
 public:
     using ContextBuilderFailedError::ContextBuilderFailedError;
 };

@@ -389,7 +389,8 @@ template <typename U>
 struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operations {
     constexpr static auto uses_small_buffer() noexcept -> bool
     {
-        return sizeof(U) <= size_T && alignment_T % alignof(U) == 0
+        return sizeof(U) <= size_T
+            && alignment_T % alignof(U) == 0
             && nothrow_movable_c<U>;
     }
 
@@ -403,7 +404,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
         if constexpr (uses_small_buffer())
         {
             allocator.construct(
-                static_cast<U*>(storage.small_buffer.data()), std::forward<Args_T>(args)...
+                static_cast<U*>(storage.small_buffer.data()),
+                std::forward<Args_T>(args)...
             );
         }
         else
@@ -490,7 +492,9 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
                 else
                 {
                     copy_construct_at(
-                        destination_allocator, destination_storage, source_storage
+                        destination_allocator,
+                        destination_storage,
+                        source_storage
                     );
                 }
             }
@@ -534,7 +538,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
             destination_erase_mechanism.drop(destination_allocator, destination_storage);
 
             destination_allocator.construct(
-                static_cast<U*>(destination_storage.small_buffer.data()), new_object
+                static_cast<U*>(destination_storage.small_buffer.data()),
+                new_object
             );
         }
         else
@@ -649,7 +654,10 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
                 );
                 Storage tmp;
                 rhs_erase_mechanism.move_construct_at(
-                    lhs_allocator, tmp, rhs_allocator, std::move(rhs_storage)
+                    lhs_allocator,
+                    tmp,
+                    rhs_allocator,
+                    std::move(rhs_storage)
                 );
                 rhs_erase_mechanism.drop(rhs_allocator, rhs_storage);
                 const ScopeFail tmp_guard{
@@ -677,7 +685,10 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
                 T* tmp{ lhs_storage.handle };
 
                 rhs_erase_mechanism.move_construct_at(
-                    lhs_allocator, lhs_storage, rhs_allocator, std::move(rhs_storage)
+                    lhs_allocator,
+                    lhs_storage,
+                    rhs_allocator,
+                    std::move(rhs_storage)
                 );
                 rhs_erase_mechanism.drop(rhs_allocator, rhs_storage);
 
@@ -742,9 +753,10 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
 
 template <typename T, bool is_move_only_T, std::size_t alignment_T>
 struct EraseMechanism<T, is_move_only_T, 0, alignment_T>::VTable {
-    using CopyConstructFunc =
-        auto(std::pmr::polymorphic_allocator<T>& allocator, const Storage& source_storage)
-            -> Storage;
+    using CopyConstructFunc = auto(
+        std::pmr::polymorphic_allocator<T>& allocator,
+        const Storage&                      source_storage
+    ) -> Storage;
     using CopyAssignFunc = auto(
         std::pmr::polymorphic_allocator<T>& allocator,
         Storage&                            destination_storage,
@@ -793,7 +805,8 @@ struct EraseMechanism<T, is_move_only_T, 0, alignment_T>::VTable::Operations {
     ) -> void
     {
         if (destination_erase_mechanism.type_hash() == type_hash()
-            && destination_storage.handle != nullptr && source_storage.handle != nullptr)
+            && destination_storage.handle != nullptr
+            && source_storage.handle != nullptr)
         {
             static_cast<U&>(*destination_storage.handle) =
                 static_cast<const U&>(*source_storage.handle);
@@ -876,7 +889,10 @@ auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::move_construct(
 {
     Storage result;
     move_construct_at(
-        destination_allocator, result, source_allocator, std::move(source_storage)
+        destination_allocator,
+        result,
+        source_allocator,
+        std::move(source_storage)
     );
     return result;
 }
@@ -888,9 +904,8 @@ constexpr auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::move_cons
     Storage&& source_storage
 ) const noexcept -> void
 {
-    return m_vtable.get().move_construct_at(
-        destination_storage, std::move(source_storage)
-    );
+    return m_vtable.get()
+        .move_construct_at(destination_storage, std::move(source_storage));
 }
 
 template <typename T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
@@ -932,7 +947,9 @@ auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::construct(
 {
     Storage result;
     VTable::template Operations<U>::create_at(
-        allocator, result, std::forward<Args_T>(args)...
+        allocator,
+        result,
+        std::forward<Args_T>(args)...
     );
     return result;
 }
@@ -1000,8 +1017,8 @@ auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::type_hash() const -
 
 template <typename T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
     requires(size_T != 0)
-auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::
-    uses_small_buffer() const noexcept -> bool
+auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::uses_small_buffer() const noexcept
+    -> bool
 {
     return m_vtable.get().uses_small_buffer();
 }
@@ -1016,9 +1033,8 @@ constexpr auto EraseMechanism<T, is_move_only_T, size_T, alignment_T>::swap(
     const EraseMechanism&               rhs_erase_mechanism
 ) const -> void
 {
-    m_vtable.get().swap(
-        lhs_allocator, lhs_storage, rhs_allocator, rhs_storage, rhs_erase_mechanism
-    );
+    m_vtable.get()
+        .swap(lhs_allocator, lhs_storage, rhs_allocator, rhs_storage, rhs_erase_mechanism);
 }
 
 template <typename T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
@@ -1231,7 +1247,8 @@ template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::siz
 template <typename U>
 consteval auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::storable() -> bool
 {
-    return std::derived_from<U, T> && storable_c<U>
+    return std::derived_from<U, T>
+        && storable_c<U>
         && (is_move_only() || std::copyable<U>);
 }
 
@@ -1375,9 +1392,8 @@ auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::operator=(
         return *this;
     }
 
-    other.m_erase_mechanism.copy_assign(
-        m_allocator, m_storage, m_erase_mechanism, other.m_storage
-    );
+    other.m_erase_mechanism
+        .copy_assign(m_allocator, m_storage, m_erase_mechanism, other.m_storage);
     m_erase_mechanism = other.m_erase_mechanism;
 
     return *this;
@@ -1461,7 +1477,11 @@ template <std::destructible T, bool is_move_only_T, std::size_t size_T, std::siz
 auto Polymorphic<T, is_move_only_T, size_T, alignment_T>::swap(Polymorphic& other) -> void
 {
     m_erase_mechanism.swap(
-        m_allocator, m_storage, other.m_allocator, other.m_storage, other.m_erase_mechanism
+        m_allocator,
+        m_storage,
+        other.m_allocator,
+        other.m_storage,
+        other.m_erase_mechanism
     );
     std::swap(m_erase_mechanism, other.m_erase_mechanism);
 }

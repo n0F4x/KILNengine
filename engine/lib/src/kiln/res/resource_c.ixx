@@ -8,4 +8,4 @@ namespace kiln::res {
 export template <typename T>
 concept resource_c = util::naked_c<T> && util::storable_c<T>;
 
-}   // namespace kiln::resource
+}   // namespace kiln::res

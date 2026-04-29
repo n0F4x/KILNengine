@@ -74,9 +74,8 @@ auto create_graphics_command_buffers(
     for (const std::size_t index : std::views::iota(0uz, command_pools.size()))
     {
         result.push_back(
-            command_pools[index].allocate_primary(
-                kiln::gfx::renderer::CommandBufferUsageFlags::eReusable
-            )
+            command_pools[index]
+                .allocate_primary(kiln::gfx::renderer::CommandBufferUsageFlags::eReusable)
         );
     }
 
@@ -138,7 +137,8 @@ Context::Context(Context&& other, const allocator_type& allocator)
       m_shader_module{ std::move(other.m_shader_module) },
       m_pipeline{ std::move(other.m_pipeline) },
       m_graphics_command_pools{ std::move(other.m_graphics_command_pools), allocator },
-      m_graphics_command_buffers{ std::move(other.m_graphics_command_buffers), allocator },
+      m_graphics_command_buffers{ std::move(other.m_graphics_command_buffers),
+                                  allocator },
       m_image_acquired_semaphores{ std::move(other.m_image_acquired_semaphores),
                                    allocator },
       m_render_finished_semaphores{ std::move(other.m_render_finished_semaphores),
@@ -177,7 +177,8 @@ Context::Context(
           *kiln::gfx::renderer::ShaderModule::load_from_file(
               std::filesystem::path{ std::source_location::current().file_name() }
                   .parent_path()
-              / "shaders" / "triangle.spv"
+              / "shaders"
+              / "triangle.spv"
           )   //
       },
       m_pipeline{

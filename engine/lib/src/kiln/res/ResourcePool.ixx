@@ -41,23 +41,30 @@ private:
     std::pmr::unordered_map<ResourceID, WeakResourceHandle<Resource_T>> m_resources;
 };
 
-}   // namespace kiln::resource
+}   // namespace kiln::res
 
 namespace kiln::res {
 
 template <resource_c Resource_T>
-ResourcePool<Resource_T>::ResourcePool(const allocator_type& allocator) : m_resources{ allocator }
+ResourcePool<Resource_T>::ResourcePool(const allocator_type& allocator)
+    : m_resources{ allocator }
 {
 }
 
 template <resource_c Resource_T>
-ResourcePool<Resource_T>::ResourcePool(const ResourcePool& other, const allocator_type& allocator)
+ResourcePool<Resource_T>::ResourcePool(
+    const ResourcePool&   other,
+    const allocator_type& allocator
+)
     : m_resources{ other.m_resources, allocator }
 {
 }
 
 template <resource_c Resource_T>
-ResourcePool<Resource_T>::ResourcePool(ResourcePool&& other, const allocator_type& allocator)
+ResourcePool<Resource_T>::ResourcePool(
+    ResourcePool&&        other,
+    const allocator_type& allocator
+)
     : m_resources{ std::move(other.m_resources), allocator }
 {
 }
@@ -69,7 +76,8 @@ auto ResourcePool<Resource_T>::get_allocator() const noexcept -> allocator_type
 }
 
 template <resource_c Resource_T>
-auto ResourcePool<Resource_T>::find(const ResourceID id) const -> WeakResourceHandle<Resource_T>
+auto ResourcePool<Resource_T>::find(const ResourceID id) const
+    -> WeakResourceHandle<Resource_T>
 {
     const auto iter{ m_resources.find(id) };
     if (iter == m_resources.cend())
@@ -94,9 +102,10 @@ auto ResourcePool<Resource_T>::try_emplace(const ResourceID id, Args_T&&... args
         return std::pair{ std::move(found_handle), false };
     }
 
-    contained_handle = make_shared_resource_handle<Resource_T>(std::forward<Args_T>(args)...);
+    contained_handle =
+        make_shared_resource_handle<Resource_T>(std::forward<Args_T>(args)...);
 
     return std::pair{ contained_handle.lock(), true };
 }
 
-}   // namespace kiln::resource
+}   // namespace kiln::res

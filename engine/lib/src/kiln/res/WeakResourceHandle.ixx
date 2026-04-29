@@ -11,4 +11,4 @@ namespace kiln::res {
 export template <resource_c Resource_T>
 using WeakResourceHandle = std::weak_ptr<Resource_T>;
 
-}   // namespace kiln::resource
+}   // namespace kiln::res

@@ -13,9 +13,7 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::asset::gltf {
 
-auto Parser::load(
-    const std::filesystem::path& filepath
-) -> std::optional<fastgltf::Asset>
+auto Parser::load(const std::filesystem::path& filepath) -> std::optional<fastgltf::Asset>
 {
     fastgltf::GltfFileStream file{ filepath };
     if (!file.isOpen())
