@@ -3,8 +3,8 @@
 #define EXPORT
 #define PUBLIC_MEMBER
 #include <cstdint>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 #define float3 glm::vec3
 #define float4 glm::vec4
 #else

@@ -80,7 +80,7 @@ auto geometry_alignment_from(const GltfModelLoader& model_loader) -> vk::DeviceS
 [[nodiscard]]
 auto create_geometry_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&              model_loader
+    const GltfModelLoader&          model_loader
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -105,7 +105,7 @@ auto create_geometry_buffer(
 [[nodiscard]]
 auto create_material_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&              model_loader
+    const GltfModelLoader&          model_loader
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -128,6 +128,31 @@ auto create_material_buffer(
 }
 
 [[nodiscard]]
+auto create_transform_buffer(
+    kiln::gfx::renderer::Allocator& gpu_allocator,
+    const GltfModelLoader&          model_loader
+) -> kiln::gfx::renderer::Buffer
+{
+    constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
+        .usage = vk::BufferUsageFlagBits2::eTransferDst
+               | vk::BufferUsageFlagBits2::eShaderDeviceAddress,
+    };
+    const vk::BufferCreateInfo buffer_create_info{
+        .pNext       = &buffer_usage_flags,
+        .size        = model_loader.transforms_size_bytes(),
+        .sharingMode = vk::SharingMode::eExclusive,
+    };
+    constexpr static VmaAllocationCreateInfo allocation_create_info{
+        .usage = VMA_MEMORY_USAGE_AUTO,
+    };
+    return gpu_allocator.create_buffer(
+        buffer_create_info,
+        allocation_create_info,
+        model_loader.transform_alignment()
+    );
+}
+
+[[nodiscard]]
 consteval auto draw_command_count_size() noexcept -> uint32_t
 {
     return sizeof(uint32_t);
@@ -136,7 +161,7 @@ consteval auto draw_command_count_size() noexcept -> uint32_t
 [[nodiscard]]
 auto create_draw_command_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&              model_loader
+    const GltfModelLoader&          model_loader
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -162,7 +187,7 @@ auto create_draw_command_buffer(
 auto stage_indices(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                        model_loader,
+    GltfModelLoader&                    model_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     const vk::MemoryPropertyFlags       memory_properties,
     vk::DeviceSize&                     buffer_offset
@@ -204,7 +229,7 @@ auto stage_indices(
 auto stage_positions(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                        model_loader,
+    GltfModelLoader&                    model_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     const vk::MemoryPropertyFlags       memory_properties,
     vk::DeviceSize&                     buffer_offset
@@ -247,7 +272,7 @@ auto stage_positions(
 auto stage_vertices(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                        model_loader,
+    GltfModelLoader&                    model_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     const vk::MemoryPropertyFlags       memory_properties,
     vk::DeviceSize&                     buffer_offset
@@ -290,7 +315,7 @@ auto stage_vertices(
 auto stage_geometry(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                        model_loader,
+    GltfModelLoader&                    model_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer
 ) -> void
 {
@@ -343,7 +368,7 @@ auto stage_geometry(
 auto stage_materials(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                        model_loader,
+    GltfModelLoader&                    model_loader,
     kiln::gfx::renderer::Buffer&        material_buffer
 ) -> void
 {
@@ -373,6 +398,39 @@ auto stage_materials(
     }
 }
 
+auto stage_transforms(
+    kiln::gfx::renderer::Allocator&     allocator,
+    kiln::gfx::renderer::StagingStream& staging_stream,
+    GltfModelLoader&                    model_loader,
+    kiln::gfx::renderer::Buffer&        transform_buffer
+) -> void
+{
+    model_loader.set_transform_offset(0);
+
+    if (transform_buffer.allocation().memory_properties()
+        & vk::MemoryPropertyFlagBits::eHostVisible)
+    {
+        allocator.host_copy(model_loader.lazy_transforms_copy(), transform_buffer);
+        std::println(
+            "Copied {} bytes (transforms) from host to gpu",
+            transform_buffer.size()
+        );
+    }
+    else
+    {
+        staging_stream.record(
+            kiln::gfx::renderer::StagingRequest{
+                model_loader.lazy_transforms_copy(),
+                transform_buffer,
+            }
+        );
+        std::println(
+            "Staged {} bytes (transforms) from host to gpu",
+            transform_buffer.size()
+        );
+    }
+}
+
 [[nodiscard]]
 auto lazy_copy_draw_commands(const GltfModelLoader& model_loader)
     -> kiln::gfx::renderer::LazyCopy
@@ -394,7 +452,7 @@ auto lazy_copy_draw_commands(const GltfModelLoader& model_loader)
 auto stage_draw_commands(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    const GltfModelLoader&                  model_loader,
+    const GltfModelLoader&              model_loader,
     kiln::gfx::renderer::Buffer&        draw_command_buffer
 ) -> void
 {
@@ -425,9 +483,10 @@ auto stage_draw_commands(
 auto stage_model(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                        model_loader,
+    GltfModelLoader&                    model_loader,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     kiln::gfx::renderer::Buffer&        material_buffer,
+    kiln::gfx::renderer::Buffer&        transform_buffer,
     kiln::gfx::renderer::Buffer&        draw_command_buffer
 ) -> void
 {
@@ -438,6 +497,10 @@ auto stage_model(
     if (material_buffer.size() != 0)
     {
         stage_materials(allocator, staging_stream, model_loader, material_buffer);
+    }
+    if (transform_buffer.size() != 0)
+    {
+        stage_transforms(allocator, staging_stream, model_loader, transform_buffer);
     }
     if (draw_command_buffer.size() != 0)
     {
@@ -490,6 +553,7 @@ auto load_scene(
 
         geometry_buffer     = create_geometry_buffer(gpu_allocator, model_loader);
         material_buffer     = create_material_buffer(gpu_allocator, model_loader);
+        transform_buffer    = create_transform_buffer(gpu_allocator, model_loader);
         draw_command_buffer = create_draw_command_buffer(gpu_allocator, model_loader);
         max_draw_count      = model_loader.max_draw_count();
 
@@ -499,6 +563,7 @@ auto load_scene(
             model_loader,
             geometry_buffer,
             material_buffer,
+            transform_buffer,
             draw_command_buffer
         );
 

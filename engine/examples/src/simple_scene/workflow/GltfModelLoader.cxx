@@ -5,9 +5,9 @@ module;
 #include <limits>
 #include <span>
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/vector_float3.hpp>
+#include <glm/ext/vector_float4.hpp>
 
 #include <fastgltf/core.hpp>
 
@@ -66,6 +66,11 @@ auto GltfModelLoader::materials_size_bytes() const noexcept -> uint32_t
     return 0;
 }
 
+auto GltfModelLoader::transforms_size_bytes() const noexcept -> uint32_t
+{
+    return 0;
+}
+
 auto GltfModelLoader::draw_command_size_bytes() const noexcept -> uint32_t
 {
     return sizeof(shaders::DrawCommand);
@@ -89,6 +94,11 @@ auto GltfModelLoader::vertex_alignment() const noexcept -> uint32_t
 auto GltfModelLoader::material_alignment() const noexcept -> uint32_t
 {
     return alignof(shaders::Material);
+}
+
+auto GltfModelLoader::transform_alignment() const noexcept -> uint32_t
+{
+    return alignof(glm::mat4x4);
 }
 
 auto GltfModelLoader::draw_command_alignment() const noexcept -> uint32_t
@@ -116,24 +126,9 @@ auto GltfModelLoader::set_material_offset(const uint32_t material_offset) -> voi
     m_material_offset = material_offset;
 }
 
-auto GltfModelLoader::index_offset() const -> std::optional<uint32_t>
+auto GltfModelLoader::set_transform_offset(const uint32_t transform_offset) -> void
 {
-    return m_index_offset;
-}
-
-auto GltfModelLoader::position_offset() const -> std::optional<uint32_t>
-{
-    return m_position_offset;
-}
-
-auto GltfModelLoader::vertex_offset() const -> std::optional<uint32_t>
-{
-    return m_vertex_offset;
-}
-
-auto GltfModelLoader::material_offset() const -> std::optional<uint32_t>
-{
-    return m_material_offset;
+    m_transform_offset = transform_offset;
 }
 
 auto GltfModelLoader::lazy_indices_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
@@ -148,7 +143,8 @@ auto GltfModelLoader::lazy_indices_copy() const noexcept -> kiln::gfx::renderer:
     };
 }
 
-auto GltfModelLoader::lazy_positions_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
+auto GltfModelLoader::lazy_positions_copy() const noexcept
+    -> kiln::gfx::renderer::LazyCopy
 {
     return kiln::gfx::renderer::LazyCopy{
         [this](const std::span<std::byte> out) -> void
@@ -172,7 +168,16 @@ auto GltfModelLoader::lazy_vertices_copy() const noexcept -> kiln::gfx::renderer
     };
 }
 
-auto GltfModelLoader::lazy_materials_copy() const noexcept -> kiln::gfx::renderer::LazyCopy
+auto GltfModelLoader::lazy_materials_copy() const noexcept
+    -> kiln::gfx::renderer::LazyCopy
+{
+    return kiln::gfx::renderer::LazyCopy{
+        [](const std::span<std::byte>) static -> void {}
+    };
+}
+
+auto GltfModelLoader::lazy_transforms_copy() const noexcept
+    -> kiln::gfx::renderer::LazyCopy
 {
     return kiln::gfx::renderer::LazyCopy{
         [](const std::span<std::byte>) static -> void {}

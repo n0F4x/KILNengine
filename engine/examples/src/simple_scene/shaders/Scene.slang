@@ -3,7 +3,7 @@
 #define EXPORT
 #define PUBLIC_MEMBER
 #include <cstdint>
-#include <glm/mat4x4.hpp>
+#include <glm/ext/matrix_float4x4.hpp>
 using float4x4 = glm::mat4x4;
 template<typename>
 using Ptr = uint64_t;

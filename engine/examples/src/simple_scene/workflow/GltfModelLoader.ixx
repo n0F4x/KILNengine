@@ -27,6 +27,8 @@ public:
     [[nodiscard]]
     auto materials_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
+    auto transforms_size_bytes() const noexcept -> uint32_t;
+    [[nodiscard]]
     auto draw_command_size_bytes() const noexcept -> uint32_t;
 
     [[nodiscard]]
@@ -38,21 +40,15 @@ public:
     [[nodiscard]]
     auto material_alignment() const noexcept -> uint32_t;
     [[nodiscard]]
+    auto transform_alignment() const noexcept -> uint32_t;
+    [[nodiscard]]
     auto draw_command_alignment() const noexcept -> uint32_t;
 
     auto set_index_offset(uint32_t index_offset) -> void;
     auto set_position_offset(uint32_t position_offset) -> void;
     auto set_vertex_offset(uint32_t vertex_offset) -> void;
     auto set_material_offset(uint32_t material_offset) -> void;
-
-    [[nodiscard]]
-    auto index_offset() const -> std::optional<uint32_t>;
-    [[nodiscard]]
-    auto position_offset() const -> std::optional<uint32_t>;
-    [[nodiscard]]
-    auto vertex_offset() const -> std::optional<uint32_t>;
-    [[nodiscard]]
-    auto material_offset() const -> std::optional<uint32_t>;
+    auto set_transform_offset(uint32_t transform_offset) -> void;
 
     [[nodiscard]]
     auto lazy_indices_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
@@ -62,6 +58,8 @@ public:
     auto lazy_vertices_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
     auto lazy_materials_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
+    [[nodiscard]]
+    auto lazy_transforms_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
     auto lazy_draw_commands_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
 
@@ -74,6 +72,7 @@ private:
     std::optional<uint32_t>                       m_position_offset;
     std::optional<uint32_t>                       m_vertex_offset;
     std::optional<uint32_t>                       m_material_offset;
+    std::optional<uint32_t>                       m_transform_offset;
 
 
     [[nodiscard]]
