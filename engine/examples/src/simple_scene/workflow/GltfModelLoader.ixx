@@ -9,6 +9,7 @@ export module examples.simple_scene.workflow.GltfModelLoader;
 
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;
+import kiln.util.containers.CopyableFunction;
 
 import examples.simple_scene.shaders;
 
@@ -29,7 +30,7 @@ public:
     [[nodiscard]]
     auto transforms_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
-    auto draw_command_size_bytes() const noexcept -> uint32_t;
+    auto draw_command_count() const noexcept -> uint32_t;
 
     [[nodiscard]]
     auto index_alignment() const noexcept -> uint32_t;
@@ -41,8 +42,6 @@ public:
     auto material_alignment() const noexcept -> uint32_t;
     [[nodiscard]]
     auto transform_alignment() const noexcept -> uint32_t;
-    [[nodiscard]]
-    auto draw_command_alignment() const noexcept -> uint32_t;
 
     auto set_index_offset(uint32_t index_offset) -> void;
     auto set_position_offset(uint32_t position_offset) -> void;
@@ -51,32 +50,65 @@ public:
     auto set_transform_offset(uint32_t transform_offset) -> void;
 
     [[nodiscard]]
-    auto lazy_indices_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
+    auto index_writer() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
-    auto lazy_positions_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
+    auto position_writer() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
-    auto lazy_vertices_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
+    auto vertex_writer() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
-    auto lazy_materials_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
+    auto material_writer() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
-    auto lazy_transforms_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
+    auto transform_writer() const noexcept -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
-    auto lazy_draw_commands_copy() const noexcept -> kiln::gfx::renderer::LazyCopy;
-
-    [[nodiscard]]
-    auto max_draw_count() const noexcept -> uint32_t;
+    auto draw_command_writer() const noexcept -> kiln::gfx::renderer::LazyCopy;
 
 private:
-    std::reference_wrapper<const fastgltf::Asset> m_model;
-    std::optional<uint32_t>                       m_index_offset;
-    std::optional<uint32_t>                       m_position_offset;
-    std::optional<uint32_t>                       m_vertex_offset;
-    std::optional<uint32_t>                       m_material_offset;
-    std::optional<uint32_t>                       m_transform_offset;
+    using Writer = kiln::util::CopyableFunction<auto(std::span<std::byte>) const->void>;
+
+    struct Offsets {
+        std::optional<uint32_t> index_offset;
+        std::optional<uint32_t> position_offset;
+        std::optional<uint32_t> vertex_offset;
+        std::optional<uint32_t> material_offset;
+        std::optional<uint32_t> transform_offset;
+    };
+
+    using DrawCommandWriterFactory =                                               //
+        kiln::util::CopyableFunction<                                              //
+            auto(const Offsets&) const noexcept -> kiln::gfx::renderer::LazyCopy   //
+            >;
+
+
+    uint32_t m_indices_size_bytes;
+    uint32_t m_positions_size_bytes;
+    uint32_t m_vertices_size_bytes;
+    uint32_t m_materials_size_bytes;
+    uint32_t m_transforms_size_bytes;
+    uint32_t m_draw_command_count;
+
+    Writer                   m_write_indices;
+    Writer                   m_write_positions;
+    Writer                   m_write_vertices;
+    Writer                   m_write_materials;
+    Writer                   m_write_transforms;
+    DrawCommandWriterFactory m_make_draw_command_writer;
+
+    Offsets m_offsets;
 
 
     [[nodiscard]]
-    auto draw_command() const noexcept -> shaders::DrawCommand;
+    static auto make_index_writer(const fastgltf::Asset&) -> Writer;
+    [[nodiscard]]
+    static auto make_position_writer(const fastgltf::Asset&) -> Writer;
+    [[nodiscard]]
+    static auto make_vertex_writer(const fastgltf::Asset&) -> Writer;
+    [[nodiscard]]
+    static auto make_material_writer(const fastgltf::Asset&) -> Writer;
+    [[nodiscard]]
+    static auto make_transform_writer(const fastgltf::Asset&) -> Writer;
+    [[nodiscard]]
+    static auto make_draw_command_writer_factory(const fastgltf::Asset&)
+        -> DrawCommandWriterFactory;
 };
 
 }   // namespace demo

@@ -20,6 +20,7 @@ import kiln.gfx.renderer.stream.StagingRequest;
 import kiln.gfx.renderer.stream.StagingStream;
 import kiln.util.Lazy;
 
+import examples.simple_scene.shaders;
 import examples.simple_scene.workflow.GltfModelLoader;
 
 namespace demo {
@@ -170,8 +171,9 @@ auto create_draw_command_buffer(
                | vk::BufferUsageFlagBits2::eShaderDeviceAddress,
     };
     const vk::BufferCreateInfo buffer_create_info{
-        .pNext       = &buffer_usage_flags,
-        .size        = draw_command_count_size() + model_loader.draw_command_size_bytes(),
+        .pNext = &buffer_usage_flags,
+        .size  = draw_command_count_size()
+              + sizeof(shaders::DrawCommand) * model_loader.draw_command_count(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -180,7 +182,7 @@ auto create_draw_command_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.draw_command_alignment()
+        alignof(shaders::DrawCommand)
     );
 }
 
@@ -208,7 +210,7 @@ auto stage_indices(
     };
     if (memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        model_loader.lazy_indices_copy()(allocator.map(destination));
+        model_loader.index_writer()(allocator.map(destination));
         allocator.unmap(destination);
         std::println("Copied {} bytes (indices) from host to gpu", destination.size());
     }
@@ -216,7 +218,7 @@ auto stage_indices(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                model_loader.lazy_indices_copy(),
+                model_loader.index_writer(),
                 destination,
             }
         );
@@ -251,7 +253,7 @@ auto stage_positions(
 
     if (memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        model_loader.lazy_positions_copy()(allocator.map(destination));
+        model_loader.position_writer()(allocator.map(destination));
         allocator.unmap(destination);
         std::println("Copied {} bytes (positions) from host to gpu", destination.size());
     }
@@ -259,7 +261,7 @@ auto stage_positions(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                model_loader.lazy_positions_copy(),
+                model_loader.position_writer(),
                 destination,
             }
         );
@@ -294,7 +296,7 @@ auto stage_vertices(
 
     if (memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        model_loader.lazy_vertices_copy()(allocator.map(destination));
+        model_loader.vertex_writer()(allocator.map(destination));
         allocator.unmap(destination);
         std::println("Copied {} bytes (vertices) from host to gpu", destination.size());
     }
@@ -302,7 +304,7 @@ auto stage_vertices(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                model_loader.lazy_vertices_copy(),
+                model_loader.vertex_writer(),
                 destination,
             }
         );
@@ -377,7 +379,7 @@ auto stage_materials(
     if (material_buffer.allocation().memory_properties()
         & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        allocator.host_copy(model_loader.lazy_materials_copy(), material_buffer);
+        allocator.host_copy(model_loader.material_writer(), material_buffer);
         std::println(
             "Copied {} bytes (materials) from host to gpu",
             material_buffer.size()
@@ -387,7 +389,7 @@ auto stage_materials(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                model_loader.lazy_materials_copy(),
+                model_loader.material_writer(),
                 material_buffer,
             }
         );
@@ -410,7 +412,7 @@ auto stage_transforms(
     if (transform_buffer.allocation().memory_properties()
         & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        allocator.host_copy(model_loader.lazy_transforms_copy(), transform_buffer);
+        allocator.host_copy(model_loader.transform_writer(), transform_buffer);
         std::println(
             "Copied {} bytes (transforms) from host to gpu",
             transform_buffer.size()
@@ -420,7 +422,7 @@ auto stage_transforms(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                model_loader.lazy_transforms_copy(),
+                model_loader.transform_writer(),
                 transform_buffer,
             }
         );
@@ -436,8 +438,8 @@ auto lazy_copy_draw_commands(const GltfModelLoader& model_loader)
     -> kiln::gfx::renderer::LazyCopy
 {
     return kiln::gfx::renderer::LazyCopy{
-        [draw_count                    = model_loader.max_draw_count(),
-         lazy_model_draw_commands_copy = model_loader.lazy_draw_commands_copy()](
+        [draw_count                    = model_loader.draw_command_count(),
+         lazy_model_draw_commands_copy = model_loader.draw_command_writer()](
             const std::span<std::byte> staging_buffer
         ) -> void
         {
@@ -555,7 +557,7 @@ auto load_scene(
         material_buffer     = create_material_buffer(gpu_allocator, model_loader);
         transform_buffer    = create_transform_buffer(gpu_allocator, model_loader);
         draw_command_buffer = create_draw_command_buffer(gpu_allocator, model_loader);
-        max_draw_count      = model_loader.max_draw_count();
+        max_draw_count      = model_loader.draw_command_count();
 
         stage_model(
             gpu_allocator,
