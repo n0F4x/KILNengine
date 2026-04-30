@@ -6,19 +6,16 @@ import kiln;
 import examples.simple_scene.Context;
 
 [[nodiscard]]
-auto assets_path() -> std::filesystem::path
+auto default_model_path() -> std::filesystem::path
 {
     return std::filesystem::path{ std::source_location::current().file_name() }
                .parent_path()
                .parent_path()
                .parent_path()
-         / "assets";
-}
-
-[[nodiscard]]
-auto default_model_path() -> std::filesystem::path
-{
-    return assets_path() / "models" / "Sponza" / "Sponza.gltf";
+         / "assets"
+         / "models"
+         / "Sponza"
+         / "Sponza.gltf";
 }
 
 auto main(const int argc, const char* const argv[]) -> int

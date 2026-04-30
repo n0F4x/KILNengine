@@ -5,7 +5,7 @@ module;
 
 #include <fastgltf/core.hpp>
 
-export module examples.simple_scene.workflow.Asset;
+export module examples.simple_scene.workflow.GltfModelLoader;
 
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;
@@ -14,9 +14,9 @@ import examples.simple_scene.shaders;
 
 namespace demo {
 
-export class AssetLoader {
+export class GltfModelLoader {
 public:
-    explicit AssetLoader(const fastgltf::Asset& asset);
+    explicit GltfModelLoader(const fastgltf::Asset& model);
 
     [[nodiscard]]
     auto indices_size_bytes() const noexcept -> uint32_t;
@@ -69,7 +69,7 @@ public:
     auto max_draw_count() const noexcept -> uint32_t;
 
 private:
-    std::reference_wrapper<const fastgltf::Asset> m_asset;
+    std::reference_wrapper<const fastgltf::Asset> m_model;
     std::optional<uint32_t>                       m_index_offset;
     std::optional<uint32_t>                       m_position_offset;
     std::optional<uint32_t>                       m_vertex_offset;

@@ -1,5 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
-        Asset.cxx
+        GltfModelLoader.cxx
         load_scene.cxx
         Renderer.cxx
         Scene.cxx
@@ -10,7 +10,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         BASE_DIRS ${PROJECT_SOURCE_DIR}
         FILES
         workflow.cppm
-        Asset.ixx
+        GltfModelLoader.ixx
         load_scene.ixx
         Renderer.ixx
         Scene.ixx
