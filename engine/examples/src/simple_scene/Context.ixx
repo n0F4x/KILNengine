@@ -39,7 +39,7 @@ public:
         kiln::gfx::renderer::QueueProvider& gpu_queue_provider
     );
 
-    auto run(kiln::app::App& app, const std::filesystem::path& model_filepath) -> void;
+    auto run(kiln::app::App& app, const std::filesystem::path& model_filepath, bool limit_fps) -> void;
 
 private:
     constexpr static uint8_t number_of_frames_in_flight{ 2 };

@@ -90,8 +90,11 @@ auto aspect_ratio_from(const vk::Extent2D frame_buffer_size) -> double
          / static_cast<double>(frame_buffer_size.height);
 }
 
-auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepath)
-    -> void
+auto Context::run(
+    kiln::app::App&              app,
+    const std::filesystem::path& model_filepath,
+    const bool                   limit_fps
+) -> void
 {
     auto&       memory_arena{ app.contexts().at<kiln::app::MemoryArena>() };
     const auto& wsi_context{ app.contexts().at<kiln::wsi::Context>() };
@@ -140,7 +143,8 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
          &renderer,
          &running,
          &window_resized,
-         &window_resolution] mutable -> void
+         &window_resolution,
+         limit_fps] mutable -> void
         {
             using namespace std::chrono_literals;
             constexpr static auto target_frame_duration = 1'000ms / 60;
@@ -174,7 +178,7 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
 
                 const auto frame_finish_time{ std::chrono::steady_clock::now() };
                 if (const auto frame_duration{ frame_finish_time - frame_start_time };
-                    frame_duration < target_frame_duration)
+                    limit_fps && frame_duration < target_frame_duration)
                 {
                     std::this_thread::sleep_for(target_frame_duration - frame_duration);
                 }
