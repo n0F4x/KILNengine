@@ -3,8 +3,6 @@
 #define EXPORT
 #define PUBLIC_MEMBER
 #include <cstdint>
-#include <glm/ext/matrix_float4x4.hpp>
-using float4x4 = glm::mat4x4;
 template<typename>
 using Ptr = uint64_t;
 #else
@@ -18,6 +16,6 @@ import DrawCommand;
 EXPORT struct Scene {
     PUBLIC_MEMBER Ptr<uint8_t>     geometry_buffer_address;
     PUBLIC_MEMBER Ptr<Material>    material_buffer_address;
-    PUBLIC_MEMBER Ptr<float4x4>    transform_buffer_address;
+    PUBLIC_MEMBER Ptr<uint8_t>     instance_buffer_address;
     PUBLIC_MEMBER Ptr<DrawCommand> draw_command_buffer_address;
 };

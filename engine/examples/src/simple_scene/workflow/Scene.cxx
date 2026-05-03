@@ -27,7 +27,7 @@ Scene::Scene(
     const kiln::gfx::renderer::Device& device,
     kiln::gfx::renderer::Buffer&&      geometry_buffer,
     kiln::gfx::renderer::Buffer&&      material_buffer,
-    kiln::gfx::renderer::Buffer&&      transform_buffer,
+    kiln::gfx::renderer::Buffer&&      instance_buffer,
     kiln::gfx::renderer::Buffer&&      draw_command_buffer,
     const uint32_t                     draw_command_count_size,
     const uint32_t                     max_draw_count
@@ -36,8 +36,8 @@ Scene::Scene(
       m_geometry_buffer_address{ address_of_buffer(device, m_geometry_buffer) },
       m_material_buffer{ std::move(material_buffer) },
       m_material_buffer_address{ address_of_buffer(device, m_material_buffer) },
-      m_transform_buffer{ std::move(transform_buffer) },
-      m_transform_buffer_address{ address_of_buffer(device, m_transform_buffer) },
+      m_instance_buffer{ std::move(instance_buffer) },
+      m_instance_buffer_address{ address_of_buffer(device, m_instance_buffer) },
       m_draw_command_buffer{ std::move(draw_command_buffer) },
       m_draw_command_buffer_address{
           address_of_buffer(device, m_draw_command_buffer) + draw_command_count_size,
@@ -62,9 +62,9 @@ auto Scene::material_buffer_address() const noexcept -> vk::DeviceSize
     return m_material_buffer_address;
 }
 
-auto Scene::transform_buffer_address() const noexcept -> vk::DeviceSize
+auto Scene::instance_buffer_address() const noexcept -> vk::DeviceSize
 {
-    return m_transform_buffer_address;
+    return m_instance_buffer_address;
 }
 
 auto Scene::draw_command_buffer_address() const noexcept -> vk::DeviceSize

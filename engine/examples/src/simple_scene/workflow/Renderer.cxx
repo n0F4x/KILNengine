@@ -315,7 +315,7 @@ auto Renderer::draw_scene(
     const shaders::Scene shader_scene{
         .geometry_buffer_address     = scene.geometry_buffer_address(),
         .material_buffer_address     = scene.material_buffer_address(),
-        .transform_buffer_address    = scene.transform_buffer_address(),
+        .instance_buffer_address     = scene.instance_buffer_address(),
         .draw_command_buffer_address = scene.draw_command_buffer_address(),
     };
     const vk::PushConstantsInfo scene_push_constants_info{

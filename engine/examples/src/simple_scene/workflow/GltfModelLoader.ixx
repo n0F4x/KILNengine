@@ -65,7 +65,7 @@ public:
     [[nodiscard]]
     auto material_buffer_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
-    auto transform_buffer_size_bytes() const noexcept -> uint32_t;
+    auto instance_buffer_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
     auto draw_command_count() const noexcept -> uint32_t;
 
@@ -74,11 +74,11 @@ public:
     [[nodiscard]]
     auto material_buffer_alignment() const noexcept -> uint32_t;
     [[nodiscard]]
-    auto transform_buffer_alignment() const noexcept -> uint32_t;
+    auto instance_buffer_alignment() const noexcept -> uint32_t;
 
     auto set_geometry_buffer_byte_offset(uint32_t geometry_buffer_byte_offset) -> void;
     auto set_material_buffer_byte_offset(uint32_t material_buffer_byte_offset) -> void;
-    auto set_transform_buffer_byte_offset(uint32_t transform_buffer_byte_offset) -> void;
+    auto set_instance_buffer_byte_offset(uint32_t instance_buffer_byte_offset) -> void;
 
     [[nodiscard]]
     auto geometry_writer() const noexcept [[kiln_lifetimebound]]
@@ -87,7 +87,7 @@ public:
     auto material_writer() const noexcept [[kiln_lifetimebound]]
     -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
-    auto transform_writer() const noexcept [[kiln_lifetimebound]]
+    auto instance_writer() const noexcept [[kiln_lifetimebound]]
     -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
     auto draw_command_writer() const noexcept [[kiln_lifetimebound]]
@@ -96,8 +96,8 @@ public:
 private:
     struct Offsets {
         std::optional<uint32_t> geometry_buffer_byte_offset;
-        std::optional<uint32_t> material_buffer_byte_offset;
-        std::optional<uint32_t> transform_buffer_byte_offset;
+        std::optional<uint32_t> material_offset;
+        std::optional<uint32_t> instance_buffer_byte_offset;
     };
 
     class Manifest {
@@ -130,7 +130,7 @@ private:
         [[nodiscard]]
         auto material_buffer_size_bytes() const noexcept -> uint32_t;
         [[nodiscard]]
-        auto transform_buffer_size_bytes() const noexcept -> uint32_t;
+        auto instance_buffer_size_bytes() const noexcept -> uint32_t;
         [[nodiscard]]
         auto draw_command_count() const noexcept -> uint32_t;
 
@@ -139,13 +139,13 @@ private:
         [[nodiscard]]
         auto material_buffer_alignment() const noexcept -> uint32_t;
         [[nodiscard]]
-        auto transform_buffer_alignment() const noexcept -> uint32_t;
+        auto instance_buffer_alignment() const noexcept -> uint32_t;
 
         auto write_geometry(const fastgltf::Asset& model, std::span<std::byte> out) const
             -> void;
         auto write_materials(const fastgltf::Asset& model, std::span<std::byte> out) const
             -> void;
-        auto write_transforms(const fastgltf::Asset& model, std::span<std::byte> out) const
+        auto write_instances(const fastgltf::Asset& model, std::span<std::byte> out) const
             -> void;
         auto write_draw_commands(
             const fastgltf::Asset& model,
@@ -225,11 +225,12 @@ private:
         std::array<uint32_t, std::to_underlying(SupportedElementType::COUNT)>
                                    m_element_buffer_byte_offsets{};
         std::pmr::vector<uint32_t> m_accessor_element_byte_offsets;
-        std::pmr::vector<uint32_t> m_per_mesh_transform_offsets;
+        std::pmr::vector<uint32_t> m_per_mesh_instance_offsets;
         std::pmr::vector<uint32_t> m_per_mesh_instance_counts;
 
         std::pmr::vector<Writer>      m_geometry_writers;
         std::pmr::vector<glm::mat4x4> m_transforms;
+        std::pmr::vector<glm::mat3x3> m_normal_matrices;
     };
 
     using DrawCommandWriterFactory =                                               //

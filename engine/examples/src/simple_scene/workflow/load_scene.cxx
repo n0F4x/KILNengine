@@ -77,7 +77,7 @@ auto create_material_buffer(
 }
 
 [[nodiscard]]
-auto create_transform_buffer(
+auto create_instance_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
     const GltfModelLoader&          model_loader
 ) -> kiln::gfx::renderer::Buffer
@@ -88,7 +88,7 @@ auto create_transform_buffer(
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = model_loader.transform_buffer_size_bytes(),
+        .size        = model_loader.instance_buffer_size_bytes(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -97,7 +97,7 @@ auto create_transform_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.transform_buffer_alignment()
+        model_loader.instance_buffer_alignment()
     );
 }
 
@@ -266,47 +266,46 @@ auto stage_material_buffer(
     }
 }
 
-auto stage_transform_buffer(
+auto stage_instance_buffer(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
     const std::span<GltfModelLoader>    model_loaders,
-    kiln::gfx::renderer::Buffer&        transform_buffer
+    kiln::gfx::renderer::Buffer&        instance_buffer
 ) -> void
 {
-    const vk::MemoryPropertyFlags transform_buffer_memory_properties{
-        transform_buffer.allocation().memory_properties()
+    const vk::MemoryPropertyFlags buffer_memory_properties{
+        instance_buffer.allocation().memory_properties()
     };
 
     uint32_t buffer_byte_offset{};
     for (GltfModelLoader& model_loader : model_loaders)
     {
-        if (model_loader.transform_buffer_size_bytes() != 0)
+        if (model_loader.instance_buffer_size_bytes() != 0)
         {
             if (const auto remainder{ buffer_byte_offset
-                                      % model_loader.transform_buffer_alignment() };
+                                      % model_loader.instance_buffer_alignment() };
                 remainder != 0)
             {
                 buffer_byte_offset
-                    += model_loader.transform_buffer_alignment() - remainder;
+                    += model_loader.instance_buffer_alignment() - remainder;
             }
 
-            model_loader.set_transform_buffer_byte_offset(buffer_byte_offset);
+            model_loader.set_instance_buffer_byte_offset(buffer_byte_offset);
 
             const kiln::gfx::renderer::BufferRegion destination{
-                transform_buffer,
+                instance_buffer,
                 buffer_byte_offset,
-                model_loader.transform_buffer_size_bytes(),
+                model_loader.instance_buffer_size_bytes(),
             };
-            if (transform_buffer_memory_properties
-                & vk::MemoryPropertyFlagBits::eHostVisible)
+            if (buffer_memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
             {
-                allocator.host_copy(model_loader.transform_writer(), destination);
+                allocator.host_copy(model_loader.instance_writer(), destination);
             }
             else
             {
                 staging_stream.record(
                     kiln::gfx::renderer::StagingRequest{
-                        model_loader.transform_writer(),
+                        model_loader.instance_writer(),
                         destination,
                     }
                 );
@@ -316,18 +315,18 @@ auto stage_transform_buffer(
         }
     }
 
-    if (transform_buffer_memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
+    if (buffer_memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
     {
         std::println(
-            "Copied {} bytes (transforms) from host to gpu",
-            transform_buffer.size()
+            "Copied {} bytes (instances) from host to gpu",
+            instance_buffer.size()
         );
     }
     else
     {
         std::println(
-            "Staged {} bytes (transforms) from host to gpu",
-            transform_buffer.size()
+            "Staged {} bytes (instances) from host to gpu",
+            instance_buffer.size()
         );
     }
 }
@@ -410,7 +409,7 @@ auto stage_models(
     const std::span<GltfModelLoader>    model_loaders,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     kiln::gfx::renderer::Buffer&        material_buffer,
-    kiln::gfx::renderer::Buffer&        transform_buffer,
+    kiln::gfx::renderer::Buffer&        instance_buffer,
     kiln::gfx::renderer::Buffer&        draw_command_buffer
 ) -> void
 {
@@ -422,9 +421,9 @@ auto stage_models(
     {
         stage_material_buffer(allocator, staging_stream, model_loaders, material_buffer);
     }
-    if (transform_buffer.size() != 0)
+    if (instance_buffer.size() != 0)
     {
-        stage_transform_buffer(allocator, staging_stream, model_loaders, transform_buffer);
+        stage_instance_buffer(allocator, staging_stream, model_loaders, instance_buffer);
     }
     if (draw_command_buffer.size() != 0)
     {
@@ -443,7 +442,7 @@ auto load_scene(
 {
     kiln::gfx::renderer::Buffer geometry_buffer;
     kiln::gfx::renderer::Buffer material_buffer;
-    kiln::gfx::renderer::Buffer transform_buffer;
+    kiln::gfx::renderer::Buffer instance_buffer;
     kiln::gfx::renderer::Buffer draw_command_buffer;
     uint32_t                    max_draw_count{};
 
@@ -493,7 +492,7 @@ auto load_scene(
 
         geometry_buffer     = create_geometry_buffer(gpu_allocator, model_loader);
         material_buffer     = create_material_buffer(gpu_allocator, model_loader);
-        transform_buffer    = create_transform_buffer(gpu_allocator, model_loader);
+        instance_buffer     = create_instance_buffer(gpu_allocator, model_loader);
         draw_command_buffer = create_draw_command_buffer(gpu_allocator, model_loader);
         max_draw_count      = model_loader.draw_command_count();
 
@@ -503,13 +502,13 @@ auto load_scene(
             std::span{ &model_loader, 1 },
             geometry_buffer,
             material_buffer,
-            transform_buffer,
+            instance_buffer,
             draw_command_buffer
         );
 
         gpu_allocator.try_flush(geometry_buffer);
         gpu_allocator.try_flush(material_buffer);
-        gpu_allocator.try_flush(transform_buffer);
+        gpu_allocator.try_flush(instance_buffer);
         gpu_allocator.try_flush(draw_command_buffer);
 
         if (!staging_stream.empty())
@@ -524,7 +523,7 @@ auto load_scene(
         device,
         std::move(geometry_buffer),
         std::move(material_buffer),
-        std::move(transform_buffer),
+        std::move(instance_buffer),
         std::move(draw_command_buffer),
         draw_command_count_size(),
         max_draw_count,

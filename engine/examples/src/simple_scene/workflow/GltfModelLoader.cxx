@@ -91,9 +91,9 @@ auto GltfModelLoader::material_buffer_size_bytes() const noexcept -> uint32_t
     return m_manifest.material_buffer_size_bytes();
 }
 
-auto GltfModelLoader::transform_buffer_size_bytes() const noexcept -> uint32_t
+auto GltfModelLoader::instance_buffer_size_bytes() const noexcept -> uint32_t
 {
-    return m_manifest.transform_buffer_size_bytes();
+    return m_manifest.instance_buffer_size_bytes();
 }
 
 auto GltfModelLoader::draw_command_count() const noexcept -> uint32_t
@@ -111,9 +111,9 @@ auto GltfModelLoader::material_buffer_alignment() const noexcept -> uint32_t
     return m_manifest.material_buffer_alignment();
 }
 
-auto GltfModelLoader::transform_buffer_alignment() const noexcept -> uint32_t
+auto GltfModelLoader::instance_buffer_alignment() const noexcept -> uint32_t
 {
-    return m_manifest.transform_buffer_alignment();
+    return m_manifest.instance_buffer_alignment();
 }
 
 auto GltfModelLoader::set_geometry_buffer_byte_offset(
@@ -127,14 +127,14 @@ auto GltfModelLoader::set_material_buffer_byte_offset(
     const uint32_t material_buffer_byte_offset
 ) -> void
 {
-    m_offsets.material_buffer_byte_offset = material_buffer_byte_offset;
+    m_offsets.material_offset = material_buffer_byte_offset;
 }
 
-auto GltfModelLoader::set_transform_buffer_byte_offset(
-    const uint32_t transform_buffer_byte_offset
+auto GltfModelLoader::set_instance_buffer_byte_offset(
+    const uint32_t instance_buffer_byte_offset
 ) -> void
 {
-    m_offsets.transform_buffer_byte_offset = transform_buffer_byte_offset;
+    m_offsets.instance_buffer_byte_offset = instance_buffer_byte_offset;
 }
 
 auto GltfModelLoader::geometry_writer() const noexcept -> kiln::gfx::renderer::LazyCopy
@@ -157,12 +157,12 @@ auto GltfModelLoader::material_writer() const noexcept -> kiln::gfx::renderer::L
     };
 }
 
-auto GltfModelLoader::transform_writer() const noexcept -> kiln::gfx::renderer::LazyCopy
+auto GltfModelLoader::instance_writer() const noexcept -> kiln::gfx::renderer::LazyCopy
 {
     return kiln::gfx::renderer::LazyCopy{
         [this](const std::span<std::byte> out) -> void
         {
-            m_manifest.write_transforms(m_model, out);   //
+            m_manifest.write_instances(m_model, out);   //
         },
     };
 }
@@ -184,7 +184,7 @@ GltfModelLoader::Manifest::Manifest(const Manifest& other, const allocator_type&
       m_draw_command_count{ other.m_draw_command_count },
       m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
       m_accessor_element_byte_offsets{ other.m_accessor_element_byte_offsets, allocator },
-      m_per_mesh_transform_offsets{ other.m_per_mesh_transform_offsets, allocator },
+      m_per_mesh_instance_offsets{ other.m_per_mesh_instance_offsets, allocator },
       m_per_mesh_instance_counts{ other.m_per_mesh_instance_counts, allocator },
       m_geometry_writers{ other.m_geometry_writers, allocator },
       m_transforms{ other.m_transforms, allocator }
@@ -198,8 +198,8 @@ GltfModelLoader::Manifest::Manifest(Manifest&& other, const allocator_type& allo
       m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
       m_accessor_element_byte_offsets{ std::move(other.m_accessor_element_byte_offsets),
                                        allocator },
-      m_per_mesh_transform_offsets{ std::move(other.m_per_mesh_transform_offsets),
-                                    allocator },
+      m_per_mesh_instance_offsets{ std::move(other.m_per_mesh_instance_offsets),
+                                   allocator },
       m_per_mesh_instance_counts{ std::move(other.m_per_mesh_instance_counts),
                                   allocator },
       m_geometry_writers{ std::move(other.m_geometry_writers), allocator },
@@ -230,10 +230,11 @@ GltfModelLoader::Manifest::Manifest(
     const glm::mat4x4&     transform
 )
     : m_accessor_element_byte_offsets{ allocator },
-      m_per_mesh_transform_offsets{ allocator },
+      m_per_mesh_instance_offsets{ allocator },
       m_per_mesh_instance_counts{ allocator },
       m_geometry_writers{ allocator },
-      m_transforms{ allocator }
+      m_transforms{ allocator },
+      m_normal_matrices{ allocator }
 {
     preprocess(model, scene_index, *this);
 
@@ -252,6 +253,15 @@ GltfModelLoader::Manifest::Manifest(
         m_element_buffer_byte_offsets.begin(),
         0
     );
+
+    assert(m_normal_matrices.empty());
+    assert(m_normal_matrices.capacity() == m_transforms.size());
+    for (const glm::mat4x4& instance_transform : m_transforms)
+    {
+        m_normal_matrices.push_back(
+            glm::transpose(glm::inverse(glm::mat3x3{ instance_transform }))
+        );
+    }
 }
 
 auto GltfModelLoader::Manifest::get_allocator() const noexcept -> allocator_type
@@ -269,10 +279,11 @@ auto GltfModelLoader::Manifest::material_buffer_size_bytes() const noexcept -> u
     return m_material_buffer_size_bytes;
 }
 
-auto GltfModelLoader::Manifest::transform_buffer_size_bytes() const noexcept -> uint32_t
+auto GltfModelLoader::Manifest::instance_buffer_size_bytes() const noexcept -> uint32_t
 {
     return static_cast<uint32_t>(
         m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
+        + m_normal_matrices.size() * sizeof(decltype(m_normal_matrices)::value_type)
     );
 }
 
@@ -291,9 +302,12 @@ auto GltfModelLoader::Manifest::material_buffer_alignment() const noexcept -> ui
     return alignof(shaders::Material);
 }
 
-auto GltfModelLoader::Manifest::transform_buffer_alignment() const noexcept -> uint32_t
+auto GltfModelLoader::Manifest::instance_buffer_alignment() const noexcept -> uint32_t
 {
-    return alignof(glm::mat4x4);
+    return std::max(
+        alignof(decltype(m_transforms)::value_type),
+        alignof(decltype(m_normal_matrices)::value_type)
+    );
 }
 
 auto GltfModelLoader::Manifest::write_geometry(
@@ -319,17 +333,30 @@ auto GltfModelLoader::Manifest::write_materials(
 {
 }
 
-auto GltfModelLoader::Manifest::write_transforms(
+auto GltfModelLoader::Manifest::write_instances(
     const fastgltf::Asset&,
     std::span<std::byte> out
 ) const -> void
 {
-    PRECOND(out.size() == transform_buffer_size_bytes());
+    PRECOND(out.size() == instance_buffer_size_bytes());
     PRECOND(
-        reinterpret_cast<std::uintptr_t>(out.data()) % transform_buffer_alignment() == 0
+        reinterpret_cast<std::uintptr_t>(out.data()) % instance_buffer_alignment() == 0
     );
 
-    std::memcpy(out.data(), m_transforms.data(), out.size());
+    std::memcpy(
+        out.data(),
+        m_transforms.data(),
+        m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
+    );
+
+    const std::size_t normal_matrix_buffer_byte_offset{
+        m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
+    };
+    std::memcpy(
+        out.data() + normal_matrix_buffer_byte_offset,
+        m_normal_matrices.data(),
+        m_normal_matrices.size() * sizeof(decltype(m_normal_matrices)::value_type)
+    );
 }
 
 auto GltfModelLoader::Manifest::write_draw_commands(
@@ -367,8 +394,20 @@ auto GltfModelLoader::Manifest::write_draw_commands(
                     .first_vertex     = 0,
                     .first_instance   = 0,
                     .primitive        = shader_primitive_from(global_offsets, primitive),
-                    .transform_offset = *global_offsets.transform_buffer_byte_offset
-                                      + m_per_mesh_transform_offsets[mesh_index],
+                    .transform_byte_offset = *global_offsets.instance_buffer_byte_offset
+                                      + m_per_mesh_instance_offsets[mesh_index]
+                                            * static_cast<uint32_t>(
+                                                sizeof(decltype(m_transforms)::value_type)
+                                            ),
+                    .normal_matrix_byte_offset
+                    = *global_offsets.instance_buffer_byte_offset
+                    + static_cast<uint32_t>(
+                        m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
+                    )
+                    + m_per_mesh_instance_offsets[mesh_index]
+                          * static_cast<uint32_t>(
+                              sizeof(decltype(m_normal_matrices)::value_type)
+                          ),
                 };
                 ++out_iter;
             }
@@ -399,11 +438,11 @@ auto GltfModelLoader::Manifest::preprocess(
         std::numeric_limits<
             decltype(manifest.m_accessor_element_byte_offsets)::value_type>::max()
     );
-    manifest.m_per_mesh_transform_offsets.resize(model.meshes.size(), 0);
+    manifest.m_per_mesh_instance_offsets.resize(model.meshes.size(), 0);
     manifest.m_per_mesh_instance_counts.resize(model.meshes.size(), 0);
 
     uint32_t geometry_writer_count{};
-    uint32_t transform_count{};
+    uint32_t instance_count{};
 
     const auto increment_counts{
         [&](this const auto& self, const fastgltf::Node& node) -> void
@@ -427,9 +466,9 @@ auto GltfModelLoader::Manifest::preprocess(
                     }
                 }
 
-                ++transform_count;
+                ++instance_count;
 
-                ++manifest.m_per_mesh_transform_offsets[*node.meshIndex];
+                ++manifest.m_per_mesh_instance_offsets[*node.meshIndex];
             }
 
             for (const auto child_node_index : node.children)
@@ -445,12 +484,13 @@ auto GltfModelLoader::Manifest::preprocess(
     }
 
     manifest.m_geometry_writers.reserve(geometry_writer_count);
-    manifest.m_transforms.resize(transform_count, glm::identity<glm::mat4x4>());
+    manifest.m_transforms.resize(instance_count, glm::identity<glm::mat4x4>());
+    manifest.m_normal_matrices.reserve(instance_count);
 
     std::exclusive_scan(
-        manifest.m_per_mesh_transform_offsets.begin(),
-        manifest.m_per_mesh_transform_offsets.end(),
-        manifest.m_per_mesh_transform_offsets.begin(),
+        manifest.m_per_mesh_instance_offsets.begin(),
+        manifest.m_per_mesh_instance_offsets.end(),
+        manifest.m_per_mesh_instance_offsets.begin(),
         0
     );
 }
@@ -518,7 +558,7 @@ auto GltfModelLoader::Manifest::process(
     }
 
     manifest.m_transforms
-        [manifest.m_per_mesh_transform_offsets[mesh_index]
+        [manifest.m_per_mesh_instance_offsets[mesh_index]
          + manifest.m_per_mesh_instance_counts[mesh_index]] = transform;
     if (manifest.m_per_mesh_instance_counts[mesh_index] == 0)
     {
@@ -864,7 +904,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
 
     if (primitive.indicesAccessor.has_value())
     {
-        shader_primitive.index_offset
+        shader_primitive.index_byte_offset
             = *global_offsets.geometry_buffer_byte_offset
             + m_element_buffer_byte_offsets[std::to_underlying(SupportedElementType::eIndex)]
             + m_accessor_element_byte_offsets[*primitive.indicesAccessor];
@@ -874,7 +914,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
     {
         if (attribute_name == "POSITION")
         {
-            shader_primitive.position_offset
+            shader_primitive.position_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::ePosition)]
@@ -882,7 +922,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "NORMAL")
         {
-            shader_primitive.normal_offset
+            shader_primitive.normal_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eNormal)]
@@ -890,7 +930,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "TANGENT")
         {
-            shader_primitive.tangent_offset
+            shader_primitive.tangent_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eTangent)]
@@ -898,7 +938,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "TEXCOORD_0")
         {
-            shader_primitive.uv_0_offset
+            shader_primitive.uv_0_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eTexCoord0)]
@@ -906,7 +946,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "TEXCOORD_1")
         {
-            shader_primitive.uv_1_offset
+            shader_primitive.uv_1_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eTexCoord1)]
@@ -914,7 +954,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "COLOR_0")
         {
-            shader_primitive.color_offset
+            shader_primitive.color_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eColor0)]

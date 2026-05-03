@@ -20,7 +20,7 @@ public:
         const kiln::gfx::renderer::Device& device,
         kiln::gfx::renderer::Buffer&&      geometry_buffer,
         kiln::gfx::renderer::Buffer&&      material_buffer,
-        kiln::gfx::renderer::Buffer&&      transform_buffer,
+        kiln::gfx::renderer::Buffer&&      instance_buffer,
         kiln::gfx::renderer::Buffer&&      draw_command_buffer,
         uint32_t                           draw_command_count_size,
         uint32_t                           max_draw_count
@@ -32,7 +32,7 @@ public:
     [[nodiscard]]
     auto material_buffer_address() const noexcept -> vk::DeviceSize;
     [[nodiscard]]
-    auto transform_buffer_address() const noexcept -> vk::DeviceSize;
+    auto instance_buffer_address() const noexcept -> vk::DeviceSize;
     [[nodiscard]]
     auto draw_command_buffer_address() const noexcept -> vk::DeviceSize;
 
@@ -50,8 +50,8 @@ private:
     vk::DeviceSize                    m_geometry_buffer_address;
     kiln::gfx::renderer::Buffer       m_material_buffer;
     vk::DeviceSize                    m_material_buffer_address;
-    kiln::gfx::renderer::Buffer       m_transform_buffer;
-    vk::DeviceSize                    m_transform_buffer_address;
+    kiln::gfx::renderer::Buffer       m_instance_buffer;
+    vk::DeviceSize                    m_instance_buffer_address;
     kiln::gfx::renderer::Buffer       m_draw_command_buffer;
     vk::DeviceSize                    m_draw_command_buffer_address;
     kiln::gfx::renderer::BufferRegion m_draw_command_buffer_region;
