@@ -355,7 +355,7 @@ auto lazy_copy_draw_commands(const std::span<const GltfModelLoader> model_loader
         {
             std::memcpy(staging_buffer.data(), &draw_count, sizeof(decltype(draw_count)));
 
-            uint32_t buffer_byte_offset{};
+            uint32_t buffer_byte_offset{sizeof(decltype(draw_count))};
             for (const GltfModelLoader& model_loader : model_loaders)
             {
                 const uint32_t draw_commands_size_bytes{
