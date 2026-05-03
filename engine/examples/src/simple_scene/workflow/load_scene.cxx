@@ -2,6 +2,7 @@ module;
 
 #include <filesystem>
 #include <format>
+#include <memory_resource>
 #include <print>
 #include <span>
 #include <stdexcept>
@@ -355,7 +356,7 @@ auto lazy_copy_draw_commands(const std::span<const GltfModelLoader> model_loader
         {
             std::memcpy(staging_buffer.data(), &draw_count, sizeof(decltype(draw_count)));
 
-            uint32_t buffer_byte_offset{sizeof(decltype(draw_count))};
+            uint32_t buffer_byte_offset{ sizeof(decltype(draw_count)) };
             for (const GltfModelLoader& model_loader : model_loaders)
             {
                 const uint32_t draw_commands_size_bytes{
@@ -436,7 +437,8 @@ auto load_scene(
     const kiln::gfx::renderer::Device&  device,
     kiln::gfx::renderer::Allocator&     gpu_allocator,
     kiln::gfx::asset::gltf::Parser&     model_parser,
-    kiln::gfx::renderer::StagingStream& staging_stream
+    kiln::gfx::renderer::StagingStream& staging_stream,
+    std::pmr::memory_resource&          transient_memory_resource
 ) -> Scene
 {
     kiln::gfx::renderer::Buffer geometry_buffer;
@@ -465,6 +467,8 @@ auto load_scene(
         };
 
         GltfModelLoader model_loader{
+            std::allocator_arg,
+            &transient_memory_resource,
             model,
             model.defaultScene.value_or(
                 kiln::util::Lazy{

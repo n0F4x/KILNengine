@@ -5,6 +5,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <memory_resource>
 #include <numeric>
 #include <optional>
 #include <span>
@@ -32,13 +33,52 @@ import examples.simple_scene.shaders;
 namespace demo {
 
 GltfModelLoader::GltfModelLoader(
+    const GltfModelLoader& other,
+    const allocator_type&  allocator
+)
+    : m_model{ other.m_model },
+      m_manifest{ other.m_manifest, allocator },
+      m_offsets{ other.m_offsets }
+{
+}
+
+GltfModelLoader::GltfModelLoader(GltfModelLoader&& other, const allocator_type& allocator)
+    : m_model{ other.m_model },
+      m_manifest{ std::move(other.m_manifest), allocator },
+      m_offsets{ other.m_offsets }
+{
+}
+
+GltfModelLoader::GltfModelLoader(
+    const fastgltf::Asset& model,
+    const std::size_t      scene_index,
+    const glm::mat4x4&     transform
+)
+    : GltfModelLoader{
+          std::allocator_arg,
+          std::pmr::get_default_resource(),   //
+          model,
+          scene_index,
+          transform,
+      }
+{
+}
+
+GltfModelLoader::GltfModelLoader(
+    std::allocator_arg_t,
+    const allocator_type&  allocator,
     const fastgltf::Asset& model,
     const std::size_t      scene_index,
     const glm::mat4x4&     transform
 )
     : m_model{ model },
-      m_manifest{ Manifest::create(m_model, scene_index, transform) }
+      m_manifest{ std::allocator_arg, allocator, m_model, scene_index, transform }
 {
+}
+
+auto GltfModelLoader::get_allocator() const noexcept -> allocator_type
+{
+    return m_manifest.get_allocator();
 }
 
 auto GltfModelLoader::geometry_buffer_size_bytes() const noexcept -> uint32_t
@@ -138,33 +178,85 @@ auto GltfModelLoader::draw_command_writer() const noexcept
     };
 }
 
-auto GltfModelLoader::Manifest::create(
+GltfModelLoader::Manifest::Manifest(const Manifest& other, const allocator_type& allocator)
+    : m_geometry_buffer_size_bytes{ other.m_geometry_buffer_size_bytes },
+      m_material_buffer_size_bytes{ other.m_material_buffer_size_bytes },
+      m_draw_command_count{ other.m_draw_command_count },
+      m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
+      m_accessor_element_byte_offsets{ other.m_accessor_element_byte_offsets, allocator },
+      m_per_mesh_transform_offsets{ other.m_per_mesh_transform_offsets, allocator },
+      m_per_mesh_instance_counts{ other.m_per_mesh_instance_counts, allocator },
+      m_geometry_writers{ other.m_geometry_writers, allocator },
+      m_transforms{ other.m_transforms, allocator }
+{
+}
+
+GltfModelLoader::Manifest::Manifest(Manifest&& other, const allocator_type& allocator)
+    : m_geometry_buffer_size_bytes{ other.m_geometry_buffer_size_bytes },
+      m_material_buffer_size_bytes{ other.m_material_buffer_size_bytes },
+      m_draw_command_count{ other.m_draw_command_count },
+      m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
+      m_accessor_element_byte_offsets{ std::move(other.m_accessor_element_byte_offsets),
+                                       allocator },
+      m_per_mesh_transform_offsets{ std::move(other.m_per_mesh_transform_offsets),
+                                    allocator },
+      m_per_mesh_instance_counts{ std::move(other.m_per_mesh_instance_counts),
+                                  allocator },
+      m_geometry_writers{ std::move(other.m_geometry_writers), allocator },
+      m_transforms{ std::move(other.m_transforms), allocator }
+{
+}
+
+GltfModelLoader::Manifest::Manifest(
     const fastgltf::Asset& model,
     const std::size_t      scene_index,
     const glm::mat4x4&     transform
-) -> Manifest
+)
+    : Manifest{
+          std::allocator_arg,
+          std::pmr::get_default_resource(),   //
+          model,
+          scene_index,
+          transform,
+      }
 {
-    Manifest manifest;
-    preprocess(model, scene_index, manifest);
+}
+
+GltfModelLoader::Manifest::Manifest(
+    std::allocator_arg_t,
+    const allocator_type&  allocator,
+    const fastgltf::Asset& model,
+    const std::size_t      scene_index,
+    const glm::mat4x4&     transform
+)
+    : m_accessor_element_byte_offsets{ allocator },
+      m_per_mesh_transform_offsets{ allocator },
+      m_per_mesh_instance_counts{ allocator },
+      m_geometry_writers{ allocator },
+      m_transforms{ allocator }
+{
+    preprocess(model, scene_index, *this);
 
     for (const std::size_t node_index : model.scenes[scene_index].nodeIndices)
     {
-        process(model, transform, model.nodes[node_index], manifest);
+        process(model, transform, model.nodes[node_index], *this);
     }
 
-
-    manifest.m_geometry_buffer_size_bytes = std::reduce(
-        manifest.m_element_buffer_byte_offsets.begin(),
-        manifest.m_element_buffer_byte_offsets.end()
+    m_geometry_buffer_size_bytes = std::reduce(
+        m_element_buffer_byte_offsets.begin(),
+        m_element_buffer_byte_offsets.end()
     );
     std::exclusive_scan(
-        manifest.m_element_buffer_byte_offsets.begin(),
-        manifest.m_element_buffer_byte_offsets.end(),
-        manifest.m_element_buffer_byte_offsets.begin(),
+        m_element_buffer_byte_offsets.begin(),
+        m_element_buffer_byte_offsets.end(),
+        m_element_buffer_byte_offsets.begin(),
         0
     );
+}
 
-    return manifest;
+auto GltfModelLoader::Manifest::get_allocator() const noexcept -> allocator_type
+{
+    return m_geometry_writers.get_allocator();
 }
 
 auto GltfModelLoader::Manifest::geometry_buffer_size_bytes() const noexcept -> uint32_t

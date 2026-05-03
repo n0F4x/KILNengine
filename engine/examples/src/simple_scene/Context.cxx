@@ -4,6 +4,7 @@ module;
 #include <chrono>
 #include <filesystem>
 #include <memory_resource>
+#include <print>
 #include <thread>
 
 #include <vk_mem_alloc.h>
@@ -99,14 +100,24 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
     auto& render_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
     auto& gltf_parser{ app.contexts().at<kiln::gfx::asset::gltf::Parser>() };
 
-    [[maybe_unused]]
-    auto scene = load_scene(
+    std::pmr::monotonic_buffer_resource scene_loading_memory_resource{
+        memory_arena.make_transient_resource()
+    };
+    const auto scene_load_start_time{ std::chrono::steady_clock::now() };
+    auto       scene = load_scene(
         model_filepath,
         render_device,
         render_allocator,
         gltf_parser,
-        m_staging_stream
+        m_staging_stream,
+        scene_loading_memory_resource
     );
+    const auto scene_load_finish_time{ std::chrono::steady_clock::now() };
+    std::println(
+        "Loading the scene took {}",
+        scene_load_finish_time - scene_load_start_time
+    );
+
 
     Renderer renderer{
         std::allocator_arg,

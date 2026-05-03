@@ -1,6 +1,7 @@
 module;
 
 #include <filesystem>
+#include <memory_resource>
 
 export module examples.simple_scene.workflow.load_scene;
 
@@ -21,7 +22,8 @@ auto load_scene(
     const kiln::gfx::renderer::Device&  device,
     kiln::gfx::renderer::Allocator&     gpu_allocator,
     kiln::gfx::asset::gltf::Parser&     model_parser,
-    kiln::gfx::renderer::StagingStream& staging_stream
+    kiln::gfx::renderer::StagingStream& staging_stream,
+    std::pmr::memory_resource&          transient_memory_resource
 ) -> Scene;
 
 }   // namespace demo

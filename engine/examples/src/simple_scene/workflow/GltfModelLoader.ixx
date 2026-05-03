@@ -2,12 +2,12 @@ module;
 
 #include <array>
 #include <functional>
+#include <memory_resource>
 #include <optional>
 #include <vector>
 
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/matrix_transform.hpp>
-#include <glm/ext/vector_common.hpp>
 
 #include <fastgltf/core.hpp>
 
@@ -37,11 +37,28 @@ enum struct SupportedElementType : uint32_t
 
 export class GltfModelLoader {
 public:
+    using allocator_type = std::pmr::polymorphic_allocator<>;
+
+
+    GltfModelLoader(const GltfModelLoader&, const allocator_type&);
+    GltfModelLoader(GltfModelLoader&&, const allocator_type&);
+
     explicit GltfModelLoader(
         [[kiln_lifetimebound]] const fastgltf::Asset& model,
         std::size_t                                   scene_index,
         const glm::mat4x4& transform = glm::identity<glm::mat4x4>()
     );
+    explicit GltfModelLoader(
+        std::allocator_arg_t,
+        const allocator_type&                         allocator,
+        [[kiln_lifetimebound]] const fastgltf::Asset& model,
+        std::size_t                                   scene_index,
+        const glm::mat4x4& transform = glm::identity<glm::mat4x4>()
+    );
+
+
+    [[nodiscard]]
+    auto get_allocator() const noexcept -> allocator_type;
 
     [[nodiscard]]
     auto geometry_buffer_size_bytes() const noexcept -> uint32_t;
@@ -85,13 +102,28 @@ private:
 
     class Manifest {
     public:
-        [[nodiscard]]
-        static auto create(
+        using allocator_type = std::pmr::polymorphic_allocator<>;
+
+
+        Manifest(const Manifest&, const allocator_type&);
+        Manifest(Manifest&&, const allocator_type&);
+
+        explicit Manifest(
             const fastgltf::Asset& model,
             std::size_t            scene_index,
             const glm::mat4x4&     transform
-        ) -> Manifest;
+        );
+        explicit Manifest(
+            std::allocator_arg_t,
+            const allocator_type&  allocator,
+            const fastgltf::Asset& model,
+            std::size_t            scene_index,
+            const glm::mat4x4&     transform
+        );
 
+
+        [[nodiscard]]
+        auto get_allocator() const noexcept -> allocator_type;
 
         [[nodiscard]]
         auto geometry_buffer_size_bytes() const noexcept -> uint32_t;
@@ -176,6 +208,7 @@ private:
             uint32_t             element_byte_offset
         ) -> Writer;
 
+
         [[nodiscard]]
         auto shader_primitive_from(
             const Offsets&             global_offsets,
@@ -190,13 +223,13 @@ private:
         uint32_t m_draw_command_count{};
 
         std::array<uint32_t, std::to_underlying(SupportedElementType::COUNT)>
-                              m_element_buffer_byte_offsets{};
-        std::vector<uint32_t> m_accessor_element_byte_offsets;
-        std::vector<uint32_t> m_per_mesh_transform_offsets;
-        std::vector<uint32_t> m_per_mesh_instance_counts;
+                                   m_element_buffer_byte_offsets{};
+        std::pmr::vector<uint32_t> m_accessor_element_byte_offsets;
+        std::pmr::vector<uint32_t> m_per_mesh_transform_offsets;
+        std::pmr::vector<uint32_t> m_per_mesh_instance_counts;
 
-        std::vector<Writer>      m_geometry_writers;
-        std::vector<glm::mat4x4> m_transforms;
+        std::pmr::vector<Writer>      m_geometry_writers;
+        std::pmr::vector<glm::mat4x4> m_transforms;
     };
 
     using DrawCommandWriterFactory =                                               //
