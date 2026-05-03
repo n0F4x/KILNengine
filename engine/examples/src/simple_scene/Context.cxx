@@ -3,6 +3,7 @@ module;
 #include <atomic>
 #include <chrono>
 #include <filesystem>
+#include <iostream>
 #include <memory_resource>
 #include <print>
 #include <thread>
@@ -124,11 +125,13 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
          &window_resized,
          &window_resolution] mutable -> void
         {
-            auto last_time{ std::chrono::steady_clock::now() };
+            using namespace std::chrono_literals;
+            constexpr static auto target_frame_duration = 1'000ms / 60;
+
             while (running)
             {
-                const auto now{ std::chrono::steady_clock::now() };
-                const auto delta_time{ now - last_time };
+                const auto frame_start_time{ std::chrono::steady_clock::now() };
+
 
                 if (window_resized.exchange(false))
                 {
@@ -149,11 +152,14 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
                 );
 
 
-                using namespace std::chrono_literals;
-                std::this_thread::sleep_for(1s / 60 - delta_time);
-                last_time = now;
+                const auto frame_finish_time{ std::chrono::steady_clock::now() };
+                if (const auto frame_duration{ frame_finish_time - frame_start_time };
+                    frame_duration < target_frame_duration)
+                {
+                    std::this_thread::sleep_for(target_frame_duration - frame_duration);
+                }
             }
-        }   //
+        }
     };
 
     while (!m_window.should_close())
