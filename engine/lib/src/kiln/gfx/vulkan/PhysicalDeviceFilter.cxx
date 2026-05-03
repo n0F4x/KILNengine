@@ -70,8 +70,8 @@ auto PhysicalDeviceFilter::supports_queues_flags(
 
     for (const vk::QueueFamilyProperties2& queue_family : queue_family_properties)
     {
-        remaining_flags &=
-            ~(remaining_flags & queue_family.queueFamilyProperties.queueFlags);
+        remaining_flags
+            &= ~(remaining_flags & queue_family.queueFamilyProperties.queueFlags);
 
         if (!remaining_flags)
         {

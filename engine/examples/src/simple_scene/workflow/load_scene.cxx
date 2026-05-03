@@ -26,59 +26,6 @@ import examples.simple_scene.workflow.GltfModelLoader;
 namespace demo {
 
 [[nodiscard]]
-auto index_buffer_byte_offset(const GltfModelLoader&) -> vk::DeviceSize
-{
-    return 0;
-}
-
-[[nodiscard]]
-auto position_buffer_byte_offset(const GltfModelLoader& model_loader) -> vk::DeviceSize
-{
-    vk::DeviceSize result{
-        index_buffer_byte_offset(model_loader) + model_loader.indices_size_bytes()   //
-    };
-
-    if (const auto remainder{ result % model_loader.position_alignment() };
-        remainder != 0)
-    {
-        result += model_loader.position_alignment() - remainder;
-    }
-
-    return result;
-}
-
-[[nodiscard]]
-auto vertex_buffer_byte_offset(const GltfModelLoader& model_loader) -> vk::DeviceSize
-{
-    vk::DeviceSize result{
-        position_buffer_byte_offset(model_loader)
-        + model_loader.positions_size_bytes()   //
-    };
-
-    if (const auto remainder{ result % model_loader.vertex_alignment() }; remainder != 0)
-    {
-        result += model_loader.vertex_alignment() - remainder;
-    }
-
-    return result;
-}
-
-[[nodiscard]]
-auto geometry_buffer_size_from(const GltfModelLoader& model_loader) -> vk::DeviceSize
-{
-    return vertex_buffer_byte_offset(model_loader) + model_loader.vertices_size_bytes();
-}
-
-[[nodiscard]]
-auto geometry_alignment_from(const GltfModelLoader& model_loader) -> vk::DeviceSize
-{
-    return std::max(
-        std::max(model_loader.index_alignment(), model_loader.position_alignment()),
-        model_loader.vertex_alignment()
-    );
-}
-
-[[nodiscard]]
 auto create_geometry_buffer(
     kiln::gfx::renderer::Allocator& gpu_allocator,
     const GltfModelLoader&          model_loader
@@ -90,7 +37,7 @@ auto create_geometry_buffer(
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = geometry_buffer_size_from(model_loader),
+        .size        = model_loader.geometry_buffer_size_bytes(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -99,7 +46,7 @@ auto create_geometry_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        geometry_alignment_from(model_loader)
+        model_loader.geometry_buffer_alignment()
     );
 }
 
@@ -115,7 +62,7 @@ auto create_material_buffer(
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = model_loader.materials_size_bytes(),
+        .size        = model_loader.material_buffer_size_bytes(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -124,7 +71,7 @@ auto create_material_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.material_alignment()
+        model_loader.material_buffer_alignment()
     );
 }
 
@@ -140,7 +87,7 @@ auto create_transform_buffer(
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext       = &buffer_usage_flags,
-        .size        = model_loader.transforms_size_bytes(),
+        .size        = model_loader.transform_buffer_size_bytes(),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -149,7 +96,7 @@ auto create_transform_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.transform_alignment()
+        model_loader.transform_buffer_alignment()
     );
 }
 
@@ -186,200 +133,124 @@ auto create_draw_command_buffer(
     );
 }
 
-auto stage_indices(
+auto stage_geometry_buffer(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
-    kiln::gfx::renderer::Buffer&        geometry_buffer,
-    const vk::MemoryPropertyFlags       memory_properties,
-    vk::DeviceSize&                     buffer_offset
-) -> void
-{
-    model_loader.set_index_offset(0);
-
-    if (const auto remainder{ buffer_offset % model_loader.index_alignment() };
-        remainder != 0)
-    {
-        buffer_offset += model_loader.index_alignment() - remainder;
-    }
-
-    const kiln::gfx::renderer::BufferRegion destination{
-        geometry_buffer,
-        buffer_offset,
-        model_loader.indices_size_bytes(),
-    };
-    if (memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
-    {
-        model_loader.index_writer()(allocator.map(destination));
-        allocator.unmap(destination);
-        std::println("Copied {} bytes (indices) from host to gpu", destination.size());
-    }
-    else
-    {
-        staging_stream.record(
-            kiln::gfx::renderer::StagingRequest{
-                model_loader.index_writer(),
-                destination,
-            }
-        );
-        std::println("Staged {} bytes (indices) from host to gpu", destination.size());
-    }
-
-    buffer_offset += destination.size();
-}
-
-auto stage_positions(
-    kiln::gfx::renderer::Allocator&     allocator,
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
-    kiln::gfx::renderer::Buffer&        geometry_buffer,
-    const vk::MemoryPropertyFlags       memory_properties,
-    vk::DeviceSize&                     buffer_offset
-) -> void
-{
-    model_loader.set_position_offset(0);
-
-    if (const auto remainder{ buffer_offset % model_loader.position_alignment() };
-        remainder != 0)
-    {
-        buffer_offset += model_loader.position_alignment() - remainder;
-    }
-
-    const kiln::gfx::renderer::BufferRegion destination{
-        geometry_buffer,
-        buffer_offset,
-        model_loader.positions_size_bytes(),
-    };
-
-    if (memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
-    {
-        model_loader.position_writer()(allocator.map(destination));
-        allocator.unmap(destination);
-        std::println("Copied {} bytes (positions) from host to gpu", destination.size());
-    }
-    else
-    {
-        staging_stream.record(
-            kiln::gfx::renderer::StagingRequest{
-                model_loader.position_writer(),
-                destination,
-            }
-        );
-        std::println("Staged {} bytes (positions) from host to gpu", destination.size());
-    }
-
-    buffer_offset += destination.size();
-}
-
-auto stage_vertices(
-    kiln::gfx::renderer::Allocator&     allocator,
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
-    kiln::gfx::renderer::Buffer&        geometry_buffer,
-    const vk::MemoryPropertyFlags       memory_properties,
-    vk::DeviceSize&                     buffer_offset
-) -> void
-{
-    model_loader.set_vertex_offset(0);
-
-    if (const auto remainder{ buffer_offset % model_loader.vertex_alignment() };
-        remainder != 0)
-    {
-        buffer_offset += model_loader.vertex_alignment() - remainder;
-    }
-
-    const kiln::gfx::renderer::BufferRegion destination{
-        geometry_buffer,
-        buffer_offset,
-        model_loader.vertices_size_bytes(),
-    };
-
-    if (memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
-    {
-        model_loader.vertex_writer()(allocator.map(destination));
-        allocator.unmap(destination);
-        std::println("Copied {} bytes (vertices) from host to gpu", destination.size());
-    }
-    else
-    {
-        staging_stream.record(
-            kiln::gfx::renderer::StagingRequest{
-                model_loader.vertex_writer(),
-                destination,
-            }
-        );
-        std::println("Staged {} bytes (vertices) from host to gpu", destination.size());
-    }
-
-    buffer_offset += destination.size();
-}
-
-auto stage_geometry(
-    kiln::gfx::renderer::Allocator&     allocator,
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
+    const std::span<GltfModelLoader>    model_loaders,
     kiln::gfx::renderer::Buffer&        geometry_buffer
 ) -> void
 {
-    const vk::MemoryPropertyFlags memory_properties{
+    const vk::MemoryPropertyFlags geometry_buffer_memory_properties{
         geometry_buffer.allocation().memory_properties()
     };
 
-    vk::DeviceSize buffer_offset{};
-    if (model_loader.indices_size_bytes() != 0)
+    uint32_t buffer_byte_offset{};
+    for (GltfModelLoader& model_loader : model_loaders)
     {
-        stage_indices(
-            allocator,
-            staging_stream,
-            model_loader,
-            geometry_buffer,
-            memory_properties,
-            buffer_offset
-        );
-    }
-    if (model_loader.positions_size_bytes() != 0)
-    {
-        stage_positions(
-            allocator,
-            staging_stream,
-            model_loader,
-            geometry_buffer,
-            memory_properties,
-            buffer_offset
-        );
-    }
-    if (model_loader.vertices_size_bytes() != 0)
-    {
-        stage_vertices(
-            allocator,
-            staging_stream,
-            model_loader,
-            geometry_buffer,
-            memory_properties,
-            buffer_offset
-        );
+        if (model_loader.geometry_buffer_size_bytes() != 0)
+        {
+            if (const auto remainder{ buffer_byte_offset
+                                      % model_loader.geometry_buffer_alignment() };
+                remainder != 0)
+            {
+                buffer_byte_offset
+                    += model_loader.geometry_buffer_alignment() - remainder;
+            }
+
+            model_loader.set_geometry_buffer_byte_offset(buffer_byte_offset);
+
+            const kiln::gfx::renderer::BufferRegion destination{
+                geometry_buffer,
+                buffer_byte_offset,
+                model_loader.geometry_buffer_size_bytes(),
+            };
+            if (geometry_buffer_memory_properties
+                & vk::MemoryPropertyFlagBits::eHostVisible)
+            {
+                allocator.host_copy(model_loader.geometry_writer(), destination);
+            }
+            else
+            {
+                staging_stream.record(
+                    kiln::gfx::renderer::StagingRequest{
+                        model_loader.geometry_writer(),
+                        destination,
+                    }
+                );
+            }
+
+            buffer_byte_offset += destination.size();
+        }
     }
 
-    if ((memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
-        && !(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
+    if (geometry_buffer_memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        allocator.flush(geometry_buffer);
+        std::println(
+            "Copied {} bytes (geometry) from host to gpu",
+            geometry_buffer.size()
+        );
+    }
+    else
+    {
+        std::println(
+            "Staged {} bytes (geometry) from host to gpu",
+            geometry_buffer.size()
+        );
     }
 }
 
-auto stage_materials(
+auto stage_material_buffer(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
+    const std::span<GltfModelLoader>    model_loaders,
     kiln::gfx::renderer::Buffer&        material_buffer
 ) -> void
 {
-    model_loader.set_material_offset(0);
+    const vk::MemoryPropertyFlags material_buffer_memory_properties{
+        material_buffer.allocation().memory_properties()
+    };
 
-    if (material_buffer.allocation().memory_properties()
-        & vk::MemoryPropertyFlagBits::eHostVisible)
+    uint32_t buffer_byte_offset{};
+    for (GltfModelLoader& model_loader : model_loaders)
     {
-        allocator.host_copy(model_loader.material_writer(), material_buffer);
+        if (model_loader.material_buffer_size_bytes() != 0)
+        {
+            if (const auto remainder{ buffer_byte_offset
+                                      % model_loader.material_buffer_alignment() };
+                remainder != 0)
+            {
+                buffer_byte_offset
+                    += model_loader.material_buffer_alignment() - remainder;
+            }
+
+            model_loader.set_material_buffer_byte_offset(buffer_byte_offset);
+
+            const kiln::gfx::renderer::BufferRegion destination{
+                material_buffer,
+                buffer_byte_offset,
+                model_loader.material_buffer_size_bytes(),
+            };
+            if (material_buffer_memory_properties
+                & vk::MemoryPropertyFlagBits::eHostVisible)
+            {
+                allocator.host_copy(model_loader.material_writer(), destination);
+            }
+            else
+            {
+                staging_stream.record(
+                    kiln::gfx::renderer::StagingRequest{
+                        model_loader.material_writer(),
+                        destination,
+                    }
+                );
+            }
+
+            buffer_byte_offset += destination.size();
+        }
+    }
+
+    if (material_buffer_memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
+    {
         std::println(
             "Copied {} bytes (materials) from host to gpu",
             material_buffer.size()
@@ -387,12 +258,6 @@ auto stage_materials(
     }
     else
     {
-        staging_stream.record(
-            kiln::gfx::renderer::StagingRequest{
-                model_loader.material_writer(),
-                material_buffer,
-            }
-        );
         std::println(
             "Staged {} bytes (materials) from host to gpu",
             material_buffer.size()
@@ -400,19 +265,58 @@ auto stage_materials(
     }
 }
 
-auto stage_transforms(
+auto stage_transform_buffer(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
+    const std::span<GltfModelLoader>    model_loaders,
     kiln::gfx::renderer::Buffer&        transform_buffer
 ) -> void
 {
-    model_loader.set_transform_offset(0);
+    const vk::MemoryPropertyFlags transform_buffer_memory_properties{
+        transform_buffer.allocation().memory_properties()
+    };
 
-    if (transform_buffer.allocation().memory_properties()
-        & vk::MemoryPropertyFlagBits::eHostVisible)
+    uint32_t buffer_byte_offset{};
+    for (GltfModelLoader& model_loader : model_loaders)
     {
-        allocator.host_copy(model_loader.transform_writer(), transform_buffer);
+        if (model_loader.transform_buffer_size_bytes() != 0)
+        {
+            if (const auto remainder{ buffer_byte_offset
+                                      % model_loader.transform_buffer_alignment() };
+                remainder != 0)
+            {
+                buffer_byte_offset
+                    += model_loader.transform_buffer_alignment() - remainder;
+            }
+
+            model_loader.set_transform_buffer_byte_offset(buffer_byte_offset);
+
+            const kiln::gfx::renderer::BufferRegion destination{
+                transform_buffer,
+                buffer_byte_offset,
+                model_loader.transform_buffer_size_bytes(),
+            };
+            if (transform_buffer_memory_properties
+                & vk::MemoryPropertyFlagBits::eHostVisible)
+            {
+                allocator.host_copy(model_loader.transform_writer(), destination);
+            }
+            else
+            {
+                staging_stream.record(
+                    kiln::gfx::renderer::StagingRequest{
+                        model_loader.transform_writer(),
+                        destination,
+                    }
+                );
+            }
+
+            buffer_byte_offset += destination.size();
+        }
+    }
+
+    if (transform_buffer_memory_properties & vk::MemoryPropertyFlagBits::eHostVisible)
+    {
         std::println(
             "Copied {} bytes (transforms) from host to gpu",
             transform_buffer.size()
@@ -420,12 +324,6 @@ auto stage_transforms(
     }
     else
     {
-        staging_stream.record(
-            kiln::gfx::renderer::StagingRequest{
-                model_loader.transform_writer(),
-                transform_buffer,
-            }
-        );
         std::println(
             "Staged {} bytes (transforms) from host to gpu",
             transform_buffer.size()
@@ -434,34 +332,57 @@ auto stage_transforms(
 }
 
 [[nodiscard]]
-auto lazy_copy_draw_commands(const GltfModelLoader& model_loader)
+auto draw_count_from(const std::span<const GltfModelLoader> model_loaders) -> uint32_t
+{
+    uint32_t result{};
+
+    for (const GltfModelLoader& model_loader : model_loaders)
+    {
+        result += model_loader.draw_command_count();
+    }
+
+    return result;
+}
+
+[[nodiscard]]
+auto lazy_copy_draw_commands(const std::span<const GltfModelLoader> model_loaders)
     -> kiln::gfx::renderer::LazyCopy
 {
     return kiln::gfx::renderer::LazyCopy{
-        [draw_count                    = model_loader.draw_command_count(),
-         lazy_model_draw_commands_copy = model_loader.draw_command_writer()](
-            const std::span<std::byte> staging_buffer
-        ) -> void
+        [draw_count = draw_count_from(model_loaders),
+         model_loaders]   //
+        (const std::span<std::byte> staging_buffer) -> void
         {
             std::memcpy(staging_buffer.data(), &draw_count, sizeof(decltype(draw_count)));
-            lazy_model_draw_commands_copy(
-                staging_buffer.subspan(draw_command_count_size())
-            );
+
+            uint32_t buffer_byte_offset{};
+            for (const GltfModelLoader& model_loader : model_loaders)
+            {
+                const uint32_t draw_commands_size_bytes{
+                    static_cast<uint32_t>(
+                        model_loader.draw_command_count() * sizeof(shaders::DrawCommand)
+                    ),
+                };
+                model_loader.draw_command_writer()(
+                    staging_buffer.subspan(buffer_byte_offset, draw_commands_size_bytes)
+                );
+                buffer_byte_offset += draw_commands_size_bytes;
+            }
         }
     };
 }
 
 auto stage_draw_commands(
-    kiln::gfx::renderer::Allocator&     allocator,
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    const GltfModelLoader&              model_loader,
-    kiln::gfx::renderer::Buffer&        draw_command_buffer
+    kiln::gfx::renderer::Allocator&        allocator,
+    kiln::gfx::renderer::StagingStream&    staging_stream,
+    const std::span<const GltfModelLoader> model_loaders,
+    kiln::gfx::renderer::Buffer&           draw_command_buffer
 ) -> void
 {
     if (draw_command_buffer.allocation().memory_properties()
         & vk::MemoryPropertyFlagBits::eHostVisible)
     {
-        allocator.host_copy(lazy_copy_draw_commands(model_loader), draw_command_buffer);
+        allocator.host_copy(lazy_copy_draw_commands(model_loaders), draw_command_buffer);
         std::println(
             "Copied {} bytes (draw commands) from host to gpu",
             draw_command_buffer.size()
@@ -471,7 +392,7 @@ auto stage_draw_commands(
     {
         staging_stream.record(
             kiln::gfx::renderer::StagingRequest{
-                lazy_copy_draw_commands(model_loader),
+                lazy_copy_draw_commands(model_loaders),
                 draw_command_buffer,
             }
         );
@@ -482,10 +403,10 @@ auto stage_draw_commands(
     }
 }
 
-auto stage_model(
+auto stage_models(
     kiln::gfx::renderer::Allocator&     allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
-    GltfModelLoader&                    model_loader,
+    const std::span<GltfModelLoader>    model_loaders,
     kiln::gfx::renderer::Buffer&        geometry_buffer,
     kiln::gfx::renderer::Buffer&        material_buffer,
     kiln::gfx::renderer::Buffer&        transform_buffer,
@@ -494,19 +415,19 @@ auto stage_model(
 {
     if (geometry_buffer.size() != 0)
     {
-        stage_geometry(allocator, staging_stream, model_loader, geometry_buffer);
+        stage_geometry_buffer(allocator, staging_stream, model_loaders, geometry_buffer);
     }
     if (material_buffer.size() != 0)
     {
-        stage_materials(allocator, staging_stream, model_loader, material_buffer);
+        stage_material_buffer(allocator, staging_stream, model_loaders, material_buffer);
     }
     if (transform_buffer.size() != 0)
     {
-        stage_transforms(allocator, staging_stream, model_loader, transform_buffer);
+        stage_transform_buffer(allocator, staging_stream, model_loaders, transform_buffer);
     }
     if (draw_command_buffer.size() != 0)
     {
-        stage_draw_commands(allocator, staging_stream, model_loader, draw_command_buffer);
+        stage_draw_commands(allocator, staging_stream, model_loaders, draw_command_buffer);
     }
 }
 
@@ -518,10 +439,6 @@ auto load_scene(
     kiln::gfx::renderer::StagingStream& staging_stream
 ) -> Scene
 {
-    vk::DeviceSize index_byte_offset;
-    vk::DeviceSize position_byte_offset;
-    vk::DeviceSize vertex_byte_offset;
-
     kiln::gfx::renderer::Buffer geometry_buffer;
     kiln::gfx::renderer::Buffer material_buffer;
     kiln::gfx::renderer::Buffer transform_buffer;
@@ -547,11 +464,28 @@ auto load_scene(
                 )   //
         };
 
-        GltfModelLoader model_loader{ model };
-
-        index_byte_offset    = index_buffer_byte_offset(model_loader);
-        position_byte_offset = position_buffer_byte_offset(model_loader);
-        vertex_byte_offset   = vertex_buffer_byte_offset(model_loader);
+        GltfModelLoader model_loader{
+            model,
+            model.defaultScene.value_or(
+                kiln::util::Lazy{
+                    [&model_path, &model] -> std::size_t
+                    {
+                        if (model.scenes.empty())
+                        {
+                            throw std::runtime_error{
+                                std::format(
+                                    "The provided glTF asset ({}) is a library"
+                                    " (it has no scenes)"
+                                    " and therefor cannot be loaded directly.",
+                                    model_path.generic_string()
+                                ),
+                            };
+                        }
+                        return 0;
+                    },
+                }
+            ),
+        };
 
         geometry_buffer     = create_geometry_buffer(gpu_allocator, model_loader);
         material_buffer     = create_material_buffer(gpu_allocator, model_loader);
@@ -559,15 +493,20 @@ auto load_scene(
         draw_command_buffer = create_draw_command_buffer(gpu_allocator, model_loader);
         max_draw_count      = model_loader.draw_command_count();
 
-        stage_model(
+        stage_models(
             gpu_allocator,
             staging_stream,
-            model_loader,
+            std::span{ &model_loader, 1 },
             geometry_buffer,
             material_buffer,
             transform_buffer,
             draw_command_buffer
         );
+
+        gpu_allocator.try_flush(geometry_buffer);
+        gpu_allocator.try_flush(material_buffer);
+        gpu_allocator.try_flush(transform_buffer);
+        gpu_allocator.try_flush(draw_command_buffer);
 
         if (!staging_stream.empty())
         {
@@ -580,9 +519,6 @@ auto load_scene(
     return Scene{
         device,
         std::move(geometry_buffer),
-        index_byte_offset,
-        position_byte_offset,
-        vertex_byte_offset,
         std::move(material_buffer),
         std::move(transform_buffer),
         std::move(draw_command_buffer),

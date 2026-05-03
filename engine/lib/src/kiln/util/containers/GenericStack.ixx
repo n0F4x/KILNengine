@@ -31,30 +31,30 @@ export template <typename T, typename Any_T>
 concept basic_generic_stack_item_c = Any_T::template storable<T>();
 
 export template <typename T, typename Any_T>
-concept decays_to_basic_generic_stack_item_c =
-    basic_generic_stack_item_c<std::decay_t<T>, Any_T>;
+concept decays_to_basic_generic_stack_item_c
+    = basic_generic_stack_item_c<std::decay_t<T>, Any_T>;
 
 namespace internal {
 
 template <typename Any_T>
 struct IsBasicGenericStackItemDependency {
     template <typename T>
-    using type =
-        std::bool_constant<basic_generic_stack_item_c<std::remove_cvref_t<T>, Any_T>>;
+    using type
+        = std::bool_constant<basic_generic_stack_item_c<std::remove_cvref_t<T>, Any_T>>;
 };
 
 }   // namespace internal
 
 export template <typename T, typename Any_T>
-concept basic_generic_stack_item_injection_c =
-    basic_generic_stack_item_c<result_of_t<T&&>, Any_T>
-    && type_list_all_of_c<
-        arguments_of_t<T&&>,
-        internal::IsBasicGenericStackItemDependency<Any_T>::template type>;
+concept basic_generic_stack_item_injection_c
+    = basic_generic_stack_item_c<result_of_t<T&&>, Any_T>
+   && type_list_all_of_c<
+          arguments_of_t<T&&>,
+          internal::IsBasicGenericStackItemDependency<Any_T>::template type>;
 
 export template <typename T, typename Any_T>
-concept decays_to_basic_generic_stack_item_injection_c =
-    basic_generic_stack_item_injection_c<std::decay_t<T>, Any_T>;
+concept decays_to_basic_generic_stack_item_injection_c
+    = basic_generic_stack_item_injection_c<std::decay_t<T>, Any_T>;
 
 /*
  * References to contained items are valid until the instance is alive.
@@ -131,12 +131,12 @@ export template <typename T>
 concept decays_to_generic_stack_item_c = generic_stack_item_c<std::decay_t<T>>;
 
 export template <typename T>
-concept generic_stack_item_injection_c =
-    basic_generic_stack_item_injection_c<T, GenericStack::Any>;
+concept generic_stack_item_injection_c
+    = basic_generic_stack_item_injection_c<T, GenericStack::Any>;
 
 export template <typename T>
-concept decays_to_generic_stack_item_injection_c =
-    generic_stack_item_injection_c<std::decay_t<T>>;
+concept decays_to_generic_stack_item_injection_c
+    = generic_stack_item_injection_c<std::decay_t<T>>;
 
 }   // namespace kiln::util
 

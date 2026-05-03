@@ -102,8 +102,8 @@ auto ResourcePool<Resource_T>::try_emplace(const ResourceID id, Args_T&&... args
         return std::pair{ std::move(found_handle), false };
     }
 
-    contained_handle =
-        make_shared_resource_handle<Resource_T>(std::forward<Args_T>(args)...);
+    contained_handle
+        = make_shared_resource_handle<Resource_T>(std::forward<Args_T>(args)...);
 
     return std::pair{ contained_handle.lock(), true };
 }

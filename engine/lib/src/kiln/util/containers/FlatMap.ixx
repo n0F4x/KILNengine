@@ -118,8 +118,8 @@ public:
 
         const auto key_iter = std::ranges::upper_bound(m_keys, key);
         const auto diff     = std::distance(m_keys.begin(), key_iter);
-        const auto value_iter =
-            std::next(m_values.begin(), std::distance(m_keys.begin(), key_iter));
+        const auto value_iter
+            = std::next(m_values.begin(), std::distance(m_keys.begin(), key_iter));
         m_keys.emplace(key_iter, std::forward<UKey_T>(key));
         m_values.emplace(value_iter, std::forward<Args_T>(args)...);
 

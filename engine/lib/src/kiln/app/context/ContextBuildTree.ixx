@@ -53,8 +53,8 @@ public:
 
     template <context_c Context_T>
     auto register_context(
-        std::pmr::memory_resource& transient_memory_resource =
-            *std::pmr::get_default_resource()
+        std::pmr::memory_resource& transient_memory_resource
+        = *std::pmr::get_default_resource()
     ) -> void;
 
     [[nodiscard]]
@@ -82,8 +82,8 @@ private:
         ContextBuildTree& m_build_tree;
     };
 
-    using ErasedInjection =
-        util::MoveOnlyFunction<auto(Injector&, std::pmr::memory_resource&) &&->void>;
+    using ErasedInjection
+        = util::MoveOnlyFunction<auto(Injector&, std::pmr::memory_resource&) &&->void>;
 
     struct DependencyChainNode {
         const DependencyChainNode* previous{};
@@ -157,8 +157,8 @@ private:
     template <typename ContextBuilder_T>
     auto unsafe_register_context_builder(
         ContextBuilder_T&&         context_builder,
-        std::pmr::memory_resource& transient_memory_resource =
-            *std::pmr::get_default_resource()
+        std::pmr::memory_resource& transient_memory_resource
+        = *std::pmr::get_default_resource()
     ) -> void;
 
     template <typename Context_T>
@@ -350,8 +350,8 @@ concept creates_builder_c = requires {
 };
 
 template <typename T>
-concept represents_optional_dependency_c =
-    requires { requires util::specialization_of_c<T, util::OptionalRef>; };
+concept represents_optional_dependency_c
+    = requires { requires util::specialization_of_c<T, util::OptionalRef>; };
 
 template <context_c Context_T>
 auto ContextBuildTree::register_context(
@@ -565,8 +565,8 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_create(
             util::arguments_of_t<decltype(Builder_T::create)>{},
             [&]<typename Dependency_T> -> bool
             {
-                using DependencyContext =
-                    util::result_of_t<decltype(&strip_dependency_t<Dependency_T>::build)>;
+                using DependencyContext
+                    = util::result_of_t<decltype(&strip_dependency_t<Dependency_T>::build)>;
 
                 return check_for_cyclic_dependency<DependencyContext>(
                     dependency_chain,
@@ -764,8 +764,8 @@ auto ContextBuildTree::emplace_builder(
 
     m_builders.emplace_back(std::in_place_type<Builder_T>, std::forward<Args_T>(args)...);
     m_builder_hashes.push_back(hash_builder<Builder_T>());
-    const DependencyDescriptor& dependency_descriptor =
-        m_builder_dependencies.emplace_back(
+    const DependencyDescriptor& dependency_descriptor
+        = m_builder_dependencies.emplace_back(
             hash_builder<Builder_T>(),
             collect_all_missing_and_resolved_build_dependency_hashes<Builder_T>(
                 &transient_memory_resource
@@ -860,8 +860,8 @@ auto ContextBuildTree::emplace_injection(
         }
     );
     m_injection_hashes.push_back(hash);
-    const DependencyDescriptor& dependency_descriptor =
-        m_injection_dependencies.emplace_back(
+    const DependencyDescriptor& dependency_descriptor
+        = m_injection_dependencies.emplace_back(
             hash,
             collect_all_missing_injection_dependency_hashes<Builder_T>(
                 &transient_memory_resource

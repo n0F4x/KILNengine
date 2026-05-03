@@ -141,43 +141,43 @@ constexpr auto merge_physical_device_features_impl(
     const vk::PhysicalDeviceDescriptorIndexingFeatures& in
 ) -> void
 {
-    inout.shaderInputAttachmentArrayDynamicIndexing |=
-        in.shaderInputAttachmentArrayDynamicIndexing;
-    inout.shaderUniformTexelBufferArrayDynamicIndexing |=
-        in.shaderUniformTexelBufferArrayDynamicIndexing;
-    inout.shaderStorageTexelBufferArrayDynamicIndexing |=
-        in.shaderStorageTexelBufferArrayDynamicIndexing;
-    inout.shaderUniformBufferArrayNonUniformIndexing |=
-        in.shaderUniformBufferArrayNonUniformIndexing;
-    inout.shaderSampledImageArrayNonUniformIndexing |=
-        in.shaderSampledImageArrayNonUniformIndexing;
-    inout.shaderStorageBufferArrayNonUniformIndexing |=
-        in.shaderStorageBufferArrayNonUniformIndexing;
-    inout.shaderStorageImageArrayNonUniformIndexing |=
-        in.shaderStorageImageArrayNonUniformIndexing;
-    inout.shaderInputAttachmentArrayNonUniformIndexing |=
-        in.shaderInputAttachmentArrayNonUniformIndexing;
-    inout.shaderUniformTexelBufferArrayNonUniformIndexing |=
-        in.shaderUniformTexelBufferArrayNonUniformIndexing;
-    inout.shaderStorageTexelBufferArrayNonUniformIndexing |=
-        in.shaderStorageTexelBufferArrayNonUniformIndexing;
-    inout.descriptorBindingUniformBufferUpdateAfterBind |=
-        in.descriptorBindingUniformBufferUpdateAfterBind;
-    inout.descriptorBindingSampledImageUpdateAfterBind |=
-        in.descriptorBindingSampledImageUpdateAfterBind;
-    inout.descriptorBindingStorageImageUpdateAfterBind |=
-        in.descriptorBindingStorageImageUpdateAfterBind;
-    inout.descriptorBindingStorageBufferUpdateAfterBind |=
-        in.descriptorBindingStorageBufferUpdateAfterBind;
-    inout.descriptorBindingUniformTexelBufferUpdateAfterBind |=
-        in.descriptorBindingUniformTexelBufferUpdateAfterBind;
-    inout.descriptorBindingStorageTexelBufferUpdateAfterBind |=
-        in.descriptorBindingStorageTexelBufferUpdateAfterBind;
-    inout.descriptorBindingUpdateUnusedWhilePending |=
-        in.descriptorBindingUpdateUnusedWhilePending;
+    inout.shaderInputAttachmentArrayDynamicIndexing
+        |= in.shaderInputAttachmentArrayDynamicIndexing;
+    inout.shaderUniformTexelBufferArrayDynamicIndexing
+        |= in.shaderUniformTexelBufferArrayDynamicIndexing;
+    inout.shaderStorageTexelBufferArrayDynamicIndexing
+        |= in.shaderStorageTexelBufferArrayDynamicIndexing;
+    inout.shaderUniformBufferArrayNonUniformIndexing
+        |= in.shaderUniformBufferArrayNonUniformIndexing;
+    inout.shaderSampledImageArrayNonUniformIndexing
+        |= in.shaderSampledImageArrayNonUniformIndexing;
+    inout.shaderStorageBufferArrayNonUniformIndexing
+        |= in.shaderStorageBufferArrayNonUniformIndexing;
+    inout.shaderStorageImageArrayNonUniformIndexing
+        |= in.shaderStorageImageArrayNonUniformIndexing;
+    inout.shaderInputAttachmentArrayNonUniformIndexing
+        |= in.shaderInputAttachmentArrayNonUniformIndexing;
+    inout.shaderUniformTexelBufferArrayNonUniformIndexing
+        |= in.shaderUniformTexelBufferArrayNonUniformIndexing;
+    inout.shaderStorageTexelBufferArrayNonUniformIndexing
+        |= in.shaderStorageTexelBufferArrayNonUniformIndexing;
+    inout.descriptorBindingUniformBufferUpdateAfterBind
+        |= in.descriptorBindingUniformBufferUpdateAfterBind;
+    inout.descriptorBindingSampledImageUpdateAfterBind
+        |= in.descriptorBindingSampledImageUpdateAfterBind;
+    inout.descriptorBindingStorageImageUpdateAfterBind
+        |= in.descriptorBindingStorageImageUpdateAfterBind;
+    inout.descriptorBindingStorageBufferUpdateAfterBind
+        |= in.descriptorBindingStorageBufferUpdateAfterBind;
+    inout.descriptorBindingUniformTexelBufferUpdateAfterBind
+        |= in.descriptorBindingUniformTexelBufferUpdateAfterBind;
+    inout.descriptorBindingStorageTexelBufferUpdateAfterBind
+        |= in.descriptorBindingStorageTexelBufferUpdateAfterBind;
+    inout.descriptorBindingUpdateUnusedWhilePending
+        |= in.descriptorBindingUpdateUnusedWhilePending;
     inout.descriptorBindingPartiallyBound |= in.descriptorBindingPartiallyBound;
-    inout.descriptorBindingVariableDescriptorCount |=
-        in.descriptorBindingVariableDescriptorCount;
+    inout.descriptorBindingVariableDescriptorCount
+        |= in.descriptorBindingVariableDescriptorCount;
     inout.runtimeDescriptorArray |= in.runtimeDescriptorArray;
 }
 
@@ -254,8 +254,8 @@ constexpr auto merge_physical_device_features_impl(
 {
     inout.vulkanMemoryModel |= in.vulkanMemoryModel;
     inout.vulkanMemoryModelDeviceScope |= in.vulkanMemoryModelDeviceScope;
-    inout.vulkanMemoryModelAvailabilityVisibilityChains |=
-        in.vulkanMemoryModelAvailabilityVisibilityChains;
+    inout.vulkanMemoryModelAvailabilityVisibilityChains
+        |= in.vulkanMemoryModelAvailabilityVisibilityChains;
 }
 
 constexpr auto merge_physical_device_features_impl(
@@ -272,8 +272,8 @@ constexpr auto merge_physical_device_features_impl(
 ) -> void
 {
     inout.inlineUniformBlock |= in.inlineUniformBlock;
-    inout.descriptorBindingInlineUniformBlockUpdateAfterBind |=
-        in.descriptorBindingInlineUniformBlockUpdateAfterBind;
+    inout.descriptorBindingInlineUniformBlockUpdateAfterBind
+        |= in.descriptorBindingInlineUniformBlockUpdateAfterBind;
 }
 
 constexpr auto merge_physical_device_features_impl(
@@ -417,8 +417,8 @@ constexpr auto merge_physical_device_features_impl(
 ) -> void
 {
     inout.vertexAttributeInstanceRateDivisor |= in.vertexAttributeInstanceRateDivisor;
-    inout.vertexAttributeInstanceRateZeroDivisor |=
-        in.vertexAttributeInstanceRateZeroDivisor;
+    inout.vertexAttributeInstanceRateZeroDivisor
+        |= in.vertexAttributeInstanceRateZeroDivisor;
 }
 
 constexpr auto merge_physical_device_features_impl(

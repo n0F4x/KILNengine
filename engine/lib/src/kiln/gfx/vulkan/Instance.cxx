@@ -213,8 +213,8 @@ auto InstanceBuilder::build() const -> Instance
         .ppEnabledLayerNames   = m_layer_names.empty() ? nullptr
                                                        : m_layer_names.front().address(),
         .enabledExtensionCount = static_cast<uint32_t>(m_extension_names.size()),
-        .ppEnabledExtensionNames =
-            m_extension_names.empty() ? nullptr : m_extension_names.front().address(),
+        .ppEnabledExtensionNames
+        = m_extension_names.empty() ? nullptr : m_extension_names.front().address(),
     };
 
     return Instance{

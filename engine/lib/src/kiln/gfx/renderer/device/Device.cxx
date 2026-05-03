@@ -327,8 +327,8 @@ auto try_emplace_queue(
         return iter->queue_count() - 1;
     }
 
-    vulkan::QueueFamilyInfo& queue_family_info =
-        out.emplace_back(queue_family_index, flags);
+    vulkan::QueueFamilyInfo& queue_family_info
+        = out.emplace_back(queue_family_index, flags);
     queue_family_info.emplace_back(priority);
     return queue_family_info.queue_count() - 1;
 }
@@ -451,13 +451,13 @@ auto Device::Builder::create_queue_family_infos(
 
     if (m_requested_queue_types & QueueType::eGraphics)
     {
-        out_queue_infos.graphics_queue_info =
-            emplace_graphics_queue(result, instance, wsi_context, physical_device);
+        out_queue_infos.graphics_queue_info
+            = emplace_graphics_queue(result, instance, wsi_context, physical_device);
     }
     if (m_requested_queue_types & QueueType::eHostToDeviceTransfer)
     {
-        out_queue_infos.host_to_device_transfer_queue_info =
-            emplace_transfer_queue(result, physical_device);
+        out_queue_infos.host_to_device_transfer_queue_info
+            = emplace_transfer_queue(result, physical_device);
     }
 
     return result;

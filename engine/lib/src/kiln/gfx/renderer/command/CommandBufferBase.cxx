@@ -46,14 +46,14 @@ auto CommandBufferBase::end_recording() -> void
 auto CommandBufferBase::record_barrier(const DependencyInfo& dependency_info) -> void
 {
     const vk::DependencyInfo transformed_dependency_info{
-        .memoryBarrierCount =
-            static_cast<uint32_t>(dependency_info.memory_barriers.size()),
+        .memoryBarrierCount
+        = static_cast<uint32_t>(dependency_info.memory_barriers.size()),
         .pMemoryBarriers = dependency_info.memory_barriers.data(),
-        .bufferMemoryBarrierCount =
-            static_cast<uint32_t>(dependency_info.buffer_memory_barriers.size()),
+        .bufferMemoryBarrierCount
+        = static_cast<uint32_t>(dependency_info.buffer_memory_barriers.size()),
         .pBufferMemoryBarriers = dependency_info.buffer_memory_barriers.data(),
-        .imageMemoryBarrierCount =
-            static_cast<uint32_t>(dependency_info.image_memory_barriers.size()),
+        .imageMemoryBarrierCount
+        = static_cast<uint32_t>(dependency_info.image_memory_barriers.size()),
         .pImageMemoryBarriers = dependency_info.image_memory_barriers.data(),
     };
     m_command_buffer.pipelineBarrier2(transformed_dependency_info);

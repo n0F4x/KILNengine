@@ -26,9 +26,6 @@ auto address_of_buffer(
 Scene::Scene(
     const kiln::gfx::renderer::Device& device,
     kiln::gfx::renderer::Buffer&&      geometry_buffer,
-    const vk::DeviceSize               index_byte_offset,
-    const vk::DeviceSize               position_byte_offset,
-    const vk::DeviceSize               vertex_byte_offset,
     kiln::gfx::renderer::Buffer&&      material_buffer,
     kiln::gfx::renderer::Buffer&&      transform_buffer,
     kiln::gfx::renderer::Buffer&&      draw_command_buffer,
@@ -37,9 +34,6 @@ Scene::Scene(
 )
     : m_geometry_buffer{ std::move(geometry_buffer) },
       m_geometry_buffer_address{ address_of_buffer(device, m_geometry_buffer) },
-      m_index_byte_offset{ index_byte_offset },
-      m_position_byte_offset{ position_byte_offset },
-      m_vertex_byte_offset{ vertex_byte_offset },
       m_material_buffer{ std::move(material_buffer) },
       m_material_buffer_address{ address_of_buffer(device, m_material_buffer) },
       m_transform_buffer{ std::move(transform_buffer) },
@@ -58,25 +52,9 @@ Scene::Scene(
 {
 }
 
-auto Scene::index_buffer_address() const noexcept -> vk::DeviceSize
+auto Scene::geometry_buffer_address() const noexcept -> vk::DeviceSize
 {
-    return m_geometry_buffer_address == 0
-             ? m_geometry_buffer_address
-             : m_geometry_buffer_address + m_index_byte_offset;
-}
-
-auto Scene::position_buffer_address() const noexcept -> vk::DeviceSize
-{
-    return m_geometry_buffer_address == 0
-             ? m_geometry_buffer_address
-             : m_geometry_buffer_address + m_position_byte_offset;
-}
-
-auto Scene::vertex_buffer_address() const noexcept -> vk::DeviceSize
-{
-    return m_geometry_buffer_address == 0
-             ? m_geometry_buffer_address
-             : m_geometry_buffer_address + m_vertex_byte_offset;
+    return m_geometry_buffer_address;
 }
 
 auto Scene::material_buffer_address() const noexcept -> vk::DeviceSize

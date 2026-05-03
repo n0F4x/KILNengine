@@ -14,6 +14,7 @@ namespace kiln::gfx::renderer {
 
 QueueProvider::QueueProvider(Queues&& queues) : m_queues{ std::move(queues) } {}
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 auto QueueProvider::graphics_queue() -> util::OptionalRef<GraphicsQueue>
 {
     if (m_queues.graphics_queue_pack.has_value())
@@ -23,6 +24,7 @@ auto QueueProvider::graphics_queue() -> util::OptionalRef<GraphicsQueue>
     return std::nullopt;
 }
 
+// ReSharper disable once CppMemberFunctionMayBeConst
 auto QueueProvider::host_to_device_transfer_queue() -> util::OptionalRef<TransferQueue>
 {
     if (m_queues.host_to_device_transfer_queue_pack.has_value())
@@ -111,13 +113,13 @@ auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
         .graphics_queue_pack = device.graphics_queue_info().transform(
             queue_pack_from(std::in_place_type<GraphicsQueue>, QueueType::eGraphics)
         ),
-        .host_to_device_transfer_queue_pack =
-            device.host_to_device_transfer_queue_info().transform(
-                queue_pack_from(
-                    std::in_place_type<TransferQueue>,
-                    QueueType::eHostToDeviceTransfer
-                )   //
-            ),
+        .host_to_device_transfer_queue_pack
+        = device.host_to_device_transfer_queue_info().transform(
+            queue_pack_from(
+                std::in_place_type<TransferQueue>,
+                QueueType::eHostToDeviceTransfer
+            )   //
+        ),
     };
 
     return QueueProvider{ std::move(queues) };

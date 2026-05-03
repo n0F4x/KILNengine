@@ -32,40 +32,40 @@ auto collect_vulkan_functions(
     return VmaVulkanFunctions{
         .vkGetInstanceProcAddr = instance.getDispatcher()->vkGetInstanceProcAddr,
         .vkGetDeviceProcAddr   = device.getDispatcher()->vkGetDeviceProcAddr,
-        .vkGetPhysicalDeviceProperties =
-            instance.getDispatcher()->vkGetPhysicalDeviceProperties,
-        .vkGetPhysicalDeviceMemoryProperties =
-            instance.getDispatcher()->vkGetPhysicalDeviceMemoryProperties,
+        .vkGetPhysicalDeviceProperties
+        = instance.getDispatcher()->vkGetPhysicalDeviceProperties,
+        .vkGetPhysicalDeviceMemoryProperties
+        = instance.getDispatcher()->vkGetPhysicalDeviceMemoryProperties,
         .vkAllocateMemory          = device.getDispatcher()->vkAllocateMemory,
         .vkFreeMemory              = device.getDispatcher()->vkFreeMemory,
         .vkMapMemory               = device.getDispatcher()->vkMapMemory,
         .vkUnmapMemory             = device.getDispatcher()->vkUnmapMemory,
         .vkFlushMappedMemoryRanges = device.getDispatcher()->vkFlushMappedMemoryRanges,
-        .vkInvalidateMappedMemoryRanges =
-            device.getDispatcher()->vkInvalidateMappedMemoryRanges,
+        .vkInvalidateMappedMemoryRanges
+        = device.getDispatcher()->vkInvalidateMappedMemoryRanges,
         .vkBindBufferMemory = device.getDispatcher()->vkBindBufferMemory,
         .vkBindImageMemory  = device.getDispatcher()->vkBindImageMemory,
-        .vkGetBufferMemoryRequirements =
-            device.getDispatcher()->vkGetBufferMemoryRequirements,
-        .vkGetImageMemoryRequirements =
-            device.getDispatcher()->vkGetImageMemoryRequirements,
+        .vkGetBufferMemoryRequirements
+        = device.getDispatcher()->vkGetBufferMemoryRequirements,
+        .vkGetImageMemoryRequirements
+        = device.getDispatcher()->vkGetImageMemoryRequirements,
         .vkCreateBuffer  = device.getDispatcher()->vkCreateBuffer,
         .vkDestroyBuffer = device.getDispatcher()->vkDestroyBuffer,
         .vkCreateImage   = device.getDispatcher()->vkCreateImage,
         .vkDestroyImage  = device.getDispatcher()->vkDestroyImage,
         .vkCmdCopyBuffer = device.getDispatcher()->vkCmdCopyBuffer,
-        .vkGetBufferMemoryRequirements2KHR =
-            device.getDispatcher()->vkGetBufferMemoryRequirements2,
-        .vkGetImageMemoryRequirements2KHR =
-            device.getDispatcher()->vkGetImageMemoryRequirements2,
+        .vkGetBufferMemoryRequirements2KHR
+        = device.getDispatcher()->vkGetBufferMemoryRequirements2,
+        .vkGetImageMemoryRequirements2KHR
+        = device.getDispatcher()->vkGetImageMemoryRequirements2,
         .vkBindBufferMemory2KHR = device.getDispatcher()->vkBindBufferMemory2,
         .vkBindImageMemory2KHR  = device.getDispatcher()->vkBindImageMemory2,
-        .vkGetPhysicalDeviceMemoryProperties2KHR =
-            instance.getDispatcher()->vkGetPhysicalDeviceMemoryProperties2,
-        .vkGetDeviceBufferMemoryRequirements =
-            device.getDispatcher()->vkGetDeviceBufferMemoryRequirements,
-        .vkGetDeviceImageMemoryRequirements =
-            device.getDispatcher()->vkGetDeviceImageMemoryRequirements,
+        .vkGetPhysicalDeviceMemoryProperties2KHR
+        = instance.getDispatcher()->vkGetPhysicalDeviceMemoryProperties2,
+        .vkGetDeviceBufferMemoryRequirements
+        = device.getDispatcher()->vkGetDeviceBufferMemoryRequirements,
+        .vkGetDeviceImageMemoryRequirements
+        = device.getDispatcher()->vkGetDeviceImageMemoryRequirements,
     };
 }
 
@@ -229,9 +229,9 @@ auto Allocator::create_buffer(
     VkBuffer          buffer;
     VmaAllocation     allocation{};
     VmaAllocationInfo allocation_info{};
-    auto              result =
-        min_alignment.has_value()
-                         ? vmaCreateBufferWithAlignment(
+    auto              result
+        = min_alignment.has_value()
+            ? vmaCreateBufferWithAlignment(
                   m_handle.get(),
                   reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
                   &allocation_create_info,
@@ -240,7 +240,7 @@ auto Allocator::create_buffer(
                   &allocation,
                   &allocation_info
               )
-                         : ::vmaCreateBuffer(
+            : ::vmaCreateBuffer(
                   m_handle.get(),
                   reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
                   &allocation_create_info,
@@ -291,7 +291,8 @@ auto Allocator::host_copy(
     host_copy(source, destination.allocation(), destination.offset(), destination.size());
 }
 
-auto Allocator::host_copy(const LazyCopy& lazy_copy, const BufferRegion& destination) -> void
+auto Allocator::host_copy(const LazyCopy& lazy_copy, const BufferRegion& destination)
+    -> void
 {
     const vk::MemoryPropertyFlags memory_properties{
         destination.allocation().memory_properties()
@@ -343,19 +344,61 @@ auto Allocator::invalidate(
     const vk::DeviceSize destination_size
 ) -> void
 {
-    vulkan::check_result(
-        vmaInvalidateAllocation(
-            m_handle.get(),
-            allocation.get(),
-            destination_offset,
-            destination_size
-        )   //
-    );
+    if (allocation.get() != VmaAllocation{})
+    {
+        const vk::MemoryPropertyFlags memory_properties{ allocation.memory_properties() };
+
+        PRECOND(memory_properties & vk::MemoryPropertyFlagBits::eHostVisible);
+
+        if (!(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
+        {
+            vulkan::check_result(
+                vmaInvalidateAllocation(
+                    m_handle.get(),
+                    allocation.get(),
+                    destination_offset,
+                    destination_size
+                )   //
+            );
+        }
+    }
 }
 
 auto Allocator::invalidate(const BufferRegion& buffer) -> void
 {
     invalidate(buffer.allocation(), buffer.offset(), buffer.size());
+}
+
+auto Allocator::try_invalidate(
+    Allocation&          allocation,
+    const vk::DeviceSize destination_offset,
+    const vk::DeviceSize destination_size
+) -> bool
+{
+    if (allocation.get() != VmaAllocation{})
+    {
+        if (const vk::MemoryPropertyFlags memory_properties{
+                allocation.memory_properties() };
+            memory_properties & vk::MemoryPropertyFlagBits::eHostVisible
+            && !(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
+        {
+            vulkan::check_result(
+                vmaInvalidateAllocation(
+                    m_handle.get(),
+                    allocation.get(),
+                    destination_offset,
+                    destination_size
+                )   //
+            );
+            return true;
+        }
+    }
+    return false;
+}
+
+auto Allocator::try_invalidate(const BufferRegion& buffer) -> bool
+{
+    return try_invalidate(buffer.allocation(), buffer.offset(), buffer.size());
 }
 
 auto Allocator::flush(
@@ -364,19 +407,61 @@ auto Allocator::flush(
     const vk::DeviceSize destination_size
 ) -> void
 {
-    vulkan::check_result(
-        vmaFlushAllocation(
-            m_handle.get(),
-            allocation.get(),
-            destination_offset,
-            destination_size
-        )   //
-    );
+    if (allocation.get() != VmaAllocation{})
+    {
+        const vk::MemoryPropertyFlags memory_properties{ allocation.memory_properties() };
+
+        PRECOND(memory_properties & vk::MemoryPropertyFlagBits::eHostVisible);
+
+        if (!(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
+        {
+            vulkan::check_result(
+                vmaFlushAllocation(
+                    m_handle.get(),
+                    allocation.get(),
+                    destination_offset,
+                    destination_size
+                )   //
+            );
+        }
+    }
 }
 
 auto Allocator::flush(const BufferRegion& buffer) -> void
 {
     flush(buffer.allocation(), buffer.offset(), buffer.size());
+}
+
+auto Allocator::try_flush(
+    Allocation&          allocation,
+    const vk::DeviceSize destination_offset,
+    const vk::DeviceSize destination_size
+) -> bool
+{
+    if (allocation.get() != VmaAllocation{})
+    {
+        if (const vk::MemoryPropertyFlags memory_properties{
+                allocation.memory_properties() };
+            memory_properties & vk::MemoryPropertyFlagBits::eHostVisible
+            && !(memory_properties & vk::MemoryPropertyFlagBits::eHostCoherent))
+        {
+            vulkan::check_result(
+                vmaFlushAllocation(
+                    m_handle.get(),
+                    allocation.get(),
+                    destination_offset,
+                    destination_size
+                )   //
+            );
+            return true;
+        }
+    }
+    return false;
+}
+
+auto Allocator::try_flush(const BufferRegion& buffer) -> bool
+{
+    return try_flush(buffer.allocation(), buffer.offset(), buffer.size());
 }
 
 auto Allocator::Builder::create(

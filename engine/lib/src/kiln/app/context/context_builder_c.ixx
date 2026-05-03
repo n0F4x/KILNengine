@@ -26,15 +26,15 @@ struct RepresentsContextDependency {
 };
 
 export template <typename T>
-concept context_builder_c =
-    util::naked_c<T>                                   //
-    && std::derived_from<T, ContextBuilderInterface>   //
-    && requires {
-           requires context_c<util::result_of_t<decltype(&T::build)>>
-                        && util::type_list_all_of_c<
-                            util::arguments_of_t<decltype(&T::build)>,
-                            RepresentsContextDependency>;
-       };
+concept context_builder_c
+    = util::naked_c<T>                                //
+   && std::derived_from<T, ContextBuilderInterface>   //
+   && requires {
+          requires context_c<util::result_of_t<decltype(&T::build)>>
+                       && util::type_list_all_of_c<
+                           util::arguments_of_t<decltype(&T::build)>,
+                           RepresentsContextDependency>;
+      };
 
 export template <typename T>
 concept decays_to_concept_builder_c = context_builder_c<std::remove_cvref_t<T>>;

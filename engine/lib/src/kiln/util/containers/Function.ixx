@@ -69,8 +69,8 @@ struct FunctionTraits<
     using Result = result_of_t<Signature_T>;
 
     template <typename Any_T>
-    using invoke_qualified_self_t =
-        ensure_reference_t<typename Signature<Signature_T>::template mimic_t<Any_T>>;
+    using invoke_qualified_self_t
+        = ensure_reference_t<typename Signature<Signature_T>::template mimic_t<Any_T>>;
 
     consteval static auto is_noexcept() noexcept -> bool
     {
@@ -85,9 +85,9 @@ struct FunctionTraits<
 
     template <typename Any_T>
     struct VTable {
-        using CallFunc = auto(invoke_qualified_self_t<Any_T>, FArgs_T...) noexcept(
-            is_noexcept()
-        ) -> Result;
+        using CallFunc
+            = auto(invoke_qualified_self_t<Any_T>, FArgs_T...) noexcept(is_noexcept())
+                -> Result;
 
         std::reference_wrapper<CallFunc> call;
 
@@ -144,14 +144,14 @@ struct FunctionTraits<
     struct Policy {
         using Mimicked = Signature<Signature_T>::template mimic_t<std::decay_t<F>>;
 
-        constexpr static bool value =
-            is_noexcept_v<Signature_T>
+        constexpr static bool value
+            = is_noexcept_v<Signature_T>
                 ? std::is_nothrow_invocable_r_v<Result, Mimicked, FArgs_T...>
                 : std::is_invocable_r_v<Result, Mimicked, FArgs_T...>;
     };
 
-    using AnyTraits =
-        DefaultAnyTraits<is_move_only_T, size_T, alignment_T, Policy, Interface, VTable>;
+    using AnyTraits
+        = DefaultAnyTraits<is_move_only_T, size_T, alignment_T, Policy, Interface, VTable>;
 };
 
 }   // namespace kiln::util::internal

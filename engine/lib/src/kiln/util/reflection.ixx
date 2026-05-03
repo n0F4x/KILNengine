@@ -76,12 +76,12 @@ consteval auto name_of() noexcept -> std::string_view
 #endif
     };
 
-    constexpr std::string_view::size_type trailing_offset =
-        pretty.rfind(internal::pretty_name_trailing_character());
+    constexpr std::string_view::size_type trailing_offset
+        = pretty.rfind(internal::pretty_name_trailing_character());
     static_assert(trailing_offset != std::string_view::npos);
 
-    constexpr std::string_view::size_type offset =
-        pretty.rfind(leading_characters, trailing_offset);
+    constexpr std::string_view::size_type offset
+        = pretty.rfind(leading_characters, trailing_offset);
     static_assert(offset != std::string_view::npos);
 
     return pretty.substr(

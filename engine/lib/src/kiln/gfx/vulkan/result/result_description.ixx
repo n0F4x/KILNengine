@@ -47,22 +47,22 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eSuboptimalKHR:
         {
             return "A swapchain no longer matches the surface properties exactly, but "
-                       "can still be used to present to the surface successfully.";
+                   "can still be used to present to the surface successfully.";
         }
         case vk::Result::eThreadIdleKHR:
         {
             return "A deferred operation is not complete but there is currently no work "
-                       "for this thread to do at the time of this call.";
+                   "for this thread to do at the time of this call.";
         }
         case vk::Result::eThreadDoneKHR:
         {
             return "A deferred operation is not complete but there is no work remaining "
-                       "to assign to additional threads.";
+                   "to assign to additional threads.";
         }
         case vk::Result::eOperationDeferredKHR:
         {
             return "A deferred operation was requested and at least some of the work was "
-                       "deferred.";
+                   "deferred.";
         }
         case vk::Result::eOperationNotDeferredKHR:
         {
@@ -71,12 +71,12 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::ePipelineCompileRequired:
         {
             return "A requested pipeline creation would have required compilation, but "
-                       "the application requested compilation to not be performed.";
+                   "the application requested compilation to not be performed.";
         }
         case vk::Result::ePipelineBinaryMissingKHR:
         {
             return "The application attempted to create a pipeline binary by querying an "
-                       "internal cache, but the internal cache entry did not exist.";
+                   "internal cache, but the internal cache entry did not exist.";
         }
         case vk::Result::eIncompatibleShaderBinaryEXT:
         {
@@ -93,7 +93,7 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eErrorInitializationFailed:
         {
             return "Initialization of an object could not be completed for "
-                       "implementation-specific reasons.";
+                   "implementation-specific reasons.";
         }
         case vk::Result::eErrorDeviceLost:
         {
@@ -118,7 +118,7 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eErrorIncompatibleDriver:
         {
             return "The requested version of Vulkan is not supported by the driver or is "
-                       "otherwise incompatible for implementation-specific reasons.";
+                   "otherwise incompatible for implementation-specific reasons.";
         }
         case vk::Result::eErrorTooManyObjects:
         {
@@ -131,11 +131,11 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eErrorFragmentedPool:
         {
             return "A pool allocation has failed due to fragmentation of the pool’s "
-                       "memory. This must only be returned if no attempt to allocate host or "
-                       "device memory was made to accommodate the new allocation. This "
-                       "should be returned in preference to VK_ERROR_OUT_OF_POOL_MEMORY, but "
-                       "only if the implementation is certain that the pool allocation "
-                       "failure was due to fragmentation.";
+                   "memory. This must only be returned if no attempt to allocate host or "
+                   "device memory was made to accommodate the new allocation. This "
+                   "should be returned in preference to VK_ERROR_OUT_OF_POOL_MEMORY, but "
+                   "only if the implementation is certain that the pool allocation "
+                   "failure was due to fragmentation.";
         }
         case vk::Result::eErrorSurfaceLostKHR:
         {
@@ -143,36 +143,35 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         }
         case vk::Result::eErrorNativeWindowInUseKHR:
         {
-            return
-                    "The requested window is already in use by Vulkan or another API in a "
-                    "manner which prevents it from being used again.";
+            return "The requested window is already in use by Vulkan or another API in a "
+                   "manner which prevents it from being used again.";
         }
         case vk::Result::eErrorOutOfDateKHR:
         {
             return "A surface has changed in such a way that it is no longer compatible "
-                       "with the swapchain, and further presentation requests using the "
-                       "swapchain will fail. Applications must query the new surface "
-                       "properties and recreate their swapchain if they wish to continue "
-                       "presenting to the surface.";
+                   "with the swapchain, and further presentation requests using the "
+                   "swapchain will fail. Applications must query the new surface "
+                   "properties and recreate their swapchain if they wish to continue "
+                   "presenting to the surface.";
         }
         case vk::Result::eErrorIncompatibleDisplayKHR:
         {
             return "The display used by a swapchain does not use the same presentable "
-                       "image layout, or is incompatible in a way that prevents sharing an "
-                       "image.";
+                   "image layout, or is incompatible in a way that prevents sharing an "
+                   "image.";
         }
         case vk::Result::eErrorInvalidShaderNV:
         {
             return "One or more shaders failed to compile or link. More details are "
-                       "reported back to the application via VK_EXT_debug_report if enabled.";
+                   "reported back to the application via VK_EXT_debug_report if enabled.";
         }
         case vk::Result::eErrorOutOfPoolMemory:
         {
             return "A pool memory allocation has failed. This must only be returned if "
-                       "no attempt to allocate host or device memory was made to accommodate "
-                       "the new allocation. If the failure was definitely due to "
-                       "fragmentation of the pool, VK_ERROR_FRAGMENTED_POOL should be "
-                       "returned instead.";
+                   "no attempt to allocate host or device memory was made to accommodate "
+                   "the new allocation. If the failure was definitely due to "
+                   "fragmentation of the pool, VK_ERROR_FRAGMENTED_POOL should be "
+                   "returned instead.";
         }
         case vk::Result::eErrorInvalidExternalHandle:
         {
@@ -185,21 +184,21 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eErrorInvalidOpaqueCaptureAddress:
         {
             return "A buffer creation or memory allocation failed because the requested "
-                       "address is not available. A shader group handle assignment failed "
-                       "because the requested shader group handle information is no longer "
-                       "valid.";
+                   "address is not available. A shader group handle assignment failed "
+                   "because the requested shader group handle information is no longer "
+                   "valid.";
         }
         case vk::Result::eErrorValidationFailedEXT:
         {
             return "A command failed because invalid usage was detected by the "
-                       "implementation or a validation layer. This may result in the command "
-                       "not being dispatched to the ICD.";
+                   "implementation or a validation layer. This may result in the command "
+                   "not being dispatched to the ICD.";
         }
         case vk::Result::eErrorCompressionExhaustedEXT:
         {
             return "An image creation failed because internal resources required for "
-                       "compression are exhausted. This must only be returned when "
-                       "fixed-rate compression is requested.";
+                   "compression are exhausted. This must only be returned when "
+                   "fixed-rate compression is requested.";
         }
         case vk::Result::eErrorImageUsageNotSupportedKHR:
         {
@@ -212,17 +211,17 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eErrorVideoProfileOperationNotSupportedKHR:
         {
             return "A video profile operation specified via "
-                       "VkVideoProfileInfoKHR::videoCodecOperation is not supported.";
+                   "VkVideoProfileInfoKHR::videoCodecOperation is not supported.";
         }
         case vk::Result::eErrorVideoProfileFormatNotSupportedKHR:
         {
             return "Format parameters in a requested VkVideoProfileInfoKHR chain are not "
-                       "supported.";
+                   "supported.";
         }
         case vk::Result::eErrorVideoProfileCodecNotSupportedKHR:
         {
             return "Codec-specific parameters in a requested VkVideoProfileInfoKHR chain "
-                       "are not supported.";
+                   "are not supported.";
         }
         case vk::Result::eErrorVideoStdVersionNotSupportedKHR:
         {
@@ -231,26 +230,26 @@ constexpr auto result_description(const vk::Result result) noexcept -> util::Str
         case vk::Result::eErrorInvalidVideoStdParametersKHR:
         {
             return "The specified Video Std parameters do not adhere to the syntactic or "
-                       "semantic requirements of the used video compression standard, or "
-                       "values derived from parameters according to the rules defined by the "
-                       "used video compression standard do not adhere to the capabilities of "
-                       "the video compression standard or the implementation.";
+                   "semantic requirements of the used video compression standard, or "
+                   "values derived from parameters according to the rules defined by the "
+                   "used video compression standard do not adhere to the capabilities of "
+                   "the video compression standard or the implementation.";
         }
         case vk::Result::eErrorNotPermittedKHR:
         {
             return "The driver implementation has denied a request to acquire a priority "
-                       "above the default priority (VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT) "
-                       "because the application does not have sufficient privileges.";
+                   "above the default priority (VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_EXT) "
+                   "because the application does not have sufficient privileges.";
         }
         case vk::Result::eErrorNotEnoughSpaceKHR:
         {
             return "The application did not provide enough space to return all the "
-                       "required data.";
+                   "required data.";
         }
         case vk::Result::eErrorUnknown:
         {
             return "An unknown error has occurred; either the application has provided "
-                       "invalid input, or an implementation failure has occurred.";
+                   "invalid input, or an implementation failure has occurred.";
         }
         default:
         {

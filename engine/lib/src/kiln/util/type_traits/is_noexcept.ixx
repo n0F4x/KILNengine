@@ -27,8 +27,8 @@ struct IsNoexcept<F> {
 template <typename F>
     requires function_pointer_c<std::remove_reference_t<F>>
 struct IsNoexcept<F> {
-    constexpr static bool value =
-        Signature<std::remove_pointer_t<std::remove_reference_t<F>>>::is_noexcept();
+    constexpr static bool value
+        = Signature<std::remove_pointer_t<std::remove_reference_t<F>>>::is_noexcept();
 };
 
 template <function_reference_c F>
@@ -43,8 +43,8 @@ struct IsNoexcept<F> {
 
 template <unambiguous_functor_c F>
 struct IsNoexcept<F> {
-    constexpr static bool value =
-        IsNoexcept<decltype(&std::remove_cvref_t<F>::operator())>::value;
+    constexpr static bool value
+        = IsNoexcept<decltype(&std::remove_cvref_t<F>::operator())>::value;
 };
 
 }   // namespace internal

@@ -20,8 +20,8 @@ namespace kiln::gfx::vulkan {
 
 export class PhysicalDeviceFilter {
 public:
-    using CustomRequirement =
-        util::CopyableFunction<bool(const vk::raii::PhysicalDevice&) const>;
+    using CustomRequirement
+        = util::CopyableFunction<bool(const vk::raii::PhysicalDevice&) const>;
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 

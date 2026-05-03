@@ -16,9 +16,7 @@ import DrawCommand;
 #endif
 
 EXPORT struct Scene {
-    PUBLIC_MEMBER Ptr<uint32_t>    indices;
-    PUBLIC_MEMBER Ptr<float3>      positions;
-    PUBLIC_MEMBER Ptr<float>       vertices;
+    PUBLIC_MEMBER Ptr<uint8_t>     geometry;
     PUBLIC_MEMBER Ptr<Material>    materials;
     PUBLIC_MEMBER Ptr<float4x4>    transforms;
     PUBLIC_MEMBER Ptr<DrawCommand> draw_commands;

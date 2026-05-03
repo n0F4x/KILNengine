@@ -21,9 +21,11 @@ auto Parser::load(const std::filesystem::path& filepath) -> std::optional<fastgl
         return std::nullopt;
     }
 
-    fastgltf::Expected<fastgltf::Asset> asset{
-        m_parser.loadGltf(file, filepath.parent_path(), fastgltf::Options::None)
-    };
+    fastgltf::Expected<fastgltf::Asset> asset{ m_parser.loadGltf(
+        file,
+        filepath.parent_path(),
+        fastgltf::Options::LoadExternalBuffers
+    ) };
     if (asset.error() != fastgltf::Error::None)
     {
         return std::nullopt;

@@ -42,8 +42,8 @@ public:
     auto on_window_resize(kiln::wsi::Size2u new_resolution) -> void;
 
     auto render(
-        std::pmr::memory_resource& transient_memory_resource =
-            *std::pmr::get_default_resource()
+        std::pmr::memory_resource& transient_memory_resource
+        = *std::pmr::get_default_resource()
     ) -> void;
 
     auto shut_down() -> void;

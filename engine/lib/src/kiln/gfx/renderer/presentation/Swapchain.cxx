@@ -226,8 +226,8 @@ auto Swapchain::acquire_next_image_index(
 
     uint32_t image_index;
 
-    const std::variant vulkan_result =
-        vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
+    const std::variant vulkan_result
+        = vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
             // TODO: use C++ method when it handles out of date result
             m_swapchain.getDispatcher()->vkAcquireNextImageKHR(
                 m_swapchain.getDevice(),
@@ -269,8 +269,8 @@ auto Swapchain::present(
         .pSwapchains        = &*m_swapchain,
         .pImageIndices      = &image_index,
     };
-    const std::variant result =
-        vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
+    const std::variant result
+        = vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
             // TODO: use C++ method when it handles out of date result
             queue.get().getDispatcher()->vkQueuePresentKHR(
                 *queue.get(),

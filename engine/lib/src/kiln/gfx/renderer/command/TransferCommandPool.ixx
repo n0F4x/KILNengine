@@ -26,7 +26,8 @@ public:
     );
 
     auto allocate_primary(
-        util::EnumMask<CommandBufferUsageFlags> usage_flags = CommandBufferUsageFlags::eNone
+        util::EnumMask<CommandBufferUsageFlags> usage_flags
+        = CommandBufferUsageFlags::eNone
     ) -> TransferCommandBuffer;
 };
 

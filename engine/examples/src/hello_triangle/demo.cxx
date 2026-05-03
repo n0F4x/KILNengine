@@ -249,8 +249,8 @@ auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> vo
         *m_render_finished_fences[m_current_frame_index]
     );
 
-    const std::optional<uint32_t> swapchain_image_index =
-        m_surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
+    const std::optional<uint32_t> swapchain_image_index
+        = m_surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
     if (!swapchain_image_index.has_value())
     {
         return;

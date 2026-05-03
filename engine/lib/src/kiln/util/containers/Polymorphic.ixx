@@ -331,8 +331,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable {
         Storage&                            destination_storage,
         const Storage&                      source_storage
     ) -> void;
-    using MoveConstructAtFunc =
-        auto(Storage& destination_storage, Storage&& source_storage) -> void;
+    using MoveConstructAtFunc
+        = auto(Storage& destination_storage, Storage&& source_storage) -> void;
     using MoveConstructAtUsingAllocatorFunc = auto(
         std::pmr::polymorphic_allocator<T>&       destination_allocator,
         Storage&                                  destination_storage,
@@ -360,8 +360,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable {
         Storage&                            rhs_storage,
         const EraseMechanism&               rhs_erase_mechanism
     ) -> void;
-    using ReleaseFunc =
-        auto(std::pmr::polymorphic_allocator<T>& allocator, Storage& storage) -> void;
+    using ReleaseFunc
+        = auto(std::pmr::polymorphic_allocator<T>& allocator, Storage& storage) -> void;
 
     template <typename U>
     struct Operations;
@@ -410,8 +410,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
         }
         else
         {
-            storage.handle =
-                allocator.template new_object<U>(std::forward<Args_T>(args)...);
+            storage.handle
+                = allocator.template new_object<U>(std::forward<Args_T>(args)...);
         }
     }
 
@@ -480,14 +480,15 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
             if constexpr (is_move_only_T)
             {
                 PRECOND(destination_allocator == source_allocator);
-                destination_storage.handle = std::exchange(source_storage.handle, nullptr);
+                destination_storage.handle
+                    = std::exchange(source_storage.handle, nullptr);
             }
             else
             {
                 if (destination_allocator == source_allocator)
                 {
-                    destination_storage.handle =
-                        std::exchange(source_storage.handle, nullptr);
+                    destination_storage.handle
+                        = std::exchange(source_storage.handle, nullptr);
                 }
                 else
                 {
@@ -528,8 +529,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
         {
             if (destination_erase_mechanism.type_hash() == type_hash())
             {
-                *static_cast<U*>(destination_storage.small_buffer.data()) =
-                    *static_cast<U*>(source_storage.small_buffer.data());
+                *static_cast<U*>(destination_storage.small_buffer.data())
+                    = *static_cast<U*>(source_storage.small_buffer.data());
                 return;
             }
 
@@ -548,8 +549,8 @@ struct EraseMechanism<T, is_move_only_T, size_T, alignment_T>::VTable::Operation
                 && destination_storage.handle != nullptr
                 && source_storage.handle != nullptr)
             {
-                static_cast<U&>(*destination_storage.handle) =
-                    static_cast<const U&>(*source_storage.handle);
+                static_cast<U&>(*destination_storage.handle)
+                    = static_cast<const U&>(*source_storage.handle);
                 return;
             }
 
@@ -808,8 +809,8 @@ struct EraseMechanism<T, is_move_only_T, 0, alignment_T>::VTable::Operations {
             && destination_storage.handle != nullptr
             && source_storage.handle != nullptr)
         {
-            static_cast<U&>(*destination_storage.handle) =
-                static_cast<const U&>(*source_storage.handle);
+            static_cast<U&>(*destination_storage.handle)
+                = static_cast<const U&>(*source_storage.handle);
             return;
         }
 

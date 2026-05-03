@@ -148,14 +148,14 @@ struct ErasedStructExtraVTable {
     using EmptyFunc            = auto(const ErasedStruct&) -> bool;
     using MatchesFunc = auto(const ErasedStruct&, const vk::BaseInStructure&) -> bool;
     using MergeFunc   = auto(ErasedStruct&, const vk::BaseInStructure&) -> void;
-    using MergeToVulkan11FeaturesFunc =
-        auto(const ErasedStruct&, vk::PhysicalDeviceVulkan11Features&) -> void;
-    using MergeToVulkan12FeaturesFunc =
-        auto(const ErasedStruct&, vk::PhysicalDeviceVulkan12Features&) -> void;
-    using MergeToVulkan13FeaturesFunc =
-        auto(const ErasedStruct&, vk::PhysicalDeviceVulkan13Features&) -> void;
-    using MergeToVulkan14FeaturesFunc =
-        auto(const ErasedStruct&, vk::PhysicalDeviceVulkan14Features&) -> void;
+    using MergeToVulkan11FeaturesFunc
+        = auto(const ErasedStruct&, vk::PhysicalDeviceVulkan11Features&) -> void;
+    using MergeToVulkan12FeaturesFunc
+        = auto(const ErasedStruct&, vk::PhysicalDeviceVulkan12Features&) -> void;
+    using MergeToVulkan13FeaturesFunc
+        = auto(const ErasedStruct&, vk::PhysicalDeviceVulkan13Features&) -> void;
+    using MergeToVulkan14FeaturesFunc
+        = auto(const ErasedStruct&, vk::PhysicalDeviceVulkan14Features&) -> void;
     using FilterFunc = auto(ErasedStruct&, const vk::BaseInStructure&) -> void;
     using RemoveFunc = auto(ErasedStruct&, const vk::BaseInStructure&) -> void;
 
@@ -709,8 +709,8 @@ constexpr auto StructureChain<RootStruct_T>::merge(
     bool needs_reconnect{};
     for (const auto& [incoming_sType, incoming_features] : other.m_chain)
     {
-        const auto [iter, inserted] =
-            m_chain.try_emplace(incoming_sType, incoming_features);
+        const auto [iter, inserted]
+            = m_chain.try_emplace(incoming_sType, incoming_features);
 
         iter->second.merge(
             util::reinterpret_any_cast<vk::BaseInStructure>(incoming_features)
@@ -891,8 +891,8 @@ constexpr auto StructureChain<RootStruct_T>::operator[](
     std::in_place_type_t<Struct_T>
 ) -> util::forward_like_t<Struct_T, Self_T>
 {
-    const auto [iter, inserted] =
-        self.m_chain.try_emplace(Struct_T::structureType, std::in_place_type<Struct_T>);
+    const auto [iter, inserted]
+        = self.m_chain.try_emplace(Struct_T::structureType, std::in_place_type<Struct_T>);
 
     if (inserted)
     {

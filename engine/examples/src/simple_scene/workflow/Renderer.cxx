@@ -223,8 +223,8 @@ auto Renderer::render(
     ));
     device.logical_device().resetFences(*m_render_finished_fences[m_current_frame_index]);
 
-    const std::optional<uint32_t> swapchain_image_index =
-        surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
+    const std::optional<uint32_t> swapchain_image_index
+        = surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
     if (!swapchain_image_index.has_value())
     {
         return;
@@ -305,9 +305,7 @@ auto Renderer::draw_scene(
 
 
     const shaders::Scene shader_scene{
-        .indices       = scene.index_buffer_address(),
-        .positions     = scene.position_buffer_address(),
-        .vertices      = scene.vertex_buffer_address(),
+        .geometry      = scene.geometry_buffer_address(),
         .materials     = scene.material_buffer_address(),
         .transforms    = scene.transform_buffer_address(),
         .draw_commands = scene.draw_command_buffer_address(),

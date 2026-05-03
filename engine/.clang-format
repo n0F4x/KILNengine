@@ -70,7 +70,7 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: false
   SplitEmptyNamespace: true
-BreakAdjacentStringLiterals: false
+BreakAdjacentStringLiterals: true
 BreakAfterAttributes: Always
 #BreakAfterOpenBracketBracedList: true
 #BreakAfterOpenBracketFunction: true
@@ -78,7 +78,7 @@ BreakAfterAttributes: Always
 #BreakAfterOpenBracketLoop: true
 #BreakAfterOpenBracketSwitch: true
 BreakAfterReturnType: Automatic
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Custom
 #BreakBeforeCloseBracketBracedList: true
 #BreakBeforeCloseBracketFunction: true
@@ -199,7 +199,7 @@ NumericLiteralCase:
 OneLineFormatOffRegex: ^(// disable clang-format$)
 PPIndentWidth: 2
 PackConstructorInitializers: CurrentLine
-PenaltyBreakAssignment: 30
+PenaltyBreakAssignment: 10
 PenaltyBreakBeforeFirstCallParameter: 20
 PenaltyBreakBeforeMemberAccess: 90
 PenaltyBreakComment: 90

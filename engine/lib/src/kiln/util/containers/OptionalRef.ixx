@@ -20,9 +20,9 @@ class OptionalRef;
 namespace internal {
 
 template <typename F, typename T>
-concept and_then_func_c =
-    !std::is_reference_v<T>
-    && std::constructible_from<std::invoke_result_t<F&&, T&>, std::nullopt_t>;
+concept and_then_func_c
+    = !std::is_reference_v<T>
+   && std::constructible_from<std::invoke_result_t<F&&, T&>, std::nullopt_t>;
 
 template <typename F, typename T>
     requires(std::is_reference_v<T>)

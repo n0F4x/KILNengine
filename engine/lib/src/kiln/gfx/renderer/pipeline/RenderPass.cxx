@@ -81,13 +81,13 @@ RenderPass::RenderPass(
           .layerCount           = 1,
           .colorAttachmentCount = static_cast<uint32_t>(color_attachments.size()),
           .pColorAttachments    = m_color_attachments.data(),
-          .pDepthAttachment     = m_depth_attachment
-                                  .transform(
-                                      [](const vk::RenderingAttachmentInfo& value)
-                                          -> const vk::RenderingAttachmentInfo*
-                                      { return &value; }
-                                  )
-                                  .value_or(nullptr),
+          .pDepthAttachment
+          = m_depth_attachment
+                .transform(
+                    [](const vk::RenderingAttachmentInfo& value)
+                        -> const vk::RenderingAttachmentInfo* { return &value; }
+                )
+                .value_or(nullptr),
       }
 {
 }

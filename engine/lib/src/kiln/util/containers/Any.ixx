@@ -338,8 +338,8 @@ namespace kiln::util {
 namespace internal {
 
 template <typename T, std::size_t size_T, std::size_t alignment_T>
-concept small_c =
-    sizeof(T) <= size_T && alignment_T % alignof(T) == 0 && nothrow_movable_c<T>;
+concept small_c
+    = sizeof(T) <= size_T && alignment_T % alignof(T) == 0 && nothrow_movable_c<T>;
 
 template <typename T, std::size_t size_T, std::size_t alignment_T>
 concept large_c = !small_c<T, size_T, alignment_T>;
@@ -411,8 +411,8 @@ struct Operations<T, Traits_T> {
     [[nodiscard]]
     static auto any_cast(Storage_T&& storage) noexcept -> forward_like_t<T, Storage_T>
     {
-        using TPtr =
-            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
+        using TPtr
+            = std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
 
         return std::forward_like<Storage_T>(*static_cast<TPtr>(voidify(storage)));
     }
@@ -451,13 +451,12 @@ struct Operations<T, Traits_T> {
         .drop        = drop,
         .types_match = types_match,
         .type_name   = type_name,
-        .voidify = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(
+        .voidify
+        = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(voidify),
+        .voidify_const
+        = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
             voidify
         ),
-        .voidify_const =
-            static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
-                voidify
-            ),
         .extra_vtable = Traits_T::template vtable<T>(),
     };
 
@@ -532,8 +531,8 @@ struct Operations<T, Traits_T> {
     [[nodiscard]]
     static auto any_cast(Storage_T&& storage) noexcept -> forward_like_t<T, Storage_T>
     {
-        using TPtr =
-            std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
+        using TPtr
+            = std::add_pointer_t<const_like_t<T, std::remove_reference_t<Storage_T>>>;
 
         return std::forward_like<Storage_T>(*static_cast<TPtr>(voidify(storage)));
     }
@@ -572,13 +571,12 @@ struct Operations<T, Traits_T> {
         .drop        = drop,
         .types_match = types_match,
         .type_name   = type_name,
-        .voidify = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(
+        .voidify
+        = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyFunc>>(voidify),
+        .voidify_const
+        = static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
             voidify
         ),
-        .voidify_const =
-            static_cast<std::add_lvalue_reference_t<typename VTable::VoidifyConstFunc>>(
-                voidify
-            ),
         .extra_vtable = Traits_T::template vtable<T>(),
     };
 };

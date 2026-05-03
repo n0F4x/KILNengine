@@ -51,8 +51,8 @@ concept configures_c = util::naked_c<ContextBuilder_T>   //
 
 export class ContextBuilderInterface;
 
-using ErasedConfiguration =
-    util::MoveOnlyFunction<auto(ContextBuilderInterface&, Contexts&) &&->void>;
+using ErasedConfiguration
+    = util::MoveOnlyFunction<auto(ContextBuilderInterface&, Contexts&) &&->void>;
 
 export [[nodiscard]]
 auto configuration_dependency_hash_set(const ContextBuilderInterface& builder) noexcept

@@ -51,8 +51,8 @@ public:
     auto try_emplace(ResourceID id, Args_T&&... args) -> SharedResourceHandle<Resource_T>;
 
 private:
-    using ErasedResourcePool =
-        util::BasicMoveOnlyAny<sizeof(ResourcePool<int>), alignof(ResourcePool<int>)>;
+    using ErasedResourcePool
+        = util::BasicMoveOnlyAny<sizeof(ResourcePool<int>), alignof(ResourcePool<int>)>;
 
     std::pmr::unordered_map<uint64_t, ErasedResourcePool> m_resource_pools;
 };

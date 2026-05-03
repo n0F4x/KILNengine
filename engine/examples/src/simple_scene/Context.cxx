@@ -189,9 +189,11 @@ auto Context::Builder::create(
     );
     device_builder.enable_features(
         vk::PhysicalDeviceVulkan12Features{
-            .drawIndirectCount   = vk::True,
-            .scalarBlockLayout   = vk::True,
-            .bufferDeviceAddress = vk::True,
+            .drawIndirectCount    = vk::True,
+            .storagePushConstant8 = vk::True,
+            .shaderInt8           = vk::True,
+            .scalarBlockLayout    = vk::True,
+            .bufferDeviceAddress  = vk::True,
         }
     );
     device_builder.enable_features(

@@ -197,8 +197,8 @@ auto Window::create_vulkan_surface(const vk::raii::Instance& instance)
     -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
     VkSurfaceKHR   surface{};
-    const VkResult result =
-        glfwCreateWindowSurface(*instance, m_handle.get(), nullptr, &surface);
+    const VkResult result
+        = glfwCreateWindowSurface(*instance, m_handle.get(), nullptr, &surface);
 
     [[maybe_unused]]
     const int error_code = glfwGetError(nullptr);

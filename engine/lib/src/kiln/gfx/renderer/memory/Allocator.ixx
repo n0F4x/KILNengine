@@ -70,12 +70,24 @@ public:
         vk::DeviceSize destination_size
     ) -> void;
     auto invalidate(const BufferRegion& buffer) -> void;
+    auto try_invalidate(
+        Allocation&    allocation,
+        vk::DeviceSize destination_offset,
+        vk::DeviceSize destination_size
+    ) -> bool;
+    auto try_invalidate(const BufferRegion& buffer) -> bool;
     auto flush(
         Allocation&    allocation,
         vk::DeviceSize destination_offset,
         vk::DeviceSize destination_size
     ) -> void;
     auto flush(const BufferRegion& buffer) -> void;
+    auto try_flush(
+        Allocation&    allocation,
+        vk::DeviceSize destination_offset,
+        vk::DeviceSize destination_size
+    ) -> bool;
+    auto try_flush(const BufferRegion& buffer) -> bool;
 
 private:
     std::reference_wrapper<const Device>                            m_device;
