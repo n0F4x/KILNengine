@@ -1,5 +1,6 @@
 module;
 
+#include "Camera.slang"
 #include "DrawCommand.slang"
 #include "Index.slang"
 #include "Material.slang"
@@ -10,6 +11,7 @@ export module examples.simple_scene.shaders;
 
 namespace demo::shaders {
 
+export using ::Camera;
 export using ::DrawCommand;
 export using ::Index;
 export using ::Material;

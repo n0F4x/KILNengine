@@ -16,8 +16,8 @@ import DrawCommand;
 #endif
 
 EXPORT struct Scene {
-    PUBLIC_MEMBER Ptr<uint8_t>     geometry;
-    PUBLIC_MEMBER Ptr<Material>    materials;
-    PUBLIC_MEMBER Ptr<float4x4>    transforms;
-    PUBLIC_MEMBER Ptr<DrawCommand> draw_commands;
+    PUBLIC_MEMBER Ptr<uint8_t>     geometry_buffer_address;
+    PUBLIC_MEMBER Ptr<Material>    material_buffer_address;
+    PUBLIC_MEMBER Ptr<float4x4>    transform_buffer_address;
+    PUBLIC_MEMBER Ptr<DrawCommand> draw_command_buffer_address;
 };

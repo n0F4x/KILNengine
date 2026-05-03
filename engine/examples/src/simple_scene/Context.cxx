@@ -3,9 +3,7 @@ module;
 #include <atomic>
 #include <chrono>
 #include <filesystem>
-#include <iostream>
 #include <memory_resource>
-#include <print>
 #include <thread>
 
 #include <vk_mem_alloc.h>
@@ -24,6 +22,7 @@ import kiln.wsi.event.Key;
 import kiln.wsi.event.wait_events;
 import kiln.wsi.WindowedWindowSettings;
 
+import examples.simple_scene.Camera;
 import examples.simple_scene.workflow.load_scene;
 import examples.simple_scene.workflow.Renderer;
 
@@ -83,6 +82,13 @@ Context::Context(
 {
 }
 
+[[nodiscard]]
+auto aspect_ratio_from(const vk::Extent2D frame_buffer_size) -> double
+{
+    return static_cast<double>(frame_buffer_size.width)
+         / static_cast<double>(frame_buffer_size.height);
+}
+
 auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepath)
     -> void
 {
@@ -128,6 +134,8 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
             using namespace std::chrono_literals;
             constexpr static auto target_frame_duration = 1'000ms / 60;
 
+            const Camera camera{ aspect_ratio_from(*m_render_surface.extent()) };
+
             while (running)
             {
                 const auto frame_start_time{ std::chrono::steady_clock::now() };
@@ -148,6 +156,7 @@ auto Context::run(kiln::app::App& app, const std::filesystem::path& model_filepa
                     *render_queue_provider.graphics_queue(),
                     m_render_surface,
                     scene,
+                    camera,
                     *std::pmr::get_default_resource()
                 );
 

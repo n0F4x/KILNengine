@@ -8,6 +8,11 @@ module;
 #include <source_location>
 #include <utility>
 
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/quaternion_common.hpp>
+#include <glm/ext/vector_float4.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include "kiln/util/contract_macros.hpp"
 
 module examples.simple_scene.workflow.Renderer;
@@ -145,7 +150,7 @@ auto create_graphics_pipeline_layout(const vk::raii::Device& device)
 {
     constexpr static std::array push_constant_ranges{
         vk::PushConstantRange{ .stageFlags = vk::ShaderStageFlagBits::eVertex,
-                              .size       = sizeof(shaders::Scene) },
+                              .size = sizeof(shaders::Scene) + sizeof(shaders::Camera) },
     };
 
     constexpr static vk::PipelineLayoutCreateInfo create_info{
@@ -213,6 +218,7 @@ auto Renderer::render(
     kiln::gfx::renderer::GraphicsQueue& graphics_queue,
     kiln::gfx::renderer::RenderSurface& surface,
     const Scene&                        scene,
+    const Camera&                       camera,
     std::pmr::memory_resource&          transient_memory_resource
 ) -> void
 {
@@ -235,6 +241,7 @@ auto Renderer::render(
         graphics_queue,
         surface,
         scene,
+        camera,
         *swapchain_image_index,
         transient_memory_resource
     );
@@ -259,6 +266,7 @@ auto Renderer::draw_scene(
     kiln::gfx::renderer::GraphicsQueue&       graphics_queue,
     const kiln::gfx::renderer::RenderSurface& surface,
     const Scene&                              scene,
+    const Camera&                             camera,
     const uint32_t                            swapchain_image_index,
     std::pmr::memory_resource&                transient_memory_resource
 ) -> void
@@ -305,18 +313,36 @@ auto Renderer::draw_scene(
 
 
     const shaders::Scene shader_scene{
-        .geometry      = scene.geometry_buffer_address(),
-        .materials     = scene.material_buffer_address(),
-        .transforms    = scene.transform_buffer_address(),
-        .draw_commands = scene.draw_command_buffer_address(),
+        .geometry_buffer_address     = scene.geometry_buffer_address(),
+        .material_buffer_address     = scene.material_buffer_address(),
+        .transform_buffer_address    = scene.transform_buffer_address(),
+        .draw_command_buffer_address = scene.draw_command_buffer_address(),
     };
-    const vk::PushConstantsInfo push_constants_info{
+    const vk::PushConstantsInfo scene_push_constants_info{
         .layout     = m_pipeline_layout,
         .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        .size       = sizeof(shaders::Scene),
+        .size       = sizeof(decltype(shader_scene)),
         .pValues    = &shader_scene,
     };
-    graphics_command_buffer.record_push_constants(push_constants_info);
+    const shaders::Camera shader_camera{
+        .position               = glm::vec4{ camera.position(), 1.0 },
+        .view_projection_matrix = glm::perspective(
+                                      camera.fov(),
+                                      camera.aspect_ratio(),
+                                      camera.near_plane(),
+                                      camera.far_plane()
+                                  )
+                                * glm::mat4_cast(glm::conjugate(camera.orientation())),
+    };
+    const vk::PushConstantsInfo camera_push_constants_info{
+        .layout     = m_pipeline_layout,
+        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+        .offset     = sizeof(shaders::Scene),
+        .size       = sizeof(decltype(shader_camera)),
+        .pValues    = &shader_camera,
+    };
+    graphics_command_buffer.record_push_constants(scene_push_constants_info);
+    graphics_command_buffer.record_push_constants(camera_push_constants_info);
     graphics_command_buffer.record_pipeline_bind(m_graphics_pipeline);
     graphics_command_buffer.record_indirect_draw_count(
         scene.draw_command_buffer_region(),

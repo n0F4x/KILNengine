@@ -15,6 +15,7 @@ import kiln.gfx.renderer.pipeline.GraphicsPipeline;
 import kiln.gfx.renderer.pipeline.ShaderModule;
 import kiln.gfx.renderer.presentation.RenderSurface;
 
+import examples.simple_scene.Camera;
 import examples.simple_scene.workflow.Scene;
 
 namespace demo {
@@ -50,6 +51,7 @@ public:
         kiln::gfx::renderer::GraphicsQueue& graphics_queue,
         kiln::gfx::renderer::RenderSurface& surface,
         const Scene&                        scene,
+        const Camera&                       camera,
         std::pmr::memory_resource&          transient_memory_resource
     ) -> void;
 
@@ -73,6 +75,7 @@ private:
         kiln::gfx::renderer::GraphicsQueue&       graphics_queue,
         const kiln::gfx::renderer::RenderSurface& surface,
         const Scene&                              scene,
+        const Camera&                             camera,
         uint32_t                                  swapchain_image_index,
         std::pmr::memory_resource&                transient_memory_resource
     ) -> void;

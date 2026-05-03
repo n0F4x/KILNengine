@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/ext/vector_float4.hpp>
-#define float3 glm::vec3
-#define float4 glm::vec4
+using float3 = glm::vec3;
+using float4 = glm::vec4;
 #else
 module Material;
 #define EXPORT public
