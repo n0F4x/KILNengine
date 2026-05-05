@@ -1,14 +1,12 @@
 module;
 
-#include <cassert>
-
 #include <GLFW/glfw3.h>
 
 export module kiln.wsi.Context;
 
 import kiln.app.context.ContextBuilderInterface;
 import kiln.util.type_traits.const_like;
-import kiln.wsi.Error;
+import kiln.wsi.error.handle_glfw_error;
 
 namespace kiln::wsi {
 
@@ -64,19 +62,17 @@ module :private;
 
 namespace kiln::wsi {
 
+auto initialize() -> void
+{
+    glfwSetErrorCallback(handle_glfw_error);
+    glfwInit();
+}
+
 Context::Context()
 {
-    if (const bool success = glfwInit(); !success)
+    if (active_context_count == 0)
     {
-        const char* error_description{};
-        [[maybe_unused]]
-        const int error_code = glfwGetError(&error_description);
-        assert(
-            (error_code == GLFW_PLATFORM_UNAVAILABLE || error_code == GLFW_PLATFORM_ERROR)
-            && "Other error codes are unspecified"
-        );
-
-        throw Error{ error_description };
+        initialize();
     }
 
     ++active_context_count;
@@ -99,21 +95,6 @@ Context::~Context()
     if (active_context_count == 0)
     {
         glfwTerminate();
-
-        const char* error_description{};
-        [[maybe_unused]]
-        const int error_code = glfwGetError(&error_description);
-        assert(
-            (error_code == GLFW_NO_ERROR || error_code == GLFW_PLATFORM_ERROR)
-            && "Other error codes are unspecified"
-        );
-        assert(
-            error_code != GLFW_PLATFORM_ERROR
-            && "A bug or configuration error in GLFW,"
-               " the underlying operating system or its drivers,"
-               " or a lack of required resources "
-               "- Issue a ticket to GLFW"
-        );
     }
 }
 

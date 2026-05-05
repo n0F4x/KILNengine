@@ -1,24 +1,19 @@
 module;
 
 #include <expected>
-#include <functional>
 #include <memory>
-#include <optional>
-#include <variant>
 
 #include <GLFW/glfw3.h>
-
-#include "kiln/util/lifetimebound.hpp"
 
 export module kiln.wsi.Window;
 
 import vulkan_hpp;
 
+import kiln.util.StringLiteral;
 import kiln.wsi.Context;
 import kiln.wsi.event.Key;
 import kiln.wsi.Size;
 import kiln.wsi.WindowSettings;
-import kiln.util.StringLiteral;
 
 namespace kiln::wsi {
 
@@ -29,14 +24,21 @@ public:
         WindowSettings      settings;
     };
 
-    Window(
-        [[kiln_lifetimebound]]
-        const Context&    context,
-        const CreateInfo& create_info
-    );
+    Window(const Window&) = delete;
+    Window(Window&&) noexcept;
+    ~Window();
+
+    explicit Window(const Context& context, const CreateInfo& create_info);
+
+    auto operator=(const Window&) -> Window& = delete;
+    auto operator=(Window&&) noexcept -> Window&;
+
 
     [[nodiscard]]
-    auto content_size() const noexcept -> Size2i;
+    auto context() const noexcept -> const Context&;
+
+    [[nodiscard]]
+    auto content_size() const noexcept -> Size2u;
     [[nodiscard]]
     auto resolution() const noexcept -> Size2u;
 
@@ -51,18 +53,12 @@ public:
     auto create_vulkan_surface(const vk::raii::Instance& instance)
         -> std::expected<vk::raii::SurfaceKHR, vk::Result>;
 
-protected:
-    [[nodiscard]]
-    auto context() const noexcept -> const Context&;
-
-    [[nodiscard]]
-    auto handle() noexcept -> GLFWwindow&;
-    [[nodiscard]]
-    auto handle() const noexcept -> const GLFWwindow&;
-
 private:
-    std::reference_wrapper<const Context>                     m_context_ref;
-    std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> m_handle;
+    Context     m_context;
+    GLFWwindow* m_handle;
+
+
+    auto reset() -> void;
 };
 
 }   // namespace kiln::wsi

@@ -2,7 +2,7 @@ module;
 
 #include <utility>
 
-export module kiln.gfx.vulkan.result.result_category;
+export module kiln.gfx.vulkan.result.result_category_from;
 
 import vulkan_hpp;
 
@@ -11,7 +11,7 @@ import kiln.gfx.vulkan.result.ResultCategory;
 namespace kiln::gfx::vulkan {
 
 export [[nodiscard]]
-constexpr auto result_category(const vk::Result result) noexcept -> ResultCategory
+constexpr auto result_category_from(const vk::Result result) noexcept -> ResultCategory
 {
     if (std::to_underlying(result) >= 0)
     {

@@ -12,7 +12,7 @@ module kiln.gfx.vulkan.result.VulkanError;
 import vulkan_hpp;
 
 import kiln.gfx.vulkan.format.to_string;
-import kiln.gfx.vulkan.result.result_category;
+import kiln.gfx.vulkan.result.result_category_from;
 import kiln.gfx.vulkan.result.result_description;
 import kiln.gfx.vulkan.result.ResultCategory;
 import kiln.util.contracts;
@@ -26,7 +26,7 @@ VulkanErrorPrecondition::VulkanErrorPrecondition(
     using namespace fmt::literals;
 
     PRECOND(
-        result_category(runtime_error_code) == ResultCategory::eRuntimeError,
+        result_category_from(runtime_error_code) == ResultCategory::eRuntimeError,
         fmt::format(
             "Error code (`{}`) does not represent a runtime error"_cf,
             vulkan::to_string(runtime_error_code)

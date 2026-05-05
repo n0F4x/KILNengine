@@ -32,9 +32,6 @@ auto create_graphics_pipeline(
     PRECOND(device.capabilities().contains_features(
         vk::PhysicalDeviceDynamicRenderingFeatures{ .dynamicRendering = vk::True }
     ));
-    PRECOND(device.capabilities().contains_features(
-        vk::PhysicalDeviceBufferDeviceAddressFeatures{ .bufferDeviceAddress = vk::True }
-    ));
 
     const vk::PipelineRenderingCreateInfo pipeline_rendering_create_info{
         .colorAttachmentCount    = static_cast<uint32_t>(color_formats.size()),

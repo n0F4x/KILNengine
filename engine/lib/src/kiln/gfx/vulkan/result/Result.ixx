@@ -12,7 +12,7 @@ export module kiln.gfx.vulkan.result.Result;
 import vulkan_hpp;
 
 import kiln.gfx.vulkan.result.make_typed_result_code_variant;
-import kiln.gfx.vulkan.result.result_category;
+import kiln.gfx.vulkan.result.result_category_from;
 import kiln.gfx.vulkan.result.ResultCategory;
 import kiln.gfx.vulkan.result.TypedResultCode;
 import kiln.util.contracts;
@@ -24,7 +24,7 @@ namespace kiln::gfx::vulkan {
 [[nodiscard]]
 constexpr auto ensure_success(const vk::Result result_code) -> vk::Result
 {
-    PRECOND(result_category(result_code) == ResultCategory::eSuccess);
+    PRECOND(result_category_from(result_code) == ResultCategory::eSuccess);
 
     return result_code;
 }
@@ -32,7 +32,7 @@ constexpr auto ensure_success(const vk::Result result_code) -> vk::Result
 [[nodiscard]]
 constexpr auto ensure_error(const vk::Result result_code) -> vk::Result
 {
-    PRECOND(result_category(result_code) != ResultCategory::eSuccess);
+    PRECOND(result_category_from(result_code) != ResultCategory::eSuccess);
 
     return result_code;
 }

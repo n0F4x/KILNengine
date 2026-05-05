@@ -10,7 +10,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         check_result.ixx
         make_typed_result_code_variant.ixx
         Result.ixx
-        result_category.ixx
+        result_category_from.ixx
         result_description.ixx
         ResultCategory.ixx
         TypedResultCode.ixx

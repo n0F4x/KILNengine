@@ -1,7 +1,6 @@
 module;
 
 #include <cassert>
-#include <cstddef>
 #include <optional>
 #include <span>
 
@@ -11,10 +10,10 @@ module;
 
 export module kiln.wsi.monitor;
 
-import kiln.wsi.Context;
-import kiln.wsi.Error;
-import kiln.wsi.Size;
 import kiln.util.contracts;
+import kiln.wsi.Context;
+import kiln.wsi.error.Error;
+import kiln.wsi.Size;
 
 namespace kiln::wsi {
 
@@ -61,9 +60,11 @@ auto active_monitors(const Context&) -> std::span<Monitor>
     int           count;
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 
+    static_assert(sizeof(Monitor) == sizeof(GLFWmonitor*));
+
     return std::span{
         reinterpret_cast<Monitor*>(monitors),
-        static_cast<std::size_t>(count)   //
+        static_cast<unsigned>(count)   //
     };
 }
 
@@ -74,24 +75,17 @@ Monitor::operator GLFWmonitor*() const
 
 auto Monitor::size() const -> Size2i
 {
-    Size2i result;
-
     const GLFWvidmode* video_mode = glfwGetVideoMode(m_handle);
-    if (video_mode == nullptr)
-    {
-        const char* error_description{};
-        [[maybe_unused]]
-        const int error_code = glfwGetError(&error_description);
-        PRECOND(error_code != GLFW_NOT_INITIALIZED);
-        assert(error_code == GLFW_PLATFORM_ERROR && "Other error codes are unspecified");
 
-        throw Error{ error_description };
-    }
+    assert(
+        video_mode != nullptr
+        && "The registered error handler callback should have handled this error"
+    );
 
-    result.width  = video_mode->width;
-    result.height = video_mode->height;
-
-    return result;
+    return Size2i{
+        .width  = video_mode->width,
+        .height = video_mode->height,
+    };
 }
 
 Monitor::Monitor(GLFWmonitor* const handle) : m_handle{ handle }

@@ -15,7 +15,7 @@ import vulkan_hpp;
 
 import kiln.gfx.vulkan.result.make_typed_result_code_variant;
 import kiln.gfx.vulkan.result.Result;
-import kiln.gfx.vulkan.result.result_category;
+import kiln.gfx.vulkan.result.result_category_from;
 import kiln.gfx.vulkan.result.ResultCategory;
 import kiln.gfx.vulkan.result.TypedResultCode;
 import kiln.gfx.vulkan.result.VulkanError;
@@ -133,7 +133,7 @@ namespace kiln::gfx::vulkan {
 constexpr auto represents_precondition_violation(const vk::Result result_code) noexcept
     -> bool
 {
-    return result_category(result_code) == ResultCategory::ePreconditionViolationError;
+    return result_category_from(result_code) == ResultCategory::ePreconditionViolationError;
 }
 
 template <typename T>
@@ -141,14 +141,14 @@ template <typename T>
 constexpr auto represents_precondition_violation(const std::pair<vk::Result, T>& result)
     -> bool
 {
-    return result_category(result.first) == ResultCategory::ePreconditionViolationError;
+    return result_category_from(result.first) == ResultCategory::ePreconditionViolationError;
 }
 
 template <typename T>
 [[nodiscard]]
 constexpr auto represents_precondition_violation(const vk::ResultValue<T>& result) -> bool
 {
-    return result_category(result.result) == ResultCategory::ePreconditionViolationError;
+    return result_category_from(result.result) == ResultCategory::ePreconditionViolationError;
 }
 
 template <typename T>
@@ -158,7 +158,7 @@ constexpr auto represents_precondition_violation(
 ) -> bool
 {
     return !result.has_value()
-        && result_category(result.error()) == ResultCategory::ePreconditionViolationError;
+        && result_category_from(result.error()) == ResultCategory::ePreconditionViolationError;
 }
 
 [[nodiscard]]
@@ -166,7 +166,7 @@ constexpr auto represents_internal_contract_violation(
     const vk::Result result_code
 ) noexcept -> bool
 {
-    return result_category(result_code)
+    return result_category_from(result_code)
         == ResultCategory::eInternalContractViolationError;
 }
 
@@ -176,7 +176,7 @@ constexpr auto represents_internal_contract_violation(
     const std::pair<vk::Result, T>& result
 ) -> bool
 {
-    return result_category(result.first)
+    return result_category_from(result.first)
         == ResultCategory::eInternalContractViolationError;
 }
 
@@ -185,7 +185,7 @@ template <typename T>
 constexpr auto represents_internal_contract_violation(const vk::ResultValue<T>& result)
     -> bool
 {
-    return result_category(result.result)
+    return result_category_from(result.result)
         == ResultCategory::eInternalContractViolationError;
 }
 
@@ -196,28 +196,28 @@ constexpr auto represents_internal_contract_violation(
 ) -> bool
 {
     return !result.has_value()
-        && result_category(result.error())
+        && result_category_from(result.error())
                == ResultCategory::eInternalContractViolationError;
 }
 
 [[nodiscard]]
 constexpr auto represents_runtime_error(const vk::Result result_code) noexcept -> bool
 {
-    return result_category(result_code) == ResultCategory::eRuntimeError;
+    return result_category_from(result_code) == ResultCategory::eRuntimeError;
 }
 
 template <typename T>
 [[nodiscard]]
 constexpr auto represents_runtime_error(const std::pair<vk::Result, T>& result) -> bool
 {
-    return result_category(result.first) == ResultCategory::eRuntimeError;
+    return result_category_from(result.first) == ResultCategory::eRuntimeError;
 }
 
 template <typename T>
 [[nodiscard]]
 constexpr auto represents_runtime_error(const vk::ResultValue<T>& result) -> bool
 {
-    return result_category(result.result) == ResultCategory::eRuntimeError;
+    return result_category_from(result.result) == ResultCategory::eRuntimeError;
 }
 
 template <typename T>
@@ -226,27 +226,27 @@ constexpr auto represents_runtime_error(const std::expected<T, vk::Result>& resu
     -> bool
 {
     return !result.has_value()
-        && result_category(result.error()) == ResultCategory::eRuntimeError;
+        && result_category_from(result.error()) == ResultCategory::eRuntimeError;
 }
 
 [[nodiscard]]
 constexpr auto represents_success(const vk::Result result_code) noexcept -> bool
 {
-    return result_category(result_code) == ResultCategory::eSuccess;
+    return result_category_from(result_code) == ResultCategory::eSuccess;
 }
 
 template <typename T>
 [[nodiscard]]
 constexpr auto represents_success(const std::pair<vk::Result, T>& result) -> bool
 {
-    return result_category(result.first) == ResultCategory::eSuccess;
+    return result_category_from(result.first) == ResultCategory::eSuccess;
 }
 
 template <typename T>
 [[nodiscard]]
 constexpr auto represents_success(const vk::ResultValue<T>& result) -> bool
 {
-    return result_category(result.result) == ResultCategory::eSuccess;
+    return result_category_from(result.result) == ResultCategory::eSuccess;
 }
 
 template <typename T>
@@ -254,7 +254,7 @@ template <typename T>
 constexpr auto represents_success(const std::expected<T, vk::Result>& result) -> bool
 {
     return result.has_value()
-        || result_category(result.error()) == ResultCategory::eSuccess;
+        || result_category_from(result.error()) == ResultCategory::eSuccess;
 }
 
 constexpr auto represents_contract_violation(const vk::Result result_code) noexcept
@@ -291,7 +291,7 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
     const vk::Result runtime_error_code
 ) -> result_type_t<vk::Result>
 {
-    PRECOND(result_category(runtime_error_code) == ResultCategory::eRuntimeError);
+    PRECOND(result_category_from(runtime_error_code) == ResultCategory::eRuntimeError);
 
     if (((runtime_error_code != expected_result_codes_T) && ...))
     {
@@ -338,7 +338,7 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_error(
 {
     const vk::Result runtime_error_code{ result.result };
 
-    PRECOND(result_category(runtime_error_code) == ResultCategory::eRuntimeError);
+    PRECOND(result_category_from(runtime_error_code) == ResultCategory::eRuntimeError);
 
     if (((runtime_error_code != expected_result_codes_T) && ...))
     {
@@ -439,7 +439,7 @@ constexpr auto CheckResult<expected_result_codes_T...>::make_result_from_value(
     vk::ResultValue<Value_T>&& result
 ) -> result_type_t<vk::ResultValue<Value_T>>
 {
-    PRECOND(result_category(result.result) == ResultCategory::eSuccess);
+    PRECOND(result_category_from(result.result) == ResultCategory::eSuccess);
 
     if constexpr (sizeof...(expected_result_codes_T) == 0)
     {
