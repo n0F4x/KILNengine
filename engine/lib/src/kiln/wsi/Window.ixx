@@ -1,9 +1,6 @@
 module;
 
 #include <expected>
-#include <memory>
-
-#include <GLFW/glfw3.h>
 
 export module kiln.wsi.Window;
 
@@ -13,6 +10,7 @@ import kiln.util.StringLiteral;
 import kiln.wsi.Context;
 import kiln.wsi.event.Key;
 import kiln.wsi.Size;
+import kiln.wsi.WindowHandle;
 import kiln.wsi.WindowSettings;
 
 namespace kiln::wsi {
@@ -54,8 +52,8 @@ public:
         -> std::expected<vk::raii::SurfaceKHR, vk::Result>;
 
 private:
-    Context     m_context;
-    GLFWwindow* m_handle;
+    Context      m_context;
+    WindowHandle m_handle;
 
 
     auto reset() -> void;

@@ -4,8 +4,6 @@ module;
 #include <memory_resource>
 #include <vector>
 
-#include <GLFW/glfw3.h>
-
 export module kiln.wsi.WindowProxy;
 
 import vulkan_hpp;
@@ -15,6 +13,7 @@ import kiln.wsi.Context;
 import kiln.wsi.event.Key;
 import kiln.wsi.Size;
 import kiln.wsi.WindowCommand;
+import kiln.wsi.WindowHandle;
 import kiln.wsi.WindowSettings;
 
 namespace kiln::wsi {
@@ -64,7 +63,7 @@ public:
 
 private:
     Context                         m_context;
-    GLFWwindow*                     m_handle;
+    WindowHandle                    m_handle;
     bool                            m_destroyed{};
     std::pmr::vector<WindowCommand> m_changes;
 };

@@ -54,26 +54,26 @@ auto Window::context() const noexcept -> const Context&
 auto Window::content_size() const noexcept -> Size2u
 {
     PRECOND(m_handle != nullptr);
-    return content_size_of(m_context, *m_handle);
+    return content_size_of(m_context, m_handle);
 }
 
 auto Window::resolution() const noexcept -> Size2u
 {
     PRECOND(m_handle != nullptr);
-    return framebuffer_size_of(m_context, *m_handle);
+    return framebuffer_size_of(m_context, m_handle);
 }
 
 auto Window::should_close() const noexcept -> bool
 {
     PRECOND(m_handle != nullptr);
-    return wsi::should_close(m_context, *m_handle);
+    return wsi::should_close(m_context, m_handle);
 }
 
 // ReSharper disable once CppNotAllPathsReturnValue
 auto Window::key_pressed(const Key key) const noexcept -> bool
 {
     PRECOND(m_handle != nullptr);
-    switch (get_key(m_context, *m_handle, key))
+    switch (get_key(m_context, m_handle, key))
     {
         case KeyAction::eRelease: return false;
         case KeyAction::ePress:   return true;
@@ -85,7 +85,7 @@ auto Window::key_pressed(const Key key) const noexcept -> bool
 auto Window::request_close() noexcept -> void
 {
     PRECOND(m_handle != nullptr);
-    set_should_close_flag(m_context, *m_handle, true);
+    set_should_close_flag(m_context, m_handle, true);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
@@ -93,7 +93,7 @@ auto Window::create_vulkan_surface(const vk::raii::Instance& instance)
     -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
     PRECOND(m_handle != nullptr);
-    return wsi::create_vulkan_surface(m_context, *m_handle, instance);
+    return wsi::create_vulkan_surface(m_context, m_handle, instance);
 }
 
 auto Window::reset() -> void

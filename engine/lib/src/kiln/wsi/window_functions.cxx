@@ -7,30 +7,47 @@ module;
 
 #include <GLFW/glfw3.h>
 
+#include "kiln/util/contract_macros.hpp"
+
 module kiln.wsi.window_functions;
 
 import vulkan_hpp;
 
+import kiln.util.contracts;
+import kiln.util.Lazy;
 import kiln.util.Overloaded;
 import kiln.wsi.FullScreenWindowSettings;
+import kiln.wsi.monitor_functions;
 import kiln.wsi.Size;
+import kiln.wsi.VideoMode;
 import kiln.wsi.WindowedWindowSettings;
+import kiln.wsi.WindowHandle;
 
 namespace kiln::wsi {
 
 auto create_window(const Context&, const char* const title, const WindowSettings& settings)
-    -> GLFWwindow*
+    -> WindowHandle
 {
+    PRECOND(title != nullptr);
+
     const auto [width, height]{
         std::visit(
             util::Overloaded{
-                [](const WindowedWindowSettings& windowed_settings) static -> Size2i
+                [](const WindowedWindowSettings& windowed_settings) static -> Size2u
                 {
                     return windowed_settings.content_size;   //
                 },
-                [](const FullScreenWindowSettings& full_screen_settings) static -> Size2i
+                [](const FullScreenWindowSettings& full_screen_settings) static -> Size2u
                 {
-                    return full_screen_settings.monitor.size();   //
+                    return full_screen_settings.resolution.value_or(
+                        util::Lazy{
+                            [&] -> Size2u
+                            {
+                                return video_mode_of(full_screen_settings.monitor)
+                                    .resolution;
+                            },
+                        }
+                    );   //
                 },
             },
             settings
@@ -95,8 +112,8 @@ auto create_window(const Context&, const char* const title, const WindowSettings
     }
 
     GLFWwindow* const window = glfwCreateWindow(
-        width,
-        height,
+        static_cast<int>(width),
+        static_cast<int>(height),
         title,
         std::visit(
             util::Overloaded{
@@ -107,7 +124,7 @@ auto create_window(const Context&, const char* const title, const WindowSettings
                 [](const FullScreenWindowSettings& full_screen_settings) static
                     -> GLFWmonitor*
                 {
-                    return static_cast<GLFWmonitor*>(full_screen_settings.monitor);   //
+                    return full_screen_settings.monitor.get();   //
                 },
             },
             settings
@@ -120,30 +137,37 @@ auto create_window(const Context&, const char* const title, const WindowSettings
         && "The registered error handler callback should have handled this error"
     );
 
-    return window;
+    return WindowHandle{ window };
 }
 
-auto destroy_window(const Context&, GLFWwindow* const window) -> void
+auto destroy_window(const Context&, const WindowHandle window) -> void
 {
-    glfwDestroyWindow(window);
+    glfwDestroyWindow(window.get());
 }
 
-auto should_close(const Context&, GLFWwindow& window) noexcept -> bool
+auto should_close(const Context&, const WindowHandle window) noexcept -> bool
 {
-    return glfwWindowShouldClose(&window) == GLFW_TRUE;
+    PRECOND(window != nullptr);
+    return glfwWindowShouldClose(window.get()) == GLFW_TRUE;
 }
 
-auto set_should_close_flag(const Context&, GLFWwindow& window, const bool flag) noexcept
-    -> void
+auto set_should_close_flag(
+    const Context&,
+    const WindowHandle window,
+    const bool         flag
+) noexcept -> void
 {
-    glfwSetWindowShouldClose(&window, flag);
+    PRECOND(window != nullptr);
+    glfwSetWindowShouldClose(window.get(), flag);
 }
 
-auto content_size_of(const Context&, GLFWwindow& window) -> Size2u
+auto content_size_of(const Context&, const WindowHandle window) -> Size2u
 {
+    PRECOND(window != nullptr);
+
     int width{};
     int height{};
-    glfwGetWindowSize(&window, &width, &height);
+    glfwGetWindowSize(window.get(), &width, &height);
 
     assert(width >= 0);
     assert(height >= 0);
@@ -154,11 +178,13 @@ auto content_size_of(const Context&, GLFWwindow& window) -> Size2u
     };
 }
 
-auto framebuffer_size_of(const Context&, GLFWwindow& window) -> Size2u
+auto framebuffer_size_of(const Context&, const WindowHandle window) -> Size2u
 {
+    PRECOND(window != nullptr);
+
     int width{};
     int height{};
-    glfwGetFramebufferSize(&window, &width, &height);
+    glfwGetFramebufferSize(window.get(), &width, &height);
 
     assert(width >= 0);
     assert(height >= 0);
@@ -169,20 +195,23 @@ auto framebuffer_size_of(const Context&, GLFWwindow& window) -> Size2u
     };
 }
 
-auto get_key(const Context&, GLFWwindow& window, const Key key) -> KeyAction
+auto get_key(const Context&, const WindowHandle window, const Key key) -> KeyAction
 {
-    return KeyAction{ glfwGetKey(&window, std::to_underlying(key)) };
+    PRECOND(window != nullptr);
+    return KeyAction{ glfwGetKey(window.get(), std::to_underlying(key)) };
 }
 
 auto create_vulkan_surface(
     const Context&,
-    GLFWwindow&               window,
+    const WindowHandle        window,
     const vk::raii::Instance& instance
 ) -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
+    PRECOND(window != nullptr);
+
     VkSurfaceKHR   surface{};
     const VkResult result
-        = glfwCreateWindowSurface(*instance, &window, nullptr, &surface);
+        = glfwCreateWindowSurface(*instance, window.get(), nullptr, &surface);
 
     if (result != VK_SUCCESS)
     {

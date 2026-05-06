@@ -5,15 +5,17 @@ module;
 
 export module kiln.wsi.FullScreenWindowSettings;
 
-import kiln.wsi.monitor;
+import kiln.wsi.MonitorHandle;
+import kiln.wsi.Size;
 
 namespace kiln::wsi {
 
 export struct FullScreenWindowSettings {
-    Monitor                 monitor;
+    MonitorHandle           monitor;
+    std::optional<Size2u>   resolution;
+    std::optional<uint16_t> refresh_rate;
     bool                    auto_iconify{ true };
     bool                    center_cursor{ true };
-    std::optional<uint16_t> refresh_rate;
 };
 
 }   // namespace kiln::wsi

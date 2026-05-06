@@ -71,7 +71,7 @@ auto WindowProxy::create_vulkan_surface(const vk::raii::Instance& instance)
     -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
     PRECOND(!m_destroyed);
-    return wsi::create_vulkan_surface(m_context, *m_handle, instance);
+    return wsi::create_vulkan_surface(m_context, m_handle, instance);
 }
 
 auto WindowProxy::flush_changes(

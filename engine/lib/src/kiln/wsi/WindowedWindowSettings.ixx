@@ -20,7 +20,7 @@ export struct WindowedWindowSettings {
         eFocused,
     };
 
-    Size2i                content_size;
+    Size2u                content_size;
     std::optional<int>    position_x;
     std::optional<int>    position_y;
     std::optional<Border> border{ std::in_place };
