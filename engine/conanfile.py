@@ -95,6 +95,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.tool_requires("cmake/[>=4.1]")
 
     def requirements(self):
+        self.requires("magic_enum/0.9.7", transitive_headers=True)
         self.requires("fmt/12.1.0", transitive_headers=True)
         self.requires("spdlog/1.17.0", transitive_headers=True)
         self.requires("vulkan-headers/1.4.313.0", transitive_headers=True)

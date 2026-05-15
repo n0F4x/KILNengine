@@ -27,6 +27,7 @@ if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
             -Wcast-align
             -Wcast-qual
             -Wnrvo
+            -Wimplicit-fallthrough
             -Wno-unused-command-line-argument
     )
     if (${project_prefix}DEBUG AND LIBCPP)

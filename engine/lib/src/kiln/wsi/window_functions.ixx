@@ -7,6 +7,7 @@ export module kiln.wsi.window_functions;
 import vulkan_hpp;
 
 import kiln.wsi.Context;
+import kiln.wsi.CursorMode;
 import kiln.wsi.event.events;
 import kiln.wsi.event.Key;
 import kiln.wsi.event.KeyAction;
@@ -35,7 +36,9 @@ auto framebuffer_size_of(const Context&, WindowHandle window) -> Size2u;
 export [[nodiscard]]
 auto get_cursor_position(const Context&, WindowHandle window) -> Position2d;
 export [[nodiscard]]
-auto get_key(const Context&, WindowHandle window, Key key) -> KeyAction;
+auto is_key_pressed(const Context&, WindowHandle window, Key key) -> bool;
+
+export auto set_cursor_mode(const Context&, WindowHandle window, CursorMode cursor_mode) -> void;
 
 /*
  * This function should also take a context,

@@ -73,12 +73,7 @@ auto Window::should_close() const noexcept -> bool
 auto Window::key_pressed(const Key key) const noexcept -> bool
 {
     PRECOND(m_handle != nullptr);
-    switch (get_key(m_context, m_handle, key))
-    {
-        case KeyAction::eRelease: return false;
-        case KeyAction::ePress:   return true;
-        case KeyAction::eRepeat:  return true;
-    }
+    return is_key_pressed(m_context, m_handle, key);
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst

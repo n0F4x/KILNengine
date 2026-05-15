@@ -15,6 +15,7 @@ add_subdirectory(workflow)
 target_sources(${PROJECT_NAME} PRIVATE
         Camera.cxx
         Context.cxx
+        Controller.cxx
         main.cpp
 )
 
@@ -24,5 +25,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         FILES
         Camera.ixx
         Context.ixx
+        Controller.ixx
         SPSCQueue.ixx
 )

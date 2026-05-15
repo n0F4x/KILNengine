@@ -16,6 +16,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         wsi.cppm
         Context.ixx
         ContextBuilder.ixx
+        CursorMode.ixx
         Engine.ixx
         EventConsumerQueueInterface.ixx
         FullScreenWindowSettings.ixx

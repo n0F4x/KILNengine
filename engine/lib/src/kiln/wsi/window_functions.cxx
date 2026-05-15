@@ -205,10 +205,39 @@ auto get_cursor_position(const Context&, const WindowHandle window) -> Position2
     return result;
 }
 
-auto get_key(const Context&, const WindowHandle window, const Key key) -> KeyAction
+auto is_key_pressed(const Context&, const WindowHandle window, const Key key) -> bool
 {
     PRECOND(window != nullptr);
-    return KeyAction{ glfwGetKey(window.get(), std::to_underlying(key)) };
+    return glfwGetKey(window.get(), std::to_underlying(key)) == GLFW_PRESS;
+}
+
+[[nodiscard]]
+// ReSharper disable once CppNotAllPathsReturnValue
+auto raw_cursor_mode_from(const CursorMode cursor_mode) -> int
+{
+    switch (cursor_mode)
+    {
+        case CursorMode::eNormal:      return GLFW_CURSOR_NORMAL;
+        case CursorMode::eHidden:      return GLFW_CURSOR_HIDDEN;
+        case CursorMode::eCaptured:    return GLFW_CURSOR_CAPTURED;
+        case CursorMode::eDisabled:    return GLFW_CURSOR_DISABLED;
+        case CursorMode::eDisabledRaw: return GLFW_CURSOR_DISABLED;
+    }
+}
+
+auto set_cursor_mode(
+    const Context&,
+    const WindowHandle window,
+    const CursorMode   cursor_mode
+) -> void
+{
+    PRECOND(window != nullptr);
+    glfwSetInputMode(window.get(), GLFW_CURSOR, raw_cursor_mode_from(cursor_mode));
+    glfwSetInputMode(
+        window.get(),
+        GLFW_RAW_MOUSE_MOTION,
+        cursor_mode == CursorMode::eDisabledRaw && glfwRawMouseMotionSupported()
+    );
 }
 
 auto create_vulkan_surface(const WindowHandle window, const vk::raii::Instance& instance)

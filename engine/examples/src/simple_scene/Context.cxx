@@ -25,18 +25,21 @@ import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.containers.MoveOnlyFunction;
 import kiln.util.ScopeFail;
+import kiln.wsi.CursorMode;
 import kiln.wsi.Engine;
 import kiln.wsi.event.Event;
 import kiln.wsi.event.events;
 import kiln.wsi.event.EventType;
 import kiln.wsi.event.Key;
 import kiln.wsi.EventConsumerQueueInterface;
+import kiln.wsi.window_functions;
 import kiln.wsi.WindowCommand;
 import kiln.wsi.WindowedWindowSettings;
 import kiln.wsi.WindowHandle;
 import kiln.wsi.WindowProxy;
 
 import examples.simple_scene.Camera;
+import examples.simple_scene.Controller;
 import examples.simple_scene.SPSCQueue;
 import examples.simple_scene.workflow.load_scene;
 import examples.simple_scene.workflow.Renderer;
@@ -183,10 +186,19 @@ auto Context::create_window(const kiln::app::Config& config, MainThread& main_th
                     .content_size{ .width = 640, .height = 480 }
                 };
 
+                const kiln::wsi::WindowHandle window_handle{
+                    u_main_thread.wsi_engine.create_window(title, screen_settings)
+                };
+                kiln::wsi::set_cursor_mode(
+                    u_main_thread.wsi_engine.context(),
+                    window_handle,
+                    kiln::wsi::CursorMode::eDisabledRaw
+                );
+
                 window_promise.set_value(
                     kiln::wsi::WindowProxy{
                         u_main_thread.wsi_engine.context(),
-                        u_main_thread.wsi_engine.create_window(title, screen_settings),
+                        window_handle,
                     }
                 );
             },
@@ -277,7 +289,9 @@ auto Context::run_render_loop(
     using std::chrono_literals::operator""ms;
     constexpr static auto target_frame_duration = 1'000ms / 60;
 
-    const Camera camera{ aspect_ratio_from(*render_surface.extent()) };
+    Camera     camera{ aspect_ratio_from(*render_surface.extent()) };
+    Controller controller{ window };
+    bool       is_left_control_pressed{};
 
     while (running)
     {
@@ -294,15 +308,40 @@ auto Context::run_render_loop(
         m_wsi_event_buffer.clear();
         m_wsi_event_recorder.flush(m_wsi_event_buffer);
 
-        for (const auto& event : m_wsi_event_buffer | std::views::keys)
+        for (const kiln::wsi::Event& event : m_wsi_event_buffer | std::views::keys)
         {
             window.update(event);
+
+            if (event.type == kiln::wsi::EventType::eCursorMovedEvent
+                && !is_left_control_pressed)
+            {
+                controller.activate(event.cursor_moved_event.new_cursor_position);
+                controller.update(event.cursor_moved_event, camera);
+            }
+
+            if (event.type == kiln::wsi::EventType::eKeyPressedEvent
+                && !is_left_control_pressed
+                && event.key_pressed_event.key == kiln::wsi::Key::eLeftControl)
+            {
+                window.set_cursor_mode(kiln::wsi::CursorMode::eNormal);
+                is_left_control_pressed = true;
+                controller.deactivate();
+            }
+            else if (event.type == kiln::wsi::EventType::eKeyReleasedEvent
+                     && is_left_control_pressed
+                     && event.key_released_event.key == kiln::wsi::Key::eLeftControl)
+            {
+                window.set_cursor_mode(kiln::wsi::CursorMode::eDisabledRaw);
+                is_left_control_pressed = false;
+            }
         }
         window.flush_changes(
             [&](auto window_commands) -> void
             {
                 [[maybe_unused]]
-                const bool success_count = main_thread.work_queue.try_append_range(
+                const auto number_of_window_commands{ std::ranges::size(window_commands) };
+                [[maybe_unused]]
+                const auto success_count = main_thread.work_queue.try_append_range(
                     window_commands
                     | std::views::transform(
                         [](kiln::wsi::WindowCommand&& window_command) -> MainThread::Task
@@ -320,7 +359,7 @@ auto Context::run_render_loop(
                         }
                     )
                 );
-                assert(success_count == std::ranges::size(window_commands));
+                assert(success_count == number_of_window_commands);
             }
         );
         if (window.should_close())

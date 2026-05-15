@@ -17,6 +17,7 @@ import kiln.wsi.event.EventType;
 import kiln.wsi.event.poll_events;
 import kiln.wsi.event.wait_events;
 import kiln.wsi.window_functions;
+import kiln.wsi.event.Key;
 
 namespace kiln::wsi {
 
@@ -128,6 +129,60 @@ auto set_framebuffer_size_callback(const WindowHandle window) -> void
     );
 }
 
+auto set_key_callback(const WindowHandle window) -> void
+{
+    PRECOND(window != nullptr);
+
+    glfwSetKeyCallback(
+        window.get(),
+        +[](
+             GLFWwindow* const          raw_window,
+             const int                  key,
+             [[maybe_unused]] const int scan_code,
+             const int                  action,
+             [[maybe_unused]]
+             const int mods   //
+         ) -> void
+        {
+            void* const user_pointer{ glfwGetWindowUserPointer(raw_window) };
+            PRECOND(user_pointer != nullptr);
+
+            EventConsumerQueueInterface& event_consume_queue{
+                *static_cast<EventConsumerQueueInterface*>(user_pointer)
+            };
+
+            if (action == GLFW_PRESS)
+            {
+                const KeyPressedEvent key_pressed_event{
+                    .window{ raw_window },
+                    .key{ key },
+                };
+                event_consume_queue.push(
+                    Event{
+                        .type              = EventType::eKeyPressedEvent,
+                        .key_pressed_event = key_pressed_event,
+                    },
+                    std::chrono::steady_clock::now()
+                );
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                const KeyReleasedEvent key_released_event{
+                    .window{ raw_window },
+                    .key{ key },
+                };
+                event_consume_queue.push(
+                    Event{
+                        .type               = EventType::eKeyReleasedEvent,
+                        .key_released_event = key_released_event,
+                    },
+                    std::chrono::steady_clock::now()
+                );
+            }
+        }
+    );
+}
+
 auto set_cursor_pos_callback(const WindowHandle window) -> void
 {
     PRECOND(window != nullptr);
@@ -161,6 +216,7 @@ auto Engine::set_callbacks(const WindowHandle window) -> void
 {
     set_window_close_requested_callback(window);
     set_framebuffer_size_callback(window);
+    set_key_callback(window);
     set_cursor_pos_callback(window);
 }
 

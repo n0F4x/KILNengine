@@ -130,6 +130,8 @@ export enum struct Key
     eRightAlt       = GLFW_KEY_RIGHT_ALT,
     eRightSuper     = GLFW_KEY_RIGHT_SUPER,
     eMenu           = GLFW_KEY_MENU,
+
+    eUnknown = GLFW_KEY_UNKNOWN,
 };
 
 }   // namespace kiln::wsi

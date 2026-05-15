@@ -2,6 +2,7 @@ module;
 
 #include <concepts>
 #include <expected>
+#include <flat_map>
 #include <functional>
 #include <memory_resource>
 #include <ranges>
@@ -12,9 +13,12 @@ export module kiln.wsi.WindowProxy;
 
 import vulkan_hpp;
 
+import kiln.util.Bool;
 import kiln.util.StringLiteral;
 import kiln.wsi.Context;
+import kiln.wsi.CursorMode;
 import kiln.wsi.event.Key;
+import kiln.wsi.event.KeyAction;
 import kiln.wsi.event.Event;
 import kiln.wsi.Position;
 import kiln.wsi.Size;
@@ -61,14 +65,18 @@ public:
     [[nodiscard]]
     auto framebuffer_size() const noexcept -> const Size2u&;
     [[nodiscard]]
+    auto is_key_pressed(Key key) const noexcept -> bool;
+    [[nodiscard]]
     auto cursor_position() const noexcept -> const Position2d&;
 
 
-    auto destroy() -> void;
+    auto set_cursor_mode(CursorMode cursor_mode) -> void;
 
     [[nodiscard]]
     auto create_vulkan_surface(const vk::raii::Instance& instance)
         -> std::expected<vk::raii::SurfaceKHR, vk::Result>;
+
+    auto destroy() -> void;
 
     auto update(const Event& event) -> void;
     template <typename F>
@@ -79,8 +87,15 @@ public:
 
 private:
     struct CachedState {
-        bool       close_flag{};
-        Size2u     framebuffer_size{};
+        bool   close_flag{};
+        Size2u framebuffer_size{};
+        std::flat_map<
+            Key,
+            util::Bool,
+            std::less<>,
+            std::pmr::vector<Key>,
+            std::pmr::vector<util::Bool>>
+                   keys;
         Position2d cursor_position{};
     };
 

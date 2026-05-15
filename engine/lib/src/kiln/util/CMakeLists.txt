@@ -21,6 +21,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         util.cppm
         any_of.ixx
+        Bool.ixx
         contracts.ixx
         Deleter.ixx
         Dummy.ixx

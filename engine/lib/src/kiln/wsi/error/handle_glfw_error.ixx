@@ -34,7 +34,8 @@ export auto handle_glfw_error(const int error_code, const char* description = nu
             {
                 PRECOND(false, description);
             }
-        case ErrorCategory::eInternalContractViolationError: assert(false);
+            break;
+        case ErrorCategory::eInternalContractViolationError: assert(false); break;
     }
     std::unreachable();
 }

@@ -4,6 +4,11 @@ if (DEFINED CMAKE_TOOLCHAIN_FILE)
 endif ()
 
 
+# magic_enum
+# TODO: use reflection instead
+find_package(magic_enum CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PUBLIC magic_enum::magic_enum)
+
 # fmt
 find_package(fmt CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC fmt::fmt)

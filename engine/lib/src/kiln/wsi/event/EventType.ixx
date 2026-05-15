@@ -6,6 +6,8 @@ export enum struct EventType
 {
     eWindowCloseRequestedEvent,
     eFramebufferResizedEvent,
+    eKeyPressedEvent,
+    eKeyReleasedEvent,
     eCursorMovedEvent,
 };
 
