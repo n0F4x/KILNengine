@@ -227,7 +227,6 @@ auto Renderer::render(
         vk::True,
         std::numeric_limits<uint64_t>::max()
     ));
-    device.logical_device().resetFences(*m_render_finished_fences[m_current_frame_index]);
 
     const std::optional<uint32_t> swapchain_image_index
         = surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
@@ -235,6 +234,8 @@ auto Renderer::render(
     {
         return;
     }
+
+    device.logical_device().resetFences(*m_render_finished_fences[m_current_frame_index]);
 
 
     draw_scene(

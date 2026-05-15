@@ -6,4 +6,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         event_c.ixx
         EventBuffer.ixx
         EventRecorder.ixx
+        Timestamp.ixx
 )

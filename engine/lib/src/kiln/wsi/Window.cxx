@@ -57,7 +57,7 @@ auto Window::content_size() const noexcept -> Size2u
     return content_size_of(m_context, m_handle);
 }
 
-auto Window::resolution() const noexcept -> Size2u
+auto Window::framebuffer_size() const noexcept -> Size2u
 {
     PRECOND(m_handle != nullptr);
     return framebuffer_size_of(m_context, m_handle);
@@ -93,7 +93,7 @@ auto Window::create_vulkan_surface(const vk::raii::Instance& instance)
     -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
     PRECOND(m_handle != nullptr);
-    return wsi::create_vulkan_surface(m_context, m_handle, instance);
+    return wsi::create_vulkan_surface(m_handle, instance);
 }
 
 auto Window::reset() -> void

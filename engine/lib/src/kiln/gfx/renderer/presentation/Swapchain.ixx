@@ -51,6 +51,7 @@ public:
     ) -> bool;
 
 private:
+    vk::SurfaceCapabilitiesKHR       m_surface_capabilities;
     vk::Extent2D                     m_extent;
     vk::raii::SwapchainKHR           m_swapchain;
     std::vector<vk::Image>           m_swapchain_images;

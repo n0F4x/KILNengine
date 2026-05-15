@@ -3,6 +3,9 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         event.cppm
+        Event.ixx
+        EventType.ixx
+        events.ixx
         Key.ixx
         KeyAction.ixx
         poll_events.ixx

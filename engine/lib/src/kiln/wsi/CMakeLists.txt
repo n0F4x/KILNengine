@@ -2,6 +2,7 @@ add_subdirectory(error)
 add_subdirectory(event)
 
 target_sources(${PROJECT_NAME} PRIVATE
+        Engine.cxx
         monitor_functions.cxx
         Window.cxx
         window_functions.cxx
@@ -15,9 +16,12 @@ target_sources(${PROJECT_NAME} PUBLIC
         wsi.cppm
         Context.ixx
         ContextBuilder.ixx
+        Engine.ixx
+        EventConsumerQueueInterface.ixx
         FullScreenWindowSettings.ixx
         monitor_functions.ixx
         MonitorHandle.ixx
+        Position.ixx
         Size.ixx
         VideoMode.ixx
         vulkan_instance_extensions.ixx

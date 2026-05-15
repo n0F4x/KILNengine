@@ -1,7 +1,8 @@
 module;
 
-#include <chrono>
+#include <algorithm>
 #include <memory_resource>
+#include <ranges>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -9,6 +10,7 @@ module;
 export module kiln.event.EventBuffer;
 
 import kiln.event.event_c;
+import kiln.event.Timestamp;
 
 namespace kiln::event {
 
@@ -16,6 +18,11 @@ export template <event_c Event_T>
 class EventBuffer {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
+    template <bool is_const_T>
+    class iterator;
+    using const_iterator  = iterator<true>;
+    using reference       = std::pair<Event_T&, const Timestamp>;
+    using const_reference = std::pair<const Event_T&, const Timestamp>;
 
 
     EventBuffer(const EventBuffer&, const allocator_type&)
@@ -32,14 +39,115 @@ public:
     [[nodiscard]]
     auto size() const noexcept -> std::size_t;
 
+    template <typename Self_T>
+    [[nodiscard]]
+    auto begin(this Self_T& self) noexcept -> iterator<std::is_const_v<Self_T>>;
+    [[nodiscard]]
+    auto cbegin() const noexcept -> const_iterator;
+    template <typename Self_T>
+    [[nodiscard]]
+    auto end(this Self_T& self) noexcept -> iterator<std::is_const_v<Self_T>>;
+    [[nodiscard]]
+    auto cend() const noexcept -> const_iterator;
+
+
     auto clear() -> void;
     auto reserve(std::size_t capacity) -> void;
-    auto push_back(Event_T&& event, std::chrono::steady_clock::time_point timestamp)
-        -> void;
+    auto insert(Event_T&& event, Timestamp timestamp) -> void;
 
 private:
-    std::pmr::vector<Event_T>                               m_events;
-    std::pmr::vector<std::chrono::steady_clock::time_point> m_timestamps;
+    using event_container_type     = std::pmr::vector<Event_T>;
+    using timestamp_container_type = std::pmr::vector<Timestamp>;
+
+
+    event_container_type     m_events;
+    timestamp_container_type m_timestamps;
+};
+
+template <event_c Event_T>
+template <bool is_const_T>
+class EventBuffer<Event_T>::iterator {
+public:
+    using iterator_concept  = std::random_access_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type        = std::pair<Event_T, Timestamp>;
+    using reference         = std::conditional_t<is_const_T, const_reference, reference>;
+    using difference_type   = std::ptrdiff_t;
+
+private:
+    template <bool>
+    friend class iterator;
+
+    using event_iterator = std::conditional_t<
+        is_const_T,
+        typename event_container_type::const_iterator,
+        typename event_container_type::iterator>;
+    using timestamp_iterator = timestamp_container_type::const_iterator;
+
+    struct ArrowProxy {
+        reference m_ref;
+
+        auto operator->() -> reference*
+        {
+            return std::addressof(m_ref);
+        }
+    };
+
+public:
+    iterator() = default;
+
+    explicit(false) iterator(iterator<!is_const_T> other)
+        requires is_const_T
+        : iterator{ other.m_event_iter, other.m_timestamp_iter }
+    {
+    }
+
+    iterator(const event_iterator& event_iter, const timestamp_iterator& timestamp_iter)
+        : m_event_iter(event_iter),
+          m_timestamp_iter(timestamp_iter)
+    {
+    }
+
+    auto operator==(const iterator other) const noexcept -> bool
+    {
+        return m_event_iter == other.m_event_iter;
+    }
+
+    auto operator*() const -> reference
+    {
+        return reference{ *m_event_iter, *m_timestamp_iter };
+    }
+
+    auto operator->() const -> ArrowProxy
+    {
+        return ArrowProxy{ **this };
+    }
+
+    auto operator++() -> iterator&
+    {
+        ++m_event_iter;
+        ++m_timestamp_iter;
+        return *this;
+    }
+
+    auto operator++(int) -> iterator
+    {
+        iterator result{ *this };
+        ++m_event_iter;
+        ++m_timestamp_iter;
+        return result;
+    }
+
+    auto operator+=(const difference_type diff) -> iterator&
+    {
+        m_event_iter += diff;
+        m_timestamp_iter += diff;
+        return *this;
+    }
+
+private:
+    event_iterator     m_event_iter;
+    timestamp_iterator m_timestamp_iter;
 };
 
 }   // namespace kiln::event
@@ -84,6 +192,46 @@ auto EventBuffer<Event_T>::size() const noexcept -> std::size_t
 }
 
 template <event_c Event_T>
+template <typename Self_T>
+auto EventBuffer<Event_T>::begin(this Self_T& self) noexcept
+    -> iterator<std::is_const_v<Self_T>>
+{
+    return iterator<std::is_const_v<Self_T>>{
+        self.template EventBuffer<Event_T>::m_events.begin(),
+        self.template EventBuffer<Event_T>::m_timestamps.begin(),
+    };
+}
+
+template <event_c Event_T>
+auto EventBuffer<Event_T>::cbegin() const noexcept -> const_iterator
+{
+    return const_iterator{
+        m_events.cbegin(),
+        m_timestamps.cbegin(),
+    };
+}
+
+template <event_c Event_T>
+template <typename Self_T>
+auto EventBuffer<Event_T>::end(this Self_T& self) noexcept
+    -> iterator<std::is_const_v<Self_T>>
+{
+    return iterator<std::is_const_v<Self_T>>{
+        self.template EventBuffer<Event_T>::m_events.end(),
+        self.template EventBuffer<Event_T>::m_timestamps.end(),
+    };
+}
+
+template <event_c Event_T>
+auto EventBuffer<Event_T>::cend() const noexcept -> const_iterator
+{
+    return const_iterator{
+        m_events.cend(),
+        m_timestamps.cend(),
+    };
+}
+
+template <event_c Event_T>
 auto EventBuffer<Event_T>::clear() -> void
 {
     m_events.clear();
@@ -98,13 +246,28 @@ auto EventBuffer<Event_T>::reserve(const std::size_t capacity) -> void
 }
 
 template <event_c Event_T>
-auto EventBuffer<Event_T>::push_back(
-    Event_T&&                                   event,
-    const std::chrono::steady_clock::time_point timestamp
-) -> void
+auto EventBuffer<Event_T>::insert(Event_T&& event, const Timestamp timestamp) -> void
 {
     m_events.push_back(std::move(event));
     m_timestamps.push_back(timestamp);
+
+    const auto destination_index{
+        std::distance(
+            std::prev(m_timestamps.rend()),
+            std::ranges::lower_bound(m_timestamps | std::views::reverse, timestamp)
+        ),
+    };
+
+    std::ranges::rotate(
+        std::next(m_events.begin(), destination_index),
+        std::prev(m_events.end()),
+        m_events.end()
+    );
+    std::ranges::rotate(
+        std::next(m_timestamps.begin(), destination_index),
+        std::prev(m_timestamps.end()),
+        m_timestamps.end()
+    );
 }
 
 }   // namespace kiln::event

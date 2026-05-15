@@ -195,17 +195,24 @@ auto framebuffer_size_of(const Context&, const WindowHandle window) -> Size2u
     };
 }
 
+auto get_cursor_position(const Context&, const WindowHandle window) -> Position2d
+{
+    PRECOND(window != nullptr);
+
+    Position2d result{};
+    glfwGetCursorPos(window.get(), &result.x, &result.y);
+
+    return result;
+}
+
 auto get_key(const Context&, const WindowHandle window, const Key key) -> KeyAction
 {
     PRECOND(window != nullptr);
     return KeyAction{ glfwGetKey(window.get(), std::to_underlying(key)) };
 }
 
-auto create_vulkan_surface(
-    const Context&,
-    const WindowHandle        window,
-    const vk::raii::Instance& instance
-) -> std::expected<vk::raii::SurfaceKHR, vk::Result>
+auto create_vulkan_surface(const WindowHandle window, const vk::raii::Instance& instance)
+    -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
     PRECOND(window != nullptr);
 
@@ -224,6 +231,13 @@ auto create_vulkan_surface(
     return std::expected<vk::raii::SurfaceKHR, vk::Result>{
         vk::raii::SurfaceKHR{ instance, surface }
     };
+}
+
+auto set_window_user_pointer(const Context&, const WindowHandle window, void* user_pointer)
+    -> void
+{
+    PRECOND(window != nullptr);
+    glfwSetWindowUserPointer(window.get(), user_pointer);
 }
 
 }   // namespace kiln::wsi

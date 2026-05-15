@@ -24,4 +24,5 @@ target_sources(${PROJECT_NAME} PRIVATE
         FILES
         Camera.ixx
         Context.ixx
+        SPSCQueue.ixx
 )

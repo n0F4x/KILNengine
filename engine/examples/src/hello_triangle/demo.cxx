@@ -129,8 +129,8 @@ auto create_per_frame_fences(
 Context::Context(Context&& other, const allocator_type& allocator)
     : m_render_device_ref{ std::move(other.m_render_device_ref) },
       m_graphics_queue{ std::move(other.m_graphics_queue) },
-      m_number_of_frames{ std::move(other.m_number_of_frames) },
-      m_current_frame_index{ std::move(other.m_current_frame_index) },
+      m_number_of_frames{ other.m_number_of_frames },
+      m_current_frame_index{ other.m_current_frame_index },
       m_window{ std::move(other.m_window) },
       m_surface{ std::move(other.m_surface) },
       m_pipeline_layout{ std::move(other.m_pipeline_layout) },
@@ -166,7 +166,7 @@ Context::Context(
           render_device,
           m_number_of_frames,
           true,
-          m_window.resolution(),
+          m_window.framebuffer_size(),
       },
       m_pipeline_layout{
           kiln::gfx::vulkan::check_result(
@@ -245,9 +245,6 @@ auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> vo
             std::numeric_limits<uint64_t>::max()
         )
     );
-    m_render_device_ref.get().logical_device().resetFences(
-        *m_render_finished_fences[m_current_frame_index]
-    );
 
     const std::optional<uint32_t> swapchain_image_index
         = m_surface.acquire_image(m_image_acquired_semaphores[m_current_frame_index]);
@@ -255,6 +252,10 @@ auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> vo
     {
         return;
     }
+
+    m_render_device_ref.get().logical_device().resetFences(
+        *m_render_finished_fences[m_current_frame_index]
+    );
 
     m_graphics_command_pools[m_current_frame_index].reset();
     kiln::gfx::renderer::GraphicsCommandBuffer& graphics_command_buffer{

@@ -1,7 +1,6 @@
 module;
 
 #include <chrono>
-#include <concepts>
 #include <memory_resource>
 #include <type_traits>
 #include <utility>
@@ -11,6 +10,7 @@ export module kiln.event.EventRecorder;
 
 import kiln.event.event_c;
 import kiln.event.EventBuffer;
+import kiln.event.Timestamp;
 
 namespace kiln::event {
 
@@ -31,15 +31,14 @@ public:
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
 
-    template <typename... Args_T>
-        requires std::constructible_from<Event_T, Args_T&&...>
-    auto record(Args_T&&... args) -> void;
+    auto record(Event_T&& event, Timestamp timestamp = std::chrono::steady_clock::now())
+        -> void;
 
     auto flush(EventBuffer<Event_T>& event_buffer) -> void;
 
 private:
-    std::pmr::vector<Event_T>                               m_events;
-    std::pmr::vector<std::chrono::steady_clock::time_point> m_timestamps;
+    std::pmr::vector<Event_T>   m_events;
+    std::pmr::vector<Timestamp> m_timestamps;
 };
 
 }   // namespace kiln::event
@@ -84,12 +83,9 @@ auto EventRecorder<Event_T>::get_allocator() const noexcept -> allocator_type
 }
 
 template <event_c Event_T>
-template <typename... Args_T>
-    requires std::constructible_from<Event_T, Args_T&&...>
-auto EventRecorder<Event_T>::record(Args_T&&... args) -> void
+auto EventRecorder<Event_T>::record(Event_T&& event, const Timestamp timestamp) -> void
 {
-    const auto timestamp{ std::chrono::steady_clock::now() };
-    m_events.emplace_back(std::forward<Args_T>(args)...);
+    m_events.push_back(std::move(event));
     m_timestamps.push_back(timestamp);
 }
 
@@ -100,8 +96,11 @@ auto EventRecorder<Event_T>::flush(EventBuffer<Event_T>& event_buffer) -> void
 
     for (std::size_t index{}; index < m_events.size(); ++index)
     {
-        event_buffer.push_back(std::move(m_events[index], m_timestamps[index]));
+        event_buffer.insert(std::move(m_events[index]), m_timestamps[index]);
     }
+
+    m_events.clear();
+    m_timestamps.clear();
 }
 
 }   // namespace kiln::event

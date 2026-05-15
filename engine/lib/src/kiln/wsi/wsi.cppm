@@ -5,9 +5,12 @@ export import kiln.wsi.event;
 
 export import kiln.wsi.Context;
 export import kiln.wsi.ContextBuilder;
+export import kiln.wsi.Engine;
+export import kiln.wsi.EventConsumerQueueInterface;
 export import kiln.wsi.FullScreenWindowSettings;
 export import kiln.wsi.monitor_functions;
 export import kiln.wsi.MonitorHandle;
+export import kiln.wsi.Position;
 export import kiln.wsi.Size;
 export import kiln.wsi.VideoMode;
 export import kiln.wsi.vulkan_instance_extensions;

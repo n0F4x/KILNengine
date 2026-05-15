@@ -38,7 +38,7 @@ public:
     [[nodiscard]]
     auto content_size() const noexcept -> Size2u;
     [[nodiscard]]
-    auto resolution() const noexcept -> Size2u;
+    auto framebuffer_size() const noexcept -> Size2u;
 
     [[nodiscard]]
     auto should_close() const noexcept -> bool;

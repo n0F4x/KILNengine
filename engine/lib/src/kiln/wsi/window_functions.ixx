@@ -2,15 +2,15 @@ module;
 
 #include <expected>
 
-#include <GLFW/glfw3.h>
-
 export module kiln.wsi.window_functions;
 
 import vulkan_hpp;
 
 import kiln.wsi.Context;
+import kiln.wsi.event.events;
 import kiln.wsi.event.Key;
 import kiln.wsi.event.KeyAction;
+import kiln.wsi.Position;
 import kiln.wsi.Size;
 import kiln.wsi.WindowHandle;
 import kiln.wsi.WindowSettings;
@@ -33,13 +33,22 @@ export [[nodiscard]]
 auto framebuffer_size_of(const Context&, WindowHandle window) -> Size2u;
 
 export [[nodiscard]]
+auto get_cursor_position(const Context&, WindowHandle window) -> Position2d;
+export [[nodiscard]]
 auto get_key(const Context&, WindowHandle window, Key key) -> KeyAction;
 
+/*
+ * This function should also take a context,
+ * but we don't expose it due to the ability to be called from multiple threads
+ */
 export [[nodiscard]]
-auto create_vulkan_surface(
+auto create_vulkan_surface(WindowHandle window, const vk::raii::Instance& instance)
+    -> std::expected<vk::raii::SurfaceKHR, vk::Result>;
+
+export auto set_window_user_pointer(
     const Context&,
-    WindowHandle              window,
-    const vk::raii::Instance& instance
-) -> std::expected<vk::raii::SurfaceKHR, vk::Result>;
+    WindowHandle window,
+    void*        user_pointer
+) -> void;
 
 }   // namespace kiln::wsi

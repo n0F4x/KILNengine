@@ -8,23 +8,26 @@ module;
 module kiln.wsi.WindowProxy;
 
 import kiln.util.contracts;
+import kiln.wsi.event.events;
+import kiln.wsi.event.EventType;
 import kiln.wsi.window_functions;
 
 namespace kiln::wsi {
 
 WindowProxy::WindowProxy(WindowProxy&& other, const allocator_type& allocator)
-    : m_context{ std::move(other.m_context) },
-      m_handle{ other.m_handle },
+    : m_handle{ other.m_handle },
+      m_cached_state{ other.m_cached_state },
+      m_destroyed{ other.m_destroyed },
       m_changes{ std::move(other.m_changes), allocator }
 {
 }
 
-WindowProxy::WindowProxy(const Context& context, const CreateInfo& create_info)
+WindowProxy::WindowProxy(const Context& context, const WindowHandle window_handle)
     : WindowProxy{
           std::allocator_arg,
           std::pmr::get_default_resource(),
           context,
-          create_info,
+          window_handle,
       }
 {
 }
@@ -33,12 +36,25 @@ WindowProxy::WindowProxy(
     std::allocator_arg_t,
     const allocator_type& allocator,
     const Context&        context,
-    const CreateInfo&     create_info
+    const WindowHandle    window_handle
 )
-    : m_context{ context },
-      m_handle{ create_window(m_context, create_info.title, create_info.settings) },
+    : m_handle{ window_handle },
+      m_cached_state{
+          .close_flag       = wsi::should_close(context, m_handle),
+          .framebuffer_size = framebuffer_size_of(context, m_handle),
+          .cursor_position  = get_cursor_position(context, m_handle),
+      },
       m_changes{ allocator }
 {
+    if (window_handle == nullptr)
+    {
+        m_destroyed = true;
+    }
+}
+
+auto WindowProxy::operator==(const WindowHandle window_handle) const noexcept -> bool
+{
+    return m_handle == window_handle;
 }
 
 auto WindowProxy::get_allocator() const noexcept -> allocator_type
@@ -46,9 +62,24 @@ auto WindowProxy::get_allocator() const noexcept -> allocator_type
     return m_changes.get_allocator();
 }
 
-auto WindowProxy::context() const noexcept -> const Context&
+auto WindowProxy::number_of_pending_changes() const noexcept -> std::size_t
 {
-    return m_context;
+    return m_changes.size();
+}
+
+auto WindowProxy::should_close() const noexcept -> bool
+{
+    return m_cached_state.close_flag;
+}
+
+auto WindowProxy::framebuffer_size() const noexcept -> const Size2u&
+{
+    return m_cached_state.framebuffer_size;
+}
+
+auto WindowProxy::cursor_position() const noexcept -> const Position2d&
+{
+    return m_cached_state.cursor_position;
 }
 
 auto WindowProxy::destroy() -> void
@@ -56,8 +87,7 @@ auto WindowProxy::destroy() -> void
     if (!m_destroyed)
     {
         m_changes.emplace_back(
-            m_context,
-            [context = m_context, handle = m_handle] -> void
+            [handle = m_handle](const Context& context) -> void
             {
                 destroy_window(context, handle);   //
             }
@@ -71,16 +101,41 @@ auto WindowProxy::create_vulkan_surface(const vk::raii::Instance& instance)
     -> std::expected<vk::raii::SurfaceKHR, vk::Result>
 {
     PRECOND(!m_destroyed);
-    return wsi::create_vulkan_surface(m_context, m_handle, instance);
+    return wsi::create_vulkan_surface(m_handle, instance);
 }
 
-auto WindowProxy::flush_changes(
-    const std::pmr::vector<WindowCommand>::allocator_type& allocator
-) -> std::pmr::vector<WindowCommand>
+auto WindowProxy::update(const Event& event) -> void
 {
-    std::pmr::vector result{ std::move(m_changes), allocator };
-    m_changes.clear();
-    return result;
+    switch (event.type)
+    {
+        using enum EventType;
+        case eWindowCloseRequestedEvent:
+        {
+            if (event.window_close_requested_event.window == m_handle)
+            {
+                m_cached_state.close_flag = true;
+            }
+            break;
+        }
+        case eFramebufferResizedEvent:
+        {
+            if (event.framebuffer_resized_event.window == m_handle)
+            {
+                m_cached_state.framebuffer_size
+                    = event.framebuffer_resized_event.new_size;
+            }
+            break;
+        }
+        case eCursorMovedEvent:
+        {
+            if (event.cursor_moved_event.window == m_handle)
+            {
+                m_cached_state.cursor_position
+                    = event.cursor_moved_event.new_cursor_position;
+            }
+            break;
+        }
+    }
 }
 
 }   // namespace kiln::wsi

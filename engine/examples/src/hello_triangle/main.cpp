@@ -33,7 +33,7 @@ auto run(kiln::app::App& app) -> void
     demo::Context&            demo_context{ app.contexts().at<demo::Context>() };
     std::atomic_bool          running{ true };
     std::atomic_bool          window_resized{ false };
-    std::atomic               window_resolution{ demo_context.window().resolution() };
+    std::atomic               window_resolution{ demo_context.window().framebuffer_size() };
 
     std::jthread render_thread{
         [&demo_context, &running, &window_resized, &window_resolution] mutable -> void
@@ -69,7 +69,7 @@ auto run(kiln::app::App& app) -> void
         }
 
         // TODO: only do this on a window resize event
-        window_resolution = demo_context.window().resolution();
+        window_resolution = demo_context.window().framebuffer_size();
         window_resized    = true;
     }
 

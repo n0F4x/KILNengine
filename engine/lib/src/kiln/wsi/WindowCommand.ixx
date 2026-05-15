@@ -11,7 +11,7 @@ import kiln.wsi.Context;
 namespace kiln::wsi {
 
 export class WindowCommand {
-    using Command = util::CopyableFunction<auto() &&->void>;
+    using Command = util::CopyableFunction<auto(const Context&) &&->void>;
 
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
@@ -21,26 +21,26 @@ public:
     WindowCommand(WindowCommand&&, const allocator_type&);
 
     template <typename F>
-    explicit WindowCommand(const Context& context, F&& command)
-        requires std::constructible_from<Command, F&&>;
+    explicit WindowCommand(F&& command)
+        requires(!std::is_same_v<std::remove_cvref_t<F>, WindowCommand>)
+             && std::constructible_from<Command, F&&>;
     template <typename F>
     explicit WindowCommand(
         std::allocator_arg_t,
         const allocator_type& allocator,
-        const Context&        context,
         F&&                   command
     )
-        requires std::constructible_from<Command, F&&>;
+        requires(!std::is_same_v<std::remove_cvref_t<F>, WindowCommand>)
+             && std::constructible_from<Command, F&&>;
 
 
-    auto operator()() && -> void;
+    auto operator()(const Context& context) && -> void;
 
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
 
 
 private:
-    Context m_context;
     Command m_command;
 };
 
@@ -49,22 +49,20 @@ private:
 namespace kiln::wsi {
 
 WindowCommand::WindowCommand(const WindowCommand& other, const allocator_type& allocator)
-    : m_context{ other.m_context },
-      m_command{ other.m_command, allocator }
+    : m_command{ other.m_command, allocator }
 {
 }
 
 WindowCommand::WindowCommand(WindowCommand&& other, const allocator_type& allocator)
-    : m_context{ other.m_context },
-      m_command{ std::move(other.m_command), allocator }
+    : m_command{ std::move(other.m_command), allocator }
 {
 }
 
 template <typename F>
-WindowCommand::WindowCommand(const Context& context, F&& command)
-    requires std::constructible_from<Command, F&&>
-    : m_context{ context },
-      m_command{ std::forward<F>(command) }
+WindowCommand::WindowCommand(F&& command)
+    requires(!std::is_same_v<std::remove_cvref_t<F>, WindowCommand>)
+         && std::constructible_from<Command, F&&>
+    : m_command{ std::forward<F>(command) }
 {
 }
 
@@ -72,20 +70,19 @@ template <typename F>
 WindowCommand::WindowCommand(
     std::allocator_arg_t,
     const allocator_type& allocator,
-    const Context&        context,
     F&&                   command
 )
-    requires std::constructible_from<Command, F&&>
-    : m_context{ context },
-      m_command{
+    requires(!std::is_same_v<std::remove_cvref_t<F>, WindowCommand>)
+         && std::constructible_from<Command, F&&>
+    : m_command{
           std::make_obj_using_allocator<Command>(allocator, std::forward<F>(command))
       }
 {
 }
 
-auto WindowCommand::operator()() && -> void
+auto WindowCommand::operator()(const Context& context) && -> void
 {
-    std::move(m_command).operator()();
+    std::move(m_command).operator()(context);
 }
 
 auto WindowCommand::get_allocator() const noexcept -> allocator_type

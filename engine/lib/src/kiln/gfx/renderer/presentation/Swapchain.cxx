@@ -70,13 +70,14 @@ auto pick_swap_extent(
 
 [[nodiscard]]
 auto create_swapchain(
-    const Device&               device,
-    const vk::raii::SurfaceKHR& surface,
-    const vk::Extent2D&         framebuffer_size,
-    const uint32_t              number_of_frames,
-    const bool                  vsync,
-    const vk::SurfaceFormatKHR& surface_format,
-    const Swapchain*            old_swapchain
+    const Device&                     device,
+    const vk::raii::SurfaceKHR&       surface,
+    const vk::SurfaceCapabilitiesKHR& surface_capabilities,
+    const vk::Extent2D&               extent,
+    const uint32_t                    number_of_frames,
+    const bool                        vsync,
+    const vk::SurfaceFormatKHR&       surface_format,
+    const Swapchain*                  old_swapchain
 ) -> vk::raii::SwapchainKHR
 {
     // TODO: remove this PRECOND after
@@ -86,9 +87,6 @@ auto create_swapchain(
         "VK_KHR_SWAPCHAIN_EXTENSION_NAME was not enabled"
     );
 
-    const vk::SurfaceCapabilitiesKHR surface_capabilities{
-        device.physical_device().getSurfaceCapabilitiesKHR(surface)
-    };
     const vk::PresentModeKHR present_mode{
         pick_present_mode(
             device.physical_device().getSurfacePresentModesKHR(surface),
@@ -109,7 +107,7 @@ auto create_swapchain(
         .minImageCount    = image_count,
         .imageFormat      = surface_format.format,
         .imageColorSpace  = surface_format.colorSpace,
-        .imageExtent      = pick_swap_extent(framebuffer_size, surface_capabilities),
+        .imageExtent      = extent,
         .imageArrayLayers = 1,
         .imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
         .imageSharingMode = vk::SharingMode::eExclusive,
@@ -165,12 +163,18 @@ Swapchain::Swapchain(
     const bool                  enable_vsync,
     const Swapchain*            old_swapchain
 )
-    : m_extent{ framebuffer_size },
+    : m_surface_capabilities{
+          device.physical_device().getSurfaceCapabilitiesKHR(surface)
+      },
+      m_extent{
+          pick_swap_extent(framebuffer_size, m_surface_capabilities),
+      },
       m_swapchain{
           create_swapchain(
               device,
               surface,
-              framebuffer_size,
+              m_surface_capabilities,
+              m_extent,
               number_of_frames,
               enable_vsync,
               surface_format,
