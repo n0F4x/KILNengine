@@ -127,9 +127,9 @@ auto Context::run_main_thread_loop(
     {
         main_thread.wsi_engine.wait_events();
 
-        for (std::optional<MainThread::Task> task{ main_thread.work_queue.pop() };
+        for (std::optional<MainThread::Task> task{ main_thread.work_queue.try_pop() };
              task.has_value();
-             task = main_thread.work_queue.pop())
+             task = main_thread.work_queue.try_pop())
         {
             std::move (*task)(main_thread);
         }

@@ -244,7 +244,7 @@ public:
     auto try_append_range(R&& values) -> std::size_t;
 
     [[nodiscard]]
-    auto pop() noexcept(std::is_nothrow_move_constructible_v<T>) -> std::optional<T>
+    auto try_pop() noexcept(std::is_nothrow_move_constructible_v<T>) -> std::optional<T>
         requires std::move_constructible<T>;
     template <typename F>
         requires std::invocable<F, std::ranges::as_rvalue_view<std::span<T>>>
@@ -446,7 +446,7 @@ auto SPSCQueue<T>::try_append_range(R&& values) -> std::size_t
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::pop() noexcept(std::is_nothrow_move_constructible_v<T>)
+auto SPSCQueue<T>::try_pop() noexcept(std::is_nothrow_move_constructible_v<T>)
     -> std::optional<T>
     requires std::move_constructible<T>
 {
