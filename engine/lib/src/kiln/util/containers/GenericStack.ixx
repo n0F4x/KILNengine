@@ -201,7 +201,6 @@ template <basic_generic_stack_item_c<Any_T> Item_T, typename Self_T>
 auto BasicGenericStack<Any_T>::find(this Self_T& self) noexcept
     -> OptionalRef<const_like_t<Item_T, Self_T>>
 {
-    // TODO: use `std::ranges::find` + projection with better MS STL compatibility
     const auto iter = std::ranges::find(
         self.BasicGenericStack::m_types_and_items,
         hash_u64<Item_T>(),

@@ -7,7 +7,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         Bool.ixx
         CopyableAny.ixx
         CopyableFunction.ixx
-        FlatMap.ixx
         Function.ixx
         GenericStack.ixx
         Indirect.ixx
