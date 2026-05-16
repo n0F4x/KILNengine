@@ -299,7 +299,8 @@ auto Context::run_render_loop(
 
 
         main_thread.event_queue.pop_all(
-            [this](kiln::wsi::Event&& event, const kiln::event::Timestamp timestamp) -> void
+            [this](kiln::wsi::Event&& event, const kiln::event::Timestamp timestamp)
+                -> void
             {
                 m_wsi_event_recorder.record(std::move(event), timestamp);   //
             }
@@ -360,6 +361,10 @@ auto Context::run_render_loop(
                     )
                 );
                 assert(success_count == number_of_window_commands);
+                if (number_of_window_commands > 0)
+                {
+                    main_thread.wsi_engine.post_empty_event();
+                }
             }
         );
         if (window.should_close())

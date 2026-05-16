@@ -208,7 +208,7 @@ PenaltyBreakOpenParenthesis: 10
 PenaltyBreakScopeResolution: 600
 PenaltyBreakString: 70
 PenaltyBreakTemplateDeclaration: 0
-PenaltyExcessCharacter: 60
+PenaltyExcessCharacter: 80
 PenaltyIndentedWhitespace: 0
 PenaltyReturnTypeOnItsOwnLine: 150
 PointerAlignment: Left

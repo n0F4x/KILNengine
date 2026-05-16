@@ -486,11 +486,7 @@ auto SPSCQueue<T>::pop_all(F&& callback) noexcept(
 ) -> std::size_t
 {
     const std::size_t head{ m_head.load(std::memory_order_relaxed) };
-
-    if (head == m_tail_cache)
-    {
-        m_tail_cache = m_tail.load(std::memory_order_acquire);
-    }
+    m_tail_cache = m_tail.load(std::memory_order_acquire);
 
     const std::size_t count{ m_tail_cache - head };
 

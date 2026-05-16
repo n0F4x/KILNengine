@@ -248,26 +248,13 @@ auto EventBuffer<Event_T>::reserve(const std::size_t capacity) -> void
 template <event_c Event_T>
 auto EventBuffer<Event_T>::insert(Event_T&& event, const Timestamp timestamp) -> void
 {
-    m_events.push_back(std::move(event));
-    m_timestamps.push_back(timestamp);
-
-    const auto destination_index{
-        std::distance(
-            std::prev(m_timestamps.rend()),
-            std::ranges::lower_bound(m_timestamps | std::views::reverse, timestamp)
-        ),
+    const auto timestamp_iter{ std::ranges::lower_bound(m_timestamps, timestamp) };
+    const auto event_iter{
+        std::next(m_events.begin(), std::distance(m_timestamps.begin(), timestamp_iter))
     };
 
-    std::ranges::rotate(
-        std::next(m_events.begin(), destination_index),
-        std::prev(m_events.end()),
-        m_events.end()
-    );
-    std::ranges::rotate(
-        std::next(m_timestamps.begin(), destination_index),
-        std::prev(m_timestamps.end()),
-        m_timestamps.end()
-    );
+    m_timestamps.insert(timestamp_iter, timestamp);
+    m_events.insert(event_iter, std::move(event));
 }
 
 }   // namespace kiln::event

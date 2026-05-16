@@ -35,36 +35,24 @@ auto Controller::update(
 
     constexpr static double sensitivity{ 0.005 };
 
+    const glm::dvec2 cursor_position{ dvec2_from(cursor_moved_event.new_cursor_position) };
     const glm::dvec2 offset{
-        dvec2_from(cursor_moved_event.new_cursor_position) - m_last_cursor_position,
+        (cursor_position - m_last_cursor_position) * sensitivity,
     };
-    m_last_cursor_position = dvec2_from(cursor_moved_event.new_cursor_position);
 
-    const glm::dvec3 forward{
-        camera.orientation() * glm::dvec3{ 0, 0, -1 }
-    };
-    const double pitch{
-        std::clamp(
-            std::asin(forward.y) + offset.y * sensitivity,
-            -(std::numbers::pi / 2 - 0.0001),
-            std::numbers::pi / 2 - 0.0001
-        ),
-    };
-    const double yaw{ std::atan2(forward.z, forward.x) + offset.x * sensitivity };
+    m_last_cursor_position = cursor_position;
 
-    glm::dvec3 target_forward{
-        cos(yaw) * cos(pitch),
-        sin(pitch),
-        sin(yaw) * cos(pitch),
-    };
-    target_forward = glm::normalize(target_forward);
+    constexpr static double pitch_limit{ std::numbers::pi / 2 };
+    m_pitch = std::clamp(m_pitch + offset.y, -pitch_limit, pitch_limit);
+    m_yaw   = std::remainder(m_yaw + offset.x, std::numbers::pi * 2);
 
-    const glm::dvec3 right{
-        glm::normalize(glm::cross(target_forward, glm::dvec3{ 0, 1, 0 }))
+    const glm::dquat yaw{
+        glm::angleAxis(m_yaw, glm::dvec3{ 0, -1, 0 }),
     };
-    const glm::dvec3 up{ glm::cross(right, target_forward) };
-
-    camera.set_orientation(glm::quat_cast(glm::dmat3{ right, up, -target_forward }));
+    const glm::dquat pitch{
+        glm::angleAxis(m_pitch, glm::dvec3{ std::cos(m_yaw), 0, std::sin(m_yaw) }),
+    };
+    camera.set_orientation(glm::normalize(pitch * yaw));
 }
 
 auto Controller::activate(const kiln::wsi::Position2d& cursor_position) noexcept -> void
