@@ -187,7 +187,8 @@ GltfModelLoader::Manifest::Manifest(const Manifest& other, const allocator_type&
       m_per_mesh_instance_offsets{ other.m_per_mesh_instance_offsets, allocator },
       m_per_mesh_instance_counts{ other.m_per_mesh_instance_counts, allocator },
       m_geometry_writers{ other.m_geometry_writers, allocator },
-      m_transforms{ other.m_transforms, allocator }
+      m_transforms{ other.m_transforms, allocator },
+      m_normal_matrices{ other.m_normal_matrices, allocator }
 {
 }
 
@@ -203,7 +204,8 @@ GltfModelLoader::Manifest::Manifest(Manifest&& other, const allocator_type& allo
       m_per_mesh_instance_counts{ std::move(other.m_per_mesh_instance_counts),
                                   allocator },
       m_geometry_writers{ std::move(other.m_geometry_writers), allocator },
-      m_transforms{ std::move(other.m_transforms), allocator }
+      m_transforms{ std::move(other.m_transforms), allocator },
+      m_normal_matrices{ std::move(other.m_normal_matrices), allocator }
 {
 }
 
@@ -256,8 +258,15 @@ GltfModelLoader::Manifest::Manifest(
 
     assert(m_normal_matrices.empty());
     assert(m_normal_matrices.capacity() == m_transforms.size());
-    for (const glm::mat4x4& instance_transform : m_transforms)
+    for (glm::mat4x4& instance_transform : m_transforms)
     {
+        const glm::mat4x4 vulkan_basis_correction{
+            glm::scale(glm::identity<glm::mat4x4>(), glm::vec3{ 1, -1, -1 })
+        };
+
+        instance_transform
+            = vulkan_basis_correction * instance_transform * vulkan_basis_correction;
+
         m_normal_matrices.push_back(
             glm::transpose(glm::inverse(glm::mat3x3{ instance_transform }))
         );
@@ -390,15 +399,15 @@ auto GltfModelLoader::Manifest::write_draw_commands(
                             : model.accessors[primitive.attributes.front().accessorIndex]
                                   .count
                     ),
-                    .instance_count   = m_per_mesh_instance_counts[mesh_index],
-                    .first_vertex     = 0,
-                    .first_instance   = 0,
-                    .primitive        = shader_primitive_from(global_offsets, primitive),
+                    .instance_count = m_per_mesh_instance_counts[mesh_index],
+                    .first_vertex   = 0,
+                    .first_instance = 0,
+                    .primitive      = shader_primitive_from(global_offsets, primitive),
                     .transform_byte_offset = *global_offsets.instance_buffer_byte_offset
-                                      + m_per_mesh_instance_offsets[mesh_index]
-                                            * static_cast<uint32_t>(
-                                                sizeof(decltype(m_transforms)::value_type)
-                                            ),
+                                           + m_per_mesh_instance_offsets[mesh_index]
+                                                 * static_cast<uint32_t>(sizeof(
+                                                     decltype(m_transforms)::value_type
+                                                 )),
                     .normal_matrix_byte_offset
                     = *global_offsets.instance_buffer_byte_offset
                     + static_cast<uint32_t>(
@@ -663,6 +672,11 @@ auto GltfModelLoader::Manifest::process(
     Manifest&                  manifest
 ) -> void
 {
+    if (primitive.type != fastgltf::PrimitiveType::Triangles)
+    {
+        throw std::runtime_error{ "Only triangles are supported" };
+    }
+
     if (primitive.indicesAccessor.has_value()
         && manifest.m_accessor_element_byte_offsets[*primitive.indicesAccessor]
                == std::numeric_limits<uint32_t>::max())
@@ -720,7 +734,10 @@ auto parse_buffer(const fastgltf::Asset& asset, const std::size_t buffer_view_in
 
     const auto data = std::visit(
         kiln::util::Overloaded{
-            [] [[noreturn]] (auto&&) -> std::span<const std::byte> { std::unreachable(); },
+            [] [[noreturn]] (auto&&) -> std::span<const std::byte>
+            {
+                std::unreachable();   //
+            },
             [](const fastgltf::sources::URI&) -> std::span<const std::byte>
             {
                 PRECOND(false, "External buffers must be preloaded");
@@ -762,14 +779,98 @@ auto GltfModelLoader::Manifest::element_writer_from(
                 == 0
             );
 
-            fastgltf::copyFromAccessor<Element_T>(
-                model,
-                model.accessors[accessor_index],
-                out.data()
-                    + element_buffer_byte_offsets[std::to_underlying(element_type)]
-                    + element_byte_offset,
-                parse_buffer
-            );
+            // Reverse index winding to adjust for flipped Y and Z axis
+            if (element_type == SupportedElementType::eIndex)
+            {
+                const std::span index_out{
+                    reinterpret_cast<shaders::Index*>(
+                        out.data()
+                        + element_buffer_byte_offsets[std::to_underlying(element_type)]
+                        + element_byte_offset
+                    ),
+                    model.accessors[accessor_index].count,
+                };
+
+                fastgltf::iterateAccessorWithIndex<shaders::Index>(
+                    model,
+                    model.accessors[accessor_index],
+                    [index_out](const shaders::Index index_val, const std::size_t index)
+                        -> void
+                    {
+                        const std::size_t triangle_component = index % 3;
+                        const std::size_t triangle_start     = index - triangle_component;
+
+                        if (triangle_component == 1)
+                        {
+                            index_out[triangle_start + 2] = index_val;
+                        }
+                        else if (triangle_component == 2)
+                        {
+                            index_out[triangle_start + 1] = index_val;
+                        }
+                        else
+                        {
+                            index_out[index] = index_val;
+                        }
+                    },
+                    parse_buffer
+                );
+            }
+            // Flip Y and Z axis to match Vulkan's coordinate system
+            else if (element_type == SupportedElementType::ePosition
+                     || element_type == SupportedElementType::eNormal)
+            {
+                const std::span vec3_out{
+                    reinterpret_cast<glm::vec3*>(
+                        out.data()
+                        + element_buffer_byte_offsets[std::to_underlying(element_type)]
+                        + element_byte_offset
+                    ),
+                    model.accessors[accessor_index].count,
+                };
+
+                fastgltf::iterateAccessorWithIndex<glm::vec3>(
+                    model,
+                    model.accessors[accessor_index],
+                    [vec3_out](const glm::vec3 value, const std::size_t index) -> void
+                    { vec3_out[index] = glm::vec3{ value.x, -value.y, -value.z }; },
+                    parse_buffer
+                );
+            }
+            // Flip Y and Z axis to match Vulkan's coordinate system
+            else if (element_type == SupportedElementType::eTangent)
+            {
+                const std::span vec4_out{
+                    reinterpret_cast<glm::vec4*>(
+                        out.data()
+                        + element_buffer_byte_offsets[std::to_underlying(element_type)]
+                        + element_byte_offset
+                    ),
+                    model.accessors[accessor_index].count,
+                };
+
+                fastgltf::iterateAccessorWithIndex<glm::vec4>(
+                    model,
+                    model.accessors[accessor_index],
+                    [vec4_out](const glm::vec4 value, const std::size_t index) -> void
+                    {
+                        vec4_out[index]
+                            = glm::vec4{ value.x, -value.y, -value.z, value.w };
+                    },
+                    parse_buffer
+                );
+            }
+            else
+            {
+                fastgltf::copyFromAccessor<Element_T>(
+                    model,
+                    model.accessors[accessor_index],
+                    out.data()
+                        + element_buffer_byte_offsets[std::to_underlying(element_type)]
+                        + element_byte_offset,
+                    parse_buffer
+                );
+            }
         },
     };
 }
