@@ -326,14 +326,16 @@ auto Renderer::draw_scene(
         .pValues    = &shader_scene,
     };
     const shaders::Camera shader_camera{
-        .position               = glm::vec4{ camera.position(), 1.0 },
-        .view_projection_matrix = glm::perspective(
-                                      camera.fov(),
-                                      camera.aspect_ratio(),
-                                      camera.near_plane(),
-                                      camera.far_plane()
-                                  )
-                                * glm::mat4_cast(glm::conjugate(camera.orientation())),
+        .position = glm::vec4{ camera.position(), 1.0 },
+        .view_projection_matrix
+        = glm::perspective(
+              camera.fov(),
+              camera.aspect_ratio(),
+              camera.near_plane(),
+              camera.far_plane()
+          )
+        * glm::mat4_cast(glm::conjugate(camera.orientation()))
+        * glm::translate(glm::identity<glm::dmat4>(), -camera.position()),
     };
     const vk::PushConstantsInfo camera_push_constants_info{
         .layout     = m_pipeline_layout,

@@ -291,50 +291,36 @@ auto Context::run_render_loop(
 
     Camera     camera{ aspect_ratio_from(*render_surface.extent()) };
     Controller controller{ window };
-    bool       is_left_control_pressed{};
 
     while (running)
     {
         const auto frame_start_time{ std::chrono::steady_clock::now() };
 
 
-        main_thread.event_queue.pop_all(
-            [this](kiln::wsi::Event&& event, const kiln::event::Timestamp timestamp)
-                -> void
-            {
-                m_wsi_event_recorder.record(std::move(event), timestamp);   //
-            }
-        );
-
         m_wsi_event_buffer.clear();
         m_wsi_event_recorder.flush(m_wsi_event_buffer);
 
-        for (const kiln::wsi::Event& event : m_wsi_event_buffer | std::views::keys)
+        main_thread.event_queue.pop_all(
+            [this, frame_start_time](
+                kiln::wsi::Event&&           event,
+                const kiln::event::Timestamp timestamp
+            ) -> void
+            {
+                if (timestamp <= frame_start_time)
+                {
+                    m_wsi_event_buffer.insert(std::move(event), timestamp);
+                }
+                else
+                {
+                    m_wsi_event_recorder.record(std::move(event), timestamp);
+                }
+            }
+        );
+
+        for (const auto& [event, timestamp] : m_wsi_event_buffer)
         {
             window.update(event);
-
-            if (event.type == kiln::wsi::EventType::eCursorMovedEvent
-                && !is_left_control_pressed)
-            {
-                controller.activate(event.cursor_moved_event.new_cursor_position);
-                controller.update(event.cursor_moved_event, camera);
-            }
-
-            if (event.type == kiln::wsi::EventType::eKeyPressedEvent
-                && !is_left_control_pressed
-                && event.key_pressed_event.key == kiln::wsi::Key::eLeftControl)
-            {
-                window.set_cursor_mode(kiln::wsi::CursorMode::eNormal);
-                is_left_control_pressed = true;
-                controller.deactivate();
-            }
-            else if (event.type == kiln::wsi::EventType::eKeyReleasedEvent
-                     && is_left_control_pressed
-                     && event.key_released_event.key == kiln::wsi::Key::eLeftControl)
-            {
-                window.set_cursor_mode(kiln::wsi::CursorMode::eDisabledRaw);
-                is_left_control_pressed = false;
-            }
+            controller.update(event, timestamp, window);
         }
         window.flush_changes(
             [&](auto window_commands) -> void
@@ -379,6 +365,9 @@ auto Context::run_render_loop(
             render_surface.resize(window.framebuffer_size());
         }
 
+
+        controller.update(frame_start_time);
+        controller.update(camera);
 
         renderer.render(
             m_render_device,
