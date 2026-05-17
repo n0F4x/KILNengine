@@ -101,19 +101,22 @@ auto GltfModelLoader::draw_command_count() const noexcept -> uint32_t
     return m_manifest.draw_command_count();
 }
 
-auto GltfModelLoader::geometry_buffer_alignment() const noexcept -> uint32_t
+// ReSharper disable once CppDFAConstantFunctionResult
+auto GltfModelLoader::geometry_buffer_alignment() noexcept -> uint32_t
 {
-    return m_manifest.geometry_buffer_alignment();
+    return Manifest::geometry_buffer_alignment();
 }
 
-auto GltfModelLoader::material_buffer_alignment() const noexcept -> uint32_t
+// ReSharper disable once CppDFAConstantFunctionResult
+auto GltfModelLoader::material_buffer_alignment() noexcept -> uint32_t
 {
-    return m_manifest.material_buffer_alignment();
+    return Manifest::material_buffer_alignment();
 }
 
-auto GltfModelLoader::instance_buffer_alignment() const noexcept -> uint32_t
+// ReSharper disable once CppDFAConstantFunctionResult
+auto GltfModelLoader::instance_buffer_alignment() noexcept -> uint32_t
 {
-    return m_manifest.instance_buffer_alignment();
+    return Manifest::instance_buffer_alignment();
 }
 
 auto GltfModelLoader::set_geometry_buffer_byte_offset(
@@ -184,9 +187,11 @@ GltfModelLoader::Manifest::Manifest(const Manifest& other, const allocator_type&
       m_draw_command_count{ other.m_draw_command_count },
       m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
       m_accessor_element_byte_offsets{ other.m_accessor_element_byte_offsets, allocator },
+      m_material_indices{ other.m_material_indices, allocator },
       m_per_mesh_instance_offsets{ other.m_per_mesh_instance_offsets, allocator },
       m_per_mesh_instance_counts{ other.m_per_mesh_instance_counts, allocator },
       m_geometry_writers{ other.m_geometry_writers, allocator },
+      m_materials{ other.m_materials, allocator },
       m_transforms{ other.m_transforms, allocator },
       m_normal_matrices{ other.m_normal_matrices, allocator }
 {
@@ -199,11 +204,13 @@ GltfModelLoader::Manifest::Manifest(Manifest&& other, const allocator_type& allo
       m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
       m_accessor_element_byte_offsets{ std::move(other.m_accessor_element_byte_offsets),
                                        allocator },
+      m_material_indices{ std::move(other.m_material_indices), allocator },
       m_per_mesh_instance_offsets{ std::move(other.m_per_mesh_instance_offsets),
                                    allocator },
       m_per_mesh_instance_counts{ std::move(other.m_per_mesh_instance_counts),
                                   allocator },
       m_geometry_writers{ std::move(other.m_geometry_writers), allocator },
+      m_materials{ std::move(other.m_materials), allocator },
       m_transforms{ std::move(other.m_transforms), allocator },
       m_normal_matrices{ std::move(other.m_normal_matrices), allocator }
 {
@@ -232,9 +239,11 @@ GltfModelLoader::Manifest::Manifest(
     const glm::mat4x4&     transform
 )
     : m_accessor_element_byte_offsets{ allocator },
+      m_material_indices{ allocator },
       m_per_mesh_instance_offsets{ allocator },
       m_per_mesh_instance_counts{ allocator },
       m_geometry_writers{ allocator },
+      m_materials{ allocator },
       m_transforms{ allocator },
       m_normal_matrices{ allocator }
 {
@@ -288,7 +297,9 @@ auto GltfModelLoader::Manifest::geometry_buffer_size_bytes() const noexcept -> u
 
 auto GltfModelLoader::Manifest::material_buffer_size_bytes() const noexcept -> uint32_t
 {
-    return m_material_buffer_size_bytes;
+    return static_cast<uint32_t>(
+        m_materials.size() * sizeof(decltype(m_materials)::value_type)
+    );
 }
 
 auto GltfModelLoader::Manifest::instance_buffer_size_bytes() const noexcept -> uint32_t
@@ -304,17 +315,17 @@ auto GltfModelLoader::Manifest::draw_command_count() const noexcept -> uint32_t
     return m_draw_command_count;
 }
 
-auto GltfModelLoader::Manifest::geometry_buffer_alignment() const noexcept -> uint32_t
+auto GltfModelLoader::Manifest::geometry_buffer_alignment() noexcept -> uint32_t
 {
     return std::max(alignof(shaders::Index), alignof(float));
 }
 
-auto GltfModelLoader::Manifest::material_buffer_alignment() const noexcept -> uint32_t
+auto GltfModelLoader::Manifest::material_buffer_alignment() noexcept -> uint32_t
 {
-    return alignof(shaders::Material);
+    return alignof(decltype(m_materials)::value_type);
 }
 
-auto GltfModelLoader::Manifest::instance_buffer_alignment() const noexcept -> uint32_t
+auto GltfModelLoader::Manifest::instance_buffer_alignment() noexcept -> uint32_t
 {
     return std::max(
         alignof(decltype(m_transforms)::value_type),
@@ -323,8 +334,8 @@ auto GltfModelLoader::Manifest::instance_buffer_alignment() const noexcept -> ui
 }
 
 auto GltfModelLoader::Manifest::write_geometry(
-    const fastgltf::Asset& model,
-    std::span<std::byte>   out
+    const fastgltf::Asset&     model,
+    const std::span<std::byte> out
 ) const -> void
 {
     PRECOND(out.size() == geometry_buffer_size_bytes());
@@ -340,14 +351,24 @@ auto GltfModelLoader::Manifest::write_geometry(
 
 auto GltfModelLoader::Manifest::write_materials(
     const fastgltf::Asset&,
-    std::span<std::byte>
+    const std::span<std::byte> out
 ) const -> void
 {
+    PRECOND(out.size() == material_buffer_size_bytes());
+    PRECOND(
+        reinterpret_cast<std::uintptr_t>(out.data()) % material_buffer_alignment() == 0
+    );
+
+    std::memcpy(
+        out.data(),
+        m_materials.data(),
+        m_materials.size() * sizeof(decltype(m_materials)::value_type)
+    );
 }
 
 auto GltfModelLoader::Manifest::write_instances(
     const fastgltf::Asset&,
-    std::span<std::byte> out
+    const std::span<std::byte> out
 ) const -> void
 {
     PRECOND(out.size() == instance_buffer_size_bytes());
@@ -440,6 +461,76 @@ auto is_supported_attribute(const std::string_view attribute_name) -> bool
     return std::ranges::contains(supported_attribute_names, attribute_name);
 }
 
+[[nodiscard]]
+auto texture_index_from(const auto& optional_texture_info) -> uint32_t
+{
+    if (!optional_texture_info.has_value())
+    {
+        return std::numeric_limits<uint32_t>::max();
+    }
+    return static_cast<uint32_t>(optional_texture_info->textureIndex);
+}
+
+[[nodiscard]]
+auto texture_uv_index_from(const auto& optional_texture_info) -> uint32_t
+{
+    if (!optional_texture_info.has_value())
+    {
+        return std::numeric_limits<uint32_t>::max();
+    }
+    return static_cast<uint32_t>(optional_texture_info->texCoordIndex);
+}
+
+[[nodiscard]]
+auto scale_from(const fastgltf::Optional<fastgltf::NormalTextureInfo>& texture_info)
+    -> float
+{
+    if (!texture_info.has_value())
+    {
+        return 1.f;
+    }
+    return texture_info->scale;
+}
+
+[[nodiscard]]
+auto strength_from(const fastgltf::Optional<fastgltf::OcclusionTextureInfo>& texture_info)
+    -> float
+{
+    if (!texture_info.has_value())
+    {
+        return 1.f;
+    }
+    return texture_info->strength;
+}
+
+[[nodiscard]]
+auto material_from(const fastgltf::Material& material) -> shaders::Material
+{
+    return shaders::Material{
+        .base_color_factor = glm::make_vec4(material.pbrData.baseColorFactor.data()),
+        .base_color_texture_index = texture_index_from(material.pbrData.baseColorTexture),
+        .base_color_texture_uv_index
+        = texture_uv_index_from(material.pbrData.baseColorTexture),
+        .metallic_factor  = material.pbrData.metallicFactor,
+        .roughness_factor = material.pbrData.roughnessFactor,
+        .metallic_roughness_texture_index
+        = texture_index_from(material.pbrData.metallicRoughnessTexture),
+        .metallic_roughness_texture_uv_index
+        = texture_uv_index_from(material.pbrData.metallicRoughnessTexture),
+        .normal_texture_index       = texture_index_from(material.normalTexture),
+        .normal_texture_uv_index    = texture_uv_index_from(material.normalTexture),
+        .normal_texture_scale       = scale_from(material.normalTexture),
+        .occlusion_texture_index    = texture_index_from(material.occlusionTexture),
+        .occlusion_texture_uv_index = texture_uv_index_from(material.occlusionTexture),
+        .occlusion_texture_strength = strength_from(material.occlusionTexture),
+        .emissive_texture_index     = texture_index_from(material.emissiveTexture),
+        .emissive_texture_uv_index  = texture_uv_index_from(material.emissiveTexture),
+        .emissive_factor            = glm::make_vec3(material.emissiveFactor.data()),
+        .alpha_cutoff
+        = material.alphaMode == fastgltf::AlphaMode::Opaque ? -1.f : material.alphaCutoff,
+    };
+}
+
 auto GltfModelLoader::Manifest::preprocess(
     const fastgltf::Asset& model,
     const std::size_t      scene_index,
@@ -451,10 +542,13 @@ auto GltfModelLoader::Manifest::preprocess(
         std::numeric_limits<
             decltype(manifest.m_accessor_element_byte_offsets)::value_type>::max()
     );
+    manifest.m_material_indices
+        .resize(model.materials.size(), std::numeric_limits<uint32_t>::max());
     manifest.m_per_mesh_instance_offsets.resize(model.meshes.size(), 0);
     manifest.m_per_mesh_instance_counts.resize(model.meshes.size(), 0);
 
     uint32_t geometry_writer_count{};
+    uint32_t material_count{};
     uint32_t instance_count{};
 
     const auto increment_counts{
@@ -477,6 +571,15 @@ auto GltfModelLoader::Manifest::preprocess(
                             ++geometry_writer_count;
                         }
                     }
+
+                    if (primitive.materialIndex.has_value()
+                        && manifest.m_material_indices[*primitive.materialIndex]
+                               == std::numeric_limits<uint32_t>::max())
+                    {
+                        manifest.m_material_indices[*primitive.materialIndex]
+                            = material_count;
+                        ++material_count;
+                    }
                 }
 
                 ++instance_count;
@@ -497,8 +600,22 @@ auto GltfModelLoader::Manifest::preprocess(
     }
 
     manifest.m_geometry_writers.reserve(geometry_writer_count);
+    manifest.m_materials.resize(material_count);
     manifest.m_transforms.resize(instance_count, glm::identity<glm::mat4x4>());
     manifest.m_normal_matrices.reserve(instance_count);
+
+    for (uint32_t original_material_index{};
+         original_material_index < model.materials.size();
+         ++original_material_index)
+    {
+        if (const uint32_t material_index{
+                manifest.m_material_indices[original_material_index] };
+            material_index != std::numeric_limits<uint32_t>::max())
+        {
+            manifest.m_materials[material_index]
+                = material_from(model.materials[original_material_index]);
+        }
+    }
 
     std::exclusive_scan(
         manifest.m_per_mesh_instance_offsets.begin(),
@@ -681,6 +798,10 @@ auto GltfModelLoader::Manifest::process(
         throw std::runtime_error{ "Only triangles are supported" };
     }
 
+    if (!primitive.indicesAccessor.has_value())
+    {
+        throw std::runtime_error{ "Non-indexed geometry is not supported" };
+    }
     if (primitive.indicesAccessor.has_value()
         && manifest.m_accessor_element_byte_offsets[*primitive.indicesAccessor]
                == std::numeric_limits<uint32_t>::max())
@@ -700,10 +821,6 @@ auto GltfModelLoader::Manifest::process(
         );
         manifest.m_element_buffer_byte_offsets[element_type_index]
             += model.accessors[*primitive.indicesAccessor].count * sizeof(shaders::Index);
-    }
-    else
-    {
-        throw std::runtime_error{ "Non-indexed geometry is not supported" };
     }
 
     for (const auto& [attribute_name, accessor_index] : primitive.attributes)
@@ -1075,6 +1192,16 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         {
             assert(!is_supported_attribute(attribute_name));
         }
+    }
+
+    if (primitive.materialIndex.has_value())
+    {
+        assert(
+            m_material_indices[*primitive.materialIndex]
+            != std::numeric_limits<uint32_t>::max()
+        );
+        shader_primitive.material_index = *global_offsets.material_offset
+                                        + m_material_indices[*primitive.materialIndex];
     }
 
     return shader_primitive;

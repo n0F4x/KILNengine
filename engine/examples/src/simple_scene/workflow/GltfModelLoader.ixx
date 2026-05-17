@@ -70,11 +70,11 @@ public:
     auto draw_command_count() const noexcept -> uint32_t;
 
     [[nodiscard]]
-    auto geometry_buffer_alignment() const noexcept -> uint32_t;
+    static auto geometry_buffer_alignment() noexcept -> uint32_t;
     [[nodiscard]]
-    auto material_buffer_alignment() const noexcept -> uint32_t;
+    static auto material_buffer_alignment() noexcept -> uint32_t;
     [[nodiscard]]
-    auto instance_buffer_alignment() const noexcept -> uint32_t;
+    static auto instance_buffer_alignment() noexcept -> uint32_t;
 
     auto set_geometry_buffer_byte_offset(uint32_t geometry_buffer_byte_offset) -> void;
     auto set_material_buffer_byte_offset(uint32_t material_buffer_byte_offset) -> void;
@@ -135,11 +135,11 @@ private:
         auto draw_command_count() const noexcept -> uint32_t;
 
         [[nodiscard]]
-        auto geometry_buffer_alignment() const noexcept -> uint32_t;
+        static auto geometry_buffer_alignment() noexcept -> uint32_t;
         [[nodiscard]]
-        auto material_buffer_alignment() const noexcept -> uint32_t;
+        static auto material_buffer_alignment() noexcept -> uint32_t;
         [[nodiscard]]
-        auto instance_buffer_alignment() const noexcept -> uint32_t;
+        static auto instance_buffer_alignment() noexcept -> uint32_t;
 
         auto write_geometry(const fastgltf::Asset& model, std::span<std::byte> out) const
             -> void;
@@ -225,12 +225,14 @@ private:
         std::array<uint32_t, std::to_underlying(SupportedElementType::COUNT)>
                                    m_element_buffer_byte_offsets{};
         std::pmr::vector<uint32_t> m_accessor_element_byte_offsets;
+        std::pmr::vector<uint32_t> m_material_indices;
         std::pmr::vector<uint32_t> m_per_mesh_instance_offsets;
         std::pmr::vector<uint32_t> m_per_mesh_instance_counts;
 
-        std::pmr::vector<Writer>      m_geometry_writers;
-        std::pmr::vector<glm::mat4x4> m_transforms;
-        std::pmr::vector<glm::mat3x3> m_normal_matrices;
+        std::pmr::vector<Writer>            m_geometry_writers;
+        std::pmr::vector<shaders::Material> m_materials;
+        std::pmr::vector<glm::mat4x4>       m_transforms;
+        std::pmr::vector<glm::mat3x3>       m_normal_matrices;
     };
 
     using DrawCommandWriterFactory =                                               //

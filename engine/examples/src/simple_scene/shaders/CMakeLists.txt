@@ -39,8 +39,8 @@ endfunction()
 
 compile_slang_target(${PROJECT_NAME}_shaders
         MODULES
-        ${SHADERS_SRC_DIR}/Index.slang
         ${SHADERS_SRC_DIR}/Camera.slang
+        ${SHADERS_SRC_DIR}/Index.slang
         ${SHADERS_SRC_DIR}/Material.slang
         ${SHADERS_SRC_DIR}/Primitive.slang
         ${SHADERS_SRC_DIR}/Scene.slang

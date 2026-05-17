@@ -73,6 +73,15 @@ EXPORT struct Scene {
         return color_buffer[vertex_index];
     }
 
+    public Material material(Primitive primitive)
+    {
+        if (primitive.material_index == UINT32_MAX)
+        {
+            return Material();
+        }
+        return material_buffer_address[primitive.material_index];
+    }
+
     private float4x4 transform(uint32_t draw_id, uint32_t instance_id)
     {
         float4x4* transform_buffer

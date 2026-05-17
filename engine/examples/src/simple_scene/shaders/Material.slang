@@ -11,27 +11,30 @@ using float4 = glm::vec4;
 module Material;
 #define EXPORT public
 #define PUBLIC_MEMBER public
+static const uint32_t UINT32_MAX = 0xFFFFFFFF;
 #endif
 
 EXPORT struct Material {
-    PUBLIC_MEMBER float4 pbrMetallicRoughnessBaseColorFactor;
+    PUBLIC_MEMBER float4   base_color_factor = float4(1, 1, 1, 1);
+    PUBLIC_MEMBER uint32_t base_color_texture_index = UINT32_MAX;
+    PUBLIC_MEMBER uint32_t base_color_texture_uv_index = UINT32_MAX;
 
-    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureIndex;
-    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessBaseColorTextureTexCoord;
-    PUBLIC_MEMBER float    pbrMetallicRoughnessMetallicFactor;
-    PUBLIC_MEMBER float    pbrMetallicRoughnessRoughnessFactor;
+    PUBLIC_MEMBER float    metallic_factor = 1;
+    PUBLIC_MEMBER float    roughness_factor = 1;
+    PUBLIC_MEMBER uint32_t metallic_roughness_texture_index = UINT32_MAX;
+    PUBLIC_MEMBER uint32_t metallic_roughness_texture_uv_index = UINT32_MAX;
 
-    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureIndex;
-    PUBLIC_MEMBER uint32_t pbrMetallicRoughnessMetallicRoughnessTextureTexCoord;
-    PUBLIC_MEMBER uint32_t normalTextureIndex;
-    PUBLIC_MEMBER uint32_t normalTextureTexCoord;
+    PUBLIC_MEMBER uint32_t normal_texture_index = UINT32_MAX;
+    PUBLIC_MEMBER uint32_t normal_texture_uv_index = UINT32_MAX;
+    PUBLIC_MEMBER float    normal_texture_scale = 1;
 
-    PUBLIC_MEMBER float    normalTextureScale;
-    PUBLIC_MEMBER uint32_t occlusionTextureIndex;
-    PUBLIC_MEMBER uint32_t occlusionTextureTexCoord;
-    PUBLIC_MEMBER float    occlusionTextureScale;
-    PUBLIC_MEMBER uint32_t emissiveTextureIndex;
-    PUBLIC_MEMBER uint32_t emissiveTextureTexCoord;
-    PUBLIC_MEMBER float3   emissiveFactor;
-    PUBLIC_MEMBER float    alphaCutoff;
+    PUBLIC_MEMBER uint32_t occlusion_texture_index = UINT32_MAX;
+    PUBLIC_MEMBER uint32_t occlusion_texture_uv_index = UINT32_MAX;
+    PUBLIC_MEMBER float    occlusion_texture_strength = 1;
+
+    PUBLIC_MEMBER uint32_t emissive_texture_index = UINT32_MAX;
+    PUBLIC_MEMBER uint32_t emissive_texture_uv_index = UINT32_MAX;
+    PUBLIC_MEMBER float3   emissive_factor = float3(0, 0, 0);
+
+    PUBLIC_MEMBER float    alpha_cutoff = 0.5;
 };

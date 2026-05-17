@@ -22,12 +22,13 @@ VertexOutput main(
     let world_position = scene.vertex_world_position(draw_id, instance_id, primitive, vertex_index);
     let world_normal = scene.vertex_world_normal(draw_id, instance_id, primitive, vertex_index);
     let color = scene.vertex_color(primitive, vertex_index);
+    let material = scene.material(primitive);
 
     VertexOutput output;
     output.world_position = world_position.xyz;
     output.clip_position = mul(camera.view_projection_matrix, world_position);
     output.world_normal = world_normal;
-    output.color = color;
+    output.color = color * material.base_color_factor;
     return output;
 }
 
@@ -39,5 +40,5 @@ float4 main(VertexOutput input) : SV_Target
             ? normalize(cross(ddx(input.world_position), ddy(input.world_position)))
             : normalize(input.world_normal);
 
-    return float4(normal, 1);
+    return float4(normal, 1) * input.color;
 }
