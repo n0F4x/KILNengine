@@ -406,12 +406,12 @@ auto GltfModelLoader::Manifest::write_draw_commands(
                     .first_vertex   = 0,
                     .first_instance = 0,
                     .primitive      = shader_primitive_from(global_offsets, primitive),
-                    .transform_byte_offset = *global_offsets.instance_buffer_byte_offset
+                    .transform_buffer_byte_offset = *global_offsets.instance_buffer_byte_offset
                                            + m_per_mesh_instance_offsets[mesh_index]
                                                  * static_cast<uint32_t>(sizeof(
                                                      decltype(m_transforms)::value_type
                                                  )),
-                    .normal_matrix_byte_offset
+                    .normal_matrix_buffer_byte_offset
                     = *global_offsets.instance_buffer_byte_offset
                     + static_cast<uint32_t>(
                         m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
@@ -1010,7 +1010,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
 
     if (primitive.indicesAccessor.has_value())
     {
-        shader_primitive.index_byte_offset
+        shader_primitive.index_buffer_byte_offset
             = *global_offsets.geometry_buffer_byte_offset
             + m_element_buffer_byte_offsets[std::to_underlying(SupportedElementType::eIndex)]
             + m_accessor_element_byte_offsets[*primitive.indicesAccessor];
@@ -1020,7 +1020,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
     {
         if (attribute_name == "POSITION")
         {
-            shader_primitive.position_byte_offset
+            shader_primitive.position_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::ePosition)]
@@ -1028,7 +1028,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "NORMAL")
         {
-            shader_primitive.normal_byte_offset
+            shader_primitive.normal_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eNormal)]
@@ -1036,7 +1036,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "TANGENT")
         {
-            shader_primitive.tangent_byte_offset
+            shader_primitive.tangent_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eTangent)]
@@ -1044,7 +1044,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "TEXCOORD_0")
         {
-            shader_primitive.uv_0_byte_offset
+            shader_primitive.uv_0_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eTexCoord0)]
@@ -1052,7 +1052,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "TEXCOORD_1")
         {
-            shader_primitive.uv_1_byte_offset
+            shader_primitive.uv_1_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eTexCoord1)]
@@ -1060,7 +1060,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
         }
         else if (attribute_name == "COLOR_0")
         {
-            shader_primitive.color_byte_offset
+            shader_primitive.color_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
                       [std::to_underlying(SupportedElementType::eColor0)]

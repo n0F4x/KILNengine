@@ -1,15 +1,10 @@
 import Camera;
-import Index;
-import Material;
-import Primitive;
 import Scene;
 
-static const uint32_t UINT32_MAX = 0xFFFFFFFF;
-
 struct VertexOutput {
-    float4 position : SV_Position;
+    float4 clip_position : SV_Position;
     float3 world_position;
-    float3 normal;
+    float3 world_normal;
     float4 color;
 };
 
@@ -22,41 +17,16 @@ VertexOutput main(
     uniform Camera camera,
 )
 {
-    Primitive primitive = scene.draw_command_buffer_address[draw_id].primitive;
-
-    Index vertex_index = vertex_id;
-    if (primitive.index_byte_offset != UINT32_MAX) {
-        vertex_index = ((Index*)(scene.geometry_buffer_address + primitive.index_byte_offset))[vertex_id];
-    }
-
-    float3 position
-        = ((float3*)(scene.geometry_buffer_address + primitive.position_byte_offset))[vertex_index];
-
-    float4 color = float4(1, 1, 1, 1);
-    if (primitive.color_byte_offset != UINT32_MAX) {
-        color = ((float4*)(scene.geometry_buffer_address + primitive.color_byte_offset))[vertex_index];
-    }
-
-    float4x4 transform
-        = ((float4x4*)(
-            scene.instance_buffer_address + scene.draw_command_buffer_address[draw_id].transform_byte_offset
-          ))[instance_id];
-    float4 world_position = mul(transform, float4(position, 1.0));
-
+    let primitive = scene.primitive(draw_id);
+    let vertex_index = scene.vertex_index(primitive, vertex_id);
+    let world_position = scene.vertex_world_position(draw_id, instance_id, primitive, vertex_index);
+    let world_normal = scene.vertex_world_normal(draw_id, instance_id, primitive, vertex_index);
+    let color = scene.vertex_color(primitive, vertex_index);
 
     VertexOutput output;
     output.world_position = world_position.xyz;
-    output.position = mul(camera.view_projection_matrix, world_position);
-    output.normal =
-        primitive.normal_byte_offset == UINT32_MAX
-            ? float3(0, 0, 0)
-            : mul(
-                ((float3x3*)(
-                    scene.instance_buffer_address
-                        + scene.draw_command_buffer_address[draw_id].normal_matrix_byte_offset
-                ))[instance_id],
-                ((float3*)(scene.geometry_buffer_address + primitive.normal_byte_offset))[vertex_index]
-              );
+    output.clip_position = mul(camera.view_projection_matrix, world_position);
+    output.world_normal = world_normal;
     output.color = color;
     return output;
 }
@@ -65,9 +35,9 @@ VertexOutput main(
 float4 main(VertexOutput input) : SV_Target
 {
     float3 normal
-        = all(input.normal == float3(0, 0, 0))
+        = all(input.world_normal == float3(0, 0, 0))
             ? normalize(cross(ddx(input.world_position), ddy(input.world_position)))
-            : normalize(input.normal);
+            : normalize(input.world_normal);
 
-    return float4(abs(normal), 1);
+    return float4(normal, 1);
 }

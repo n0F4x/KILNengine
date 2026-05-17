@@ -18,6 +18,6 @@ EXPORT struct DrawCommand
     PUBLIC_MEMBER uint32_t  first_vertex;
     PUBLIC_MEMBER uint32_t  first_instance;
     PUBLIC_MEMBER Primitive primitive;
-    PUBLIC_MEMBER uint32_t  transform_byte_offset;
-    PUBLIC_MEMBER uint32_t  normal_matrix_byte_offset;
+    PUBLIC_MEMBER uint32_t  transform_buffer_byte_offset;
+    PUBLIC_MEMBER uint32_t  normal_matrix_buffer_byte_offset;
 };
