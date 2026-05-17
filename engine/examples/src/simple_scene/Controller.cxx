@@ -8,12 +8,9 @@ module;
 #include <glm/ext/vector_int2.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "kiln/util/contract_macros.hpp"
-
 module examples.simple_scene.Controller;
 
 import kiln.event.Timestamp;
-import kiln.util.contracts;
 import kiln.wsi.CursorMode;
 import kiln.wsi.event.EventType;
 import kiln.wsi.event.Key;
@@ -55,12 +52,12 @@ auto Controller::update(const kiln::event::Timestamp timestamp) noexcept -> void
 }
 
 auto Controller::update(
-    const kiln::wsi::Event&      event,
-    const kiln::event::Timestamp timestamp,
-    kiln::wsi::WindowProxy&      window
+    const kiln::wsi::Event& event,
+    kiln::event::Timestamp  timestamp,
+    kiln::wsi::WindowProxy& window
 ) noexcept -> void
 {
-    PRECOND(timestamp >= m_time);
+    timestamp = std::max(timestamp, m_time);
 
     if (event.type == kiln::wsi::EventType::eCursorMovedEvent)
     {
