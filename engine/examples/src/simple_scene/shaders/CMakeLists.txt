@@ -24,6 +24,7 @@ function(compile_slang_target TARGET_NAME)
                 DEPENDS ${ARG_MODULES}
                 COMMAND ${SLANGC} "${SHADER_SRC}"
                 -target spirv
+                -matrix-layout-column-major
                 -profile ${ARG_PROFILE}
                 -o "${SPV_OUT}"
                 -I "${SHADERS_SRC_DIR}"
