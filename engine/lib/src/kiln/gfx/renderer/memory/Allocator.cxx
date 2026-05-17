@@ -187,7 +187,8 @@ auto create_allocator(const vulkan::Instance& instance, const Device& device)
         std::min(instance.api_version(), device.capabilities().version())
     };
     const VmaAllocatorCreateInfo create_info{
-        .flags = vma_allocator_create_flags(vma_vulkan_api_version, device.capabilities()),
+        .flags
+        = vma_allocator_create_flags(vma_vulkan_api_version, device.capabilities()),
         .physicalDevice   = *device.physical_device(),
         .device           = *device.logical_device(),
         .pVulkanFunctions = &vulkan_functions,
@@ -229,26 +230,27 @@ auto Allocator::create_buffer(
     VkBuffer          buffer;
     VmaAllocation     allocation{};
     VmaAllocationInfo allocation_info{};
-    auto              result
+    const VkResult    result
         = min_alignment.has_value()
             ? vmaCreateBufferWithAlignment(
                   m_handle.get(),
-                  reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
+                  reinterpret_cast<const std::remove_cvref_t<
+                      decltype(buffer_create_info)>::NativeType*>(&buffer_create_info),
                   &allocation_create_info,
                   *min_alignment,
                   &buffer,
                   &allocation,
                   &allocation_info
               )
-            : ::vmaCreateBuffer(
+            : vmaCreateBuffer(
                   m_handle.get(),
-                  reinterpret_cast<const VkBufferCreateInfo*>(&buffer_create_info),
+                  reinterpret_cast<const std::remove_cvref_t<
+                      decltype(buffer_create_info)>::NativeType*>(&buffer_create_info),
                   &allocation_create_info,
                   &buffer,
                   &allocation,
                   &allocation_info
               );
-
     vulkan::check_result(result);
 
     return Buffer{
@@ -259,6 +261,38 @@ auto Allocator::create_buffer(
                          allocation, MemoryTypeID{ allocation_info.memoryType },
                          allocation_info.size,
                          },
+    };
+}
+
+auto Allocator::create_image(
+    const vk::ImageCreateInfo&     image_create_info,
+    const VmaAllocationCreateInfo& allocation_create_info
+) -> Image
+{
+    VkImage           image;
+    VmaAllocation     allocation{};
+    VmaAllocationInfo allocation_info{};
+    const VkResult    result = vmaCreateImage(
+        m_handle.get(),
+        reinterpret_cast<
+               const std::remove_cvref_t<decltype(image_create_info)>::NativeType*>(
+            &image_create_info
+        ),
+        &allocation_create_info,
+        &image,
+        &allocation,
+        &allocation_info
+    );
+    vulkan::check_result(result);
+
+    return Image{
+        vk::raii::Image{ m_device.get().logical_device(), image },
+        image_create_info.format,
+        Allocation{
+                        m_handle.get(),
+                        allocation, MemoryTypeID{ allocation_info.memoryType },
+                        allocation_info.size,
+                        },
     };
 }
 

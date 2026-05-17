@@ -267,8 +267,11 @@ GltfModelLoader::Manifest::Manifest(
         instance_transform
             = vulkan_basis_correction * instance_transform * vulkan_basis_correction;
 
+        const glm::mat3x3 orientation_matrix{ instance_transform };
+
         m_normal_matrices.push_back(
-            glm::transpose(glm::inverse(glm::mat3x3{ instance_transform }))
+            glm::transpose(glm::inverse(orientation_matrix))
+            * (glm::determinant(orientation_matrix) < 0 ? -1.f : 1.f)
         );
     }
 }
@@ -833,7 +836,9 @@ auto GltfModelLoader::Manifest::element_writer_from(
                     model,
                     model.accessors[accessor_index],
                     [vec3_out](const glm::vec3 value, const std::size_t index) -> void
-                    { vec3_out[index] = glm::vec3{ value.x, -value.y, -value.z }; },
+                    {
+                        vec3_out[index] = glm::vec3{ value.x, -value.y, -value.z };   //
+                    },
                     parse_buffer
                 );
             }

@@ -2,6 +2,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         Allocation.cxx
         Allocator.cxx
         Buffer.cxx
+        Image.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -14,6 +15,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         AllocatorBuilder.ixx
         Buffer.ixx
         BufferRegion.ixx
+        Image.ixx
         LazyCopy.ixx
         MemoryTypeID.ixx
 )

@@ -19,6 +19,7 @@ import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.renderer.memory.BufferRegion;
+import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
@@ -47,6 +48,11 @@ public:
         const VmaAllocationCreateInfo& allocation_create_info,
         std::optional<uint32_t>        min_alignment = std::nullopt
     ) -> Buffer;
+    [[nodiscard]]
+    auto create_image(
+        const vk::ImageCreateInfo&     image_create_info,
+        const VmaAllocationCreateInfo& allocation_create_info
+    ) -> Image;
 
     auto host_copy(
         std::span<const std::byte> source,
@@ -97,9 +103,10 @@ private:
 class Allocator::Builder : public app::ContextBuilderInterface {
 public:
     [[nodiscard]]
-    static auto
-        create(vulkan::InstanceBuilder& instance_builder, DeviceBuilder& device_builder)
-            -> Builder;
+    static auto create(
+        vulkan::InstanceBuilder& instance_builder,
+        DeviceBuilder&           device_builder
+    ) -> Builder;
 
     [[nodiscard]]
     static auto build(const vulkan::Instance& instance, const Device& device)

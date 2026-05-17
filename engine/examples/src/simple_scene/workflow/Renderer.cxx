@@ -8,6 +8,8 @@ module;
 #include <source_location>
 #include <utility>
 
+#include <vk_mem_alloc.h>
+
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/quaternion_common.hpp>
 #include <glm/ext/vector_float4.hpp>
@@ -22,7 +24,10 @@ import vulkan_hpp;
 import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.renderer.command.DependencyInfo;
 import kiln.gfx.renderer.command.SubmitInfo;
+import kiln.gfx.renderer.memory.Allocator;
+import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.pipeline.ColorAttachment;
+import kiln.gfx.renderer.pipeline.DepthAttachment;
 import kiln.gfx.renderer.pipeline.RenderPass;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
@@ -39,16 +44,20 @@ Renderer::Renderer(Renderer&& other, [[maybe_unused]] const allocator_type& allo
 
 Renderer::Renderer(
     const kiln::gfx::renderer::Device& device,
+    kiln::gfx::renderer::Allocator&    render_allocator,
     const uint32_t                     number_of_frames_in_flight,
     const vk::Format                   swapchain_surface_format,
+    const vk::Extent2D&                swapchain_surface_extent,
     const uint32_t                     number_of_swapchain_images
 )
     : Renderer{
           std::allocator_arg,   //
           std::pmr::get_default_resource(),
           device,
+          render_allocator,
           number_of_frames_in_flight,
           swapchain_surface_format,
+          swapchain_surface_extent,
           number_of_swapchain_images,
       }
 {
@@ -161,12 +170,73 @@ auto create_graphics_pipeline_layout(const vk::raii::Device& device)
     return kiln::gfx::vulkan::check_result(device.createPipelineLayout(create_info));
 }
 
+[[nodiscard]]
+auto pick_depth_format(const vk::raii::PhysicalDevice& physical_device) -> vk::Format
+{
+    for (const vk::Format format :
+         { vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint })
+    {
+        if (physical_device.getFormatProperties2(format)
+                .formatProperties.optimalTilingFeatures
+            & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
+        {
+            return format;
+        }
+    }
+    std::unreachable();
+}
+
+[[nodiscard]]
+auto create_depth_image(
+    const kiln::gfx::renderer::Device& device,
+    kiln::gfx::renderer::Allocator&    allocator,
+    const vk::Extent2D&                extent
+) -> kiln::gfx::renderer::Image
+{
+    const vk::ImageCreateInfo create_info{
+        .imageType = vk::ImageType::e2D,
+        .format    = pick_depth_format(device.physical_device()),
+        .extent{ .width = extent.width, .height = extent.height, .depth = 1 },
+        .mipLevels   = 1,
+        .arrayLayers = 1,
+        .samples     = vk::SampleCountFlagBits::e1,
+        .tiling      = vk::ImageTiling::eOptimal,
+        .usage       = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+    };
+    constexpr static VmaAllocationCreateInfo allocation_create_info{
+        .flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+        .usage = VMA_MEMORY_USAGE_AUTO
+    };
+    return allocator.create_image(create_info, allocation_create_info);
+}
+
+[[nodiscard]]
+auto create_depth_image_view(
+    const kiln::gfx::renderer::Device& device,
+    kiln::gfx::renderer::Image&        depth_image
+) -> vk::raii::ImageView
+{
+    const vk::ImageViewCreateInfo create_info{
+        .image    = depth_image.get(),
+        .viewType = vk::ImageViewType::e2D,
+        .format   = depth_image.format(),
+        .subresourceRange{ .aspectMask = vk::ImageAspectFlagBits::eDepth,
+                          .levelCount = 1,
+                          .layerCount = 1 },
+    };
+    return kiln::gfx::vulkan::check_result(
+        device.logical_device().createImageView(create_info)
+    );
+}
+
 Renderer::Renderer(
     std::allocator_arg_t,
     const allocator_type&              allocator,
     const kiln::gfx::renderer::Device& device,
+    kiln::gfx::renderer::Allocator&    render_allocator,
     const uint32_t                     number_of_frames_in_flight,
     const vk::Format                   swapchain_surface_format,
+    const vk::Extent2D&                swapchain_surface_extent,
     const uint32_t                     number_of_swapchain_images
 )
     : m_graphics_command_pools{
@@ -188,6 +258,10 @@ Renderer::Renderer(
       m_render_finished_fences{
           create_per_frame_fences(allocator, device, number_of_frames_in_flight)
       },
+      m_depth_image{
+          create_depth_image(device, render_allocator, swapchain_surface_extent),
+      },
+      m_depth_image_view{ create_depth_image_view(device, m_depth_image) },
       m_pipeline_layout{ create_graphics_pipeline_layout(device.logical_device()) },
       m_graphics_shader_module{
           *kiln::gfx::renderer::ShaderModule::load_from_file(
@@ -204,6 +278,7 @@ Renderer::Renderer(
           m_graphics_shader_module,
           m_graphics_shader_module,
           std::array{ swapchain_surface_format },
+          pick_depth_format(device.physical_device()),
       }
 {
 }
@@ -211,6 +286,16 @@ Renderer::Renderer(
 auto Renderer::get_allocator() const noexcept -> allocator_type
 {
     return m_graphics_command_pools.get_allocator();
+}
+
+auto Renderer::resize(
+    const kiln::gfx::renderer::Device& device,
+    kiln::gfx::renderer::Allocator&    allocator,
+    const vk::Extent2D&                swapchain_surface_extent
+) -> void
+{
+    m_depth_image      = create_depth_image(device, allocator, swapchain_surface_extent);
+    m_depth_image_view = create_depth_image_view(device, m_depth_image);
 }
 
 auto Renderer::render(
@@ -280,21 +365,37 @@ auto Renderer::draw_scene(
 
     graphics_command_buffer.begin_recording();
 
-    const vk::ImageMemoryBarrier2 render_image_memory_barrier {
-        .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-        .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
-        .oldLayout = vk::ImageLayout::eUndefined,
-        .newLayout = vk::ImageLayout::eColorAttachmentOptimal,
-        .image = surface.image_at(swapchain_image_index),
-        .subresourceRange = {
-            .aspectMask = vk::ImageAspectFlagBits::eColor,
-            .levelCount = 1,
-            .layerCount = 1,
-          },
+    const std::array render_image_memory_barriers{
+        vk::ImageMemoryBarrier2{
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .dstStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .dstAccessMask = vk::AccessFlagBits2::eColorAttachmentWrite,
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eAttachmentOptimal,
+            .image = surface.image_at(swapchain_image_index),
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .levelCount = 1,
+                .layerCount = 1,
+              },
+        },
+        vk::ImageMemoryBarrier2{
+            .srcStageMask = vk::PipelineStageFlagBits2::eLateFragmentTests,
+            .srcAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            .dstStageMask = vk::PipelineStageFlagBits2::eEarlyFragmentTests,
+            .dstAccessMask = vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eAttachmentOptimal,
+            .image = m_depth_image.get(),
+            .subresourceRange = {
+                .aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil,
+                .levelCount = 1,
+                .layerCount = 1,
+              },
+        },
     };
     const kiln::gfx::renderer::DependencyInfo render_dependency_info{
-        .image_memory_barriers = std::span{ &render_image_memory_barrier, 1 },
+        .image_memory_barriers = std::span{ render_image_memory_barriers },
     };
     graphics_command_buffer.record_barrier(render_dependency_info);
 
@@ -305,10 +406,12 @@ auto Renderer::draw_scene(
         render_area,
         std::array{
                    kiln::gfx::renderer::ColorAttachment{
-                surface.image_view_at(swapchain_image_index),
-            }
-                .set_clear_value(std::array{ 0.01f, 0.01f, 0.01f, 1.f }),   //
-        }
+                   surface.image_view_at(swapchain_image_index),
+                   }
+                   .set_clear_value(std::array{ 0.01f, 0.01f, 0.01f, 1.f }),   //
+        },
+        kiln::gfx::renderer::DepthAttachment{ m_depth_image_view }
+        .set_clear_value(1)
     };
     graphics_command_buffer.record_render_pass_start(render_pass);
 

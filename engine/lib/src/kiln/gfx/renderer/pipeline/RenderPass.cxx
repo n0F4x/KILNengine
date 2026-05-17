@@ -46,12 +46,13 @@ auto transform_color_attachments(const std::span<const ColorAttachment> color_at
 }
 
 [[nodiscard]]
-auto transform_depth_attachment(const DepthAttachment* depth_attachment)
-    -> std::optional<vk::RenderingAttachmentInfo>
+auto transform_depth_attachment(
+    const util::OptionalRef<const DepthAttachment> depth_attachment
+) -> std::optional<vk::RenderingAttachmentInfo>
 {
     std::optional<vk::RenderingAttachmentInfo> result{};
 
-    if (depth_attachment != nullptr)
+    if (depth_attachment.has_value())
     {
         result = vk::RenderingAttachmentInfo{
             .imageView   = depth_attachment->image_view(),
@@ -70,9 +71,9 @@ auto transform_depth_attachment(const DepthAttachment* depth_attachment)
 }
 
 RenderPass::RenderPass(
-    const vk::Rect2D                       render_area,
-    const std::span<const ColorAttachment> color_attachments,
-    const DepthAttachment*                 depth_attachment
+    const vk::Rect2D                               render_area,
+    const std::span<const ColorAttachment>         color_attachments,
+    const util::OptionalRef<const DepthAttachment> depth_attachment
 )
     : m_color_attachments{ transform_color_attachments(color_attachments) },
       m_depth_attachment{ transform_depth_attachment(depth_attachment) },

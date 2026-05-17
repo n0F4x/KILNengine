@@ -10,15 +10,16 @@ import vulkan_hpp;
 
 import kiln.gfx.renderer.pipeline.ColorAttachment;
 import kiln.gfx.renderer.pipeline.DepthAttachment;
+import kiln.util.containers.OptionalRef;
 
 namespace kiln::gfx::renderer {
 
 export class RenderPass {
 public:
     explicit RenderPass(
-        vk::Rect2D                       render_area,
-        std::span<const ColorAttachment> color_attachments = {},
-        const DepthAttachment*           depth_attachment  = nullptr
+        vk::Rect2D                               render_area,
+        std::span<const ColorAttachment>         color_attachments = {},
+        util::OptionalRef<const DepthAttachment> depth_attachment  = {}
     );
 
     [[nodiscard]]

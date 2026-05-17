@@ -59,7 +59,7 @@ private:
         .down     = kiln::wsi::Key::eQ,
     };
     constexpr static double movement_sensitivity{ 0.005 };
-    constexpr static double rotation_sensitivity{ 0.005 };
+    constexpr static double rotation_sensitivity{ 0.002 };
 
     bool                   m_cursor_disabled{};
     kiln::event::Timestamp m_time;

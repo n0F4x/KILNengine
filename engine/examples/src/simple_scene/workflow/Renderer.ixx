@@ -11,6 +11,8 @@ import kiln.gfx.renderer.command.GraphicsCommandBuffer;
 import kiln.gfx.renderer.command.GraphicsCommandPool;
 import kiln.gfx.renderer.command.GraphicsQueue;
 import kiln.gfx.renderer.device.Device;
+import kiln.gfx.renderer.memory.Allocator;
+import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.pipeline.GraphicsPipeline;
 import kiln.gfx.renderer.pipeline.ShaderModule;
 import kiln.gfx.renderer.presentation.RenderSurface;
@@ -29,22 +31,32 @@ public:
 
     explicit Renderer(
         const kiln::gfx::renderer::Device& device,
+        kiln::gfx::renderer::Allocator&    render_allocator,
         uint32_t                           number_of_frames_in_flight,
         vk::Format                         swapchain_surface_format,
+        const vk::Extent2D&                swapchain_surface_extent,
         uint32_t                           number_of_swapchain_images
     );
     explicit Renderer(
         std::allocator_arg_t,
         const allocator_type&              allocator,
         const kiln::gfx::renderer::Device& device,
+        kiln::gfx::renderer::Allocator&    render_allocator,
         uint32_t                           number_of_frames_in_flight,
         vk::Format                         swapchain_surface_format,
+        const vk::Extent2D&                swapchain_surface_extent,
         uint32_t                           number_of_swapchain_images
     );
 
 
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
+
+    auto resize(
+        const kiln::gfx::renderer::Device& device,
+        kiln::gfx::renderer::Allocator&    allocator,
+        const vk::Extent2D&                swapchain_surface_extent
+    ) -> void;
 
     auto render(
         const kiln::gfx::renderer::Device&  device,
@@ -63,6 +75,8 @@ private:
     std::pmr::vector<vk::raii::Semaphore> m_render_finished_semaphores;
     std::pmr::vector<vk::raii::Fence>     m_render_finished_fences;
     uint32_t                              m_current_frame_index{};
+    kiln::gfx::renderer::Image            m_depth_image;
+    vk::raii::ImageView                   m_depth_image_view;
     vk::raii::PipelineLayout              m_pipeline_layout;
     kiln::gfx::renderer::ShaderModule     m_graphics_shader_module;
     kiln::gfx::renderer::GraphicsPipeline m_graphics_pipeline;

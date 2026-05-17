@@ -66,7 +66,6 @@ Context::Context(
     kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
     : m_app_config{ config },
-      m_render_device{ render_device },
       m_render_queue_provider{ render_queue_provider },
       m_staging_stream{
           std::allocator_arg,
@@ -183,7 +182,7 @@ auto Context::create_window(const kiln::app::Config& config, MainThread& main_th
                 };
 
                 constexpr static kiln::wsi::WindowedWindowSettings screen_settings{
-                    .content_size{ .width = 640, .height = 480 }
+                    .content_size{ .width = 1280, .height = 720 }
                 };
 
                 const kiln::wsi::WindowHandle window_handle{
@@ -256,14 +255,18 @@ auto Context::run_worker_thread(
         window.framebuffer_size(),
     };
     Renderer renderer{
-        m_render_device,
+        render_device,
+        render_allocator,
         number_of_frames_in_flight,
         render_surface.surface_format().format,
+        *render_surface.extent(),
         render_surface.number_of_images(),
     };
 
 
     run_render_loop(
+        render_device,
+        render_allocator,
         running,
         main_thread,
         scene,
@@ -273,10 +276,12 @@ auto Context::run_worker_thread(
         limit_fps
     );
 
-    m_render_device.get().logical_device().waitIdle();
+    render_device.logical_device().waitIdle();
 }
 
 auto Context::run_render_loop(
+    const kiln::gfx::renderer::Device&  render_device,
+    kiln::gfx::renderer::Allocator&     render_allocator,
     std::atomic_bool&                   running,
     MainThread&                         main_thread,
     const Scene&                        scene,
@@ -361,8 +366,9 @@ auto Context::run_render_loop(
 
         if (window.framebuffer_size() != render_surface.extent())
         {
-            m_render_device.get().logical_device().waitIdle();
+            render_device.logical_device().waitIdle();
             render_surface.resize(window.framebuffer_size());
+            renderer.resize(render_device, render_allocator, *render_surface.extent());
         }
 
 
@@ -370,7 +376,7 @@ auto Context::run_render_loop(
         controller.update(camera);
 
         renderer.render(
-            m_render_device,
+            render_device,
             *m_render_queue_provider.get().graphics_queue(),
             render_surface,
             scene,

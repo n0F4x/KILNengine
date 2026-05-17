@@ -11,6 +11,7 @@ import vulkan_hpp;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.pipeline.ShaderModule;
+import kiln.gfx.vulkan.format.traits;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
@@ -32,12 +33,6 @@ auto create_graphics_pipeline(
     PRECOND(device.capabilities().contains_features(
         vk::PhysicalDeviceDynamicRenderingFeatures{ .dynamicRendering = vk::True }
     ));
-
-    const vk::PipelineRenderingCreateInfo pipeline_rendering_create_info{
-        .colorAttachmentCount    = static_cast<uint32_t>(color_formats.size()),
-        .pColorAttachmentFormats = color_formats.data(),
-        .depthAttachmentFormat   = depth_format,
-    };
 
     const vk::ShaderModuleCreateInfo vertex_shader_module_create_info{
         .codeSize = vertex_shader_module.code().size_bytes(),
@@ -83,14 +78,14 @@ auto create_graphics_pipeline(
         .rasterizationSamples = vk::SampleCountFlagBits::e1,
     };
 
-    constexpr static vk::PipelineDepthStencilStateCreateInfo
-        depth_stencil_state_create_info{
-            .depthTestEnable       = vk::True,
-            .depthWriteEnable      = vk::True,
-            .depthCompareOp        = vk::CompareOp::eLess,
-            .depthBoundsTestEnable = vk::False,
-            .stencilTestEnable     = vk::False,
-        };
+    const bool depth_enabled{ vulkan::has_depth_component(depth_format) };
+    const vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
+        .depthTestEnable       = depth_enabled,
+        .depthWriteEnable      = depth_enabled,
+        .depthCompareOp        = vk::CompareOp::eLess,
+        .depthBoundsTestEnable = vk::False,
+        .stencilTestEnable     = vk::False,
+    };
 
     using enum vk::ColorComponentFlagBits;
     constexpr static vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
@@ -108,6 +103,12 @@ auto create_graphics_pipeline(
     constexpr static vk::PipelineDynamicStateCreateInfo dynamic_state{
         .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
         .pDynamicStates    = dynamic_states.data()
+    };
+
+    const vk::PipelineRenderingCreateInfo pipeline_rendering_create_info{
+        .colorAttachmentCount    = static_cast<uint32_t>(color_formats.size()),
+        .pColorAttachmentFormats = color_formats.data(),
+        .depthAttachmentFormat   = depth_format,
     };
 
     const vk::GraphicsPipelineCreateInfo create_info{
@@ -146,7 +147,7 @@ GraphicsPipeline::GraphicsPipeline(
               fragment_shader_module,
               color_formats,
               depth_format
-          )   //
+          ),
       }
 {
 }

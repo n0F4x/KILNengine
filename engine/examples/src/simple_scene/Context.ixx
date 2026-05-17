@@ -61,7 +61,6 @@ private:
 
 
     std::reference_wrapper<const kiln::app::Config>            m_app_config;
-    std::reference_wrapper<const kiln::gfx::renderer::Device>  m_render_device;
     std::reference_wrapper<kiln::gfx::renderer::QueueProvider> m_render_queue_provider;
     kiln::event::EventBuffer<kiln::wsi::Event>                 m_wsi_event_buffer;
     kiln::event::EventRecorder<kiln::wsi::Event>               m_wsi_event_recorder;
@@ -81,6 +80,8 @@ private:
         -> kiln::wsi::WindowProxy;
 
     auto run_render_loop(
+        const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::Allocator&     render_allocator,
         std::atomic_bool&                   running,
         MainThread&                         main_thread,
         const Scene&                        scene,

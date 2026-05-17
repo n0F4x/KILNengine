@@ -37,7 +37,7 @@ public:
 private:
     glm::dvec3 m_position{};
     glm::dquat m_orientation{ glm::identity<glm::dquat>() };
-    double     m_fov{ glm::quarter_pi<double>() };
+    double     m_fov{ glm::radians(60.0) };
     double     m_aspect_ratio{};
     double     m_near_plane{ 0.01 };
     double     m_far_plane{ 1000.0 };
