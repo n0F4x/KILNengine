@@ -448,7 +448,7 @@ auto load_scene(
 
     {
         const auto model{
-            model_parser.load(model_path)
+            model_parser.load(model_path, true)
                 .value_or(
                     kiln::util::Lazy{
                         [&model_path] [[noreturn]]

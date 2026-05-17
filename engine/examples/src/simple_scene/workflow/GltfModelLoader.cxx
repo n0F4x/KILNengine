@@ -406,11 +406,12 @@ auto GltfModelLoader::Manifest::write_draw_commands(
                     .first_vertex   = 0,
                     .first_instance = 0,
                     .primitive      = shader_primitive_from(global_offsets, primitive),
-                    .transform_buffer_byte_offset = *global_offsets.instance_buffer_byte_offset
-                                           + m_per_mesh_instance_offsets[mesh_index]
-                                                 * static_cast<uint32_t>(sizeof(
-                                                     decltype(m_transforms)::value_type
-                                                 )),
+                    .transform_buffer_byte_offset
+                    = *global_offsets.instance_buffer_byte_offset
+                    + m_per_mesh_instance_offsets[mesh_index]
+                          * static_cast<uint32_t>(
+                              sizeof(decltype(m_transforms)::value_type)
+                          ),
                     .normal_matrix_buffer_byte_offset
                     = *global_offsets.instance_buffer_byte_offset
                     + static_cast<uint32_t>(
@@ -699,6 +700,10 @@ auto GltfModelLoader::Manifest::process(
         );
         manifest.m_element_buffer_byte_offsets[element_type_index]
             += model.accessors[*primitive.indicesAccessor].count * sizeof(shaders::Index);
+    }
+    else
+    {
+        throw std::runtime_error{ "Non-indexed geometry is not supported" };
     }
 
     for (const auto& [attribute_name, accessor_index] : primitive.attributes)

@@ -12,7 +12,7 @@ namespace kiln::gfx::asset::gltf {
 export class Parser {
 public:
     [[nodiscard]]
-    auto load(const std::filesystem::path& filepath) -> std::optional<fastgltf::Asset>;
+    auto load(const std::filesystem::path& filepath, bool generate_indices = false) -> std::optional<fastgltf::Asset>;
 
 private:
     fastgltf::Parser m_parser;

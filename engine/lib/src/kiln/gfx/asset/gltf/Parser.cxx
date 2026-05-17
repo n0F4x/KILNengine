@@ -13,7 +13,23 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::asset::gltf {
 
-auto Parser::load(const std::filesystem::path& filepath) -> std::optional<fastgltf::Asset>
+[[nodiscard]]
+auto make_options(const bool generate_indices) noexcept -> fastgltf::Options
+{
+    fastgltf::Options result{ fastgltf::Options::LoadExternalBuffers };
+
+    if (generate_indices)
+    {
+        result |= fastgltf::Options::GenerateMeshIndices;
+    }
+
+    return result;
+}
+
+auto Parser::load(
+    const std::filesystem::path& filepath,
+    const bool                   generate_indices
+) -> std::optional<fastgltf::Asset>
 {
     fastgltf::GltfFileStream file{ filepath };
     if (!file.isOpen())
@@ -21,11 +37,13 @@ auto Parser::load(const std::filesystem::path& filepath) -> std::optional<fastgl
         return std::nullopt;
     }
 
-    fastgltf::Expected<fastgltf::Asset> asset{ m_parser.loadGltf(
-        file,
-        filepath.parent_path(),
-        fastgltf::Options::LoadExternalBuffers
-    ) };
+    fastgltf::Expected<fastgltf::Asset> asset{
+        m_parser.loadGltf(
+            file,
+            filepath.parent_path(),
+            make_options(generate_indices)   //
+        ),
+    };
     if (asset.error() != fastgltf::Error::None)
     {
         return std::nullopt;
