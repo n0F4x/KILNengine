@@ -4,6 +4,7 @@ export import kiln.util.concepts.decayed;
 export import kiln.util.concepts.function;
 export import kiln.util.concepts.function_pointer;
 export import kiln.util.concepts.function_reference;
+export import kiln.util.concepts.is_noexcept;
 export import kiln.util.concepts.lvalue_reference;
 export import kiln.util.concepts.member_function_pointer;
 export import kiln.util.concepts.naked;

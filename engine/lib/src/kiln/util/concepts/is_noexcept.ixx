@@ -2,7 +2,7 @@ module;
 
 #include <type_traits>
 
-export module kiln.util.type_traits.is_noexcept;
+export module kiln.util.concepts.is_noexcept;
 
 import kiln.util.concepts.function;
 import kiln.util.concepts.function_pointer;
@@ -50,6 +50,6 @@ struct IsNoexcept<F> {
 }   // namespace internal
 
 export template <typename F>
-inline constexpr bool is_noexcept_v = internal::IsNoexcept<F>::value;
+concept is_noexcept_c = internal::IsNoexcept<F>::value;
 
 }   // namespace kiln::util

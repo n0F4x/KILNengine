@@ -7,8 +7,11 @@ export module kiln.util.EnumMask;
 
 namespace kiln::util {
 
+export template <typename>
+constexpr bool enable_enum_mask = false;
+
 export template <typename Enum_T>
-    requires(std::is_enum_v<Enum_T>)
+    requires(std::is_enum_v<Enum_T>) && (enable_enum_mask<Enum_T>)
 class EnumMask {
 public:
     constexpr explicit(false) EnumMask(const Enum_T bit = Enum_T{})

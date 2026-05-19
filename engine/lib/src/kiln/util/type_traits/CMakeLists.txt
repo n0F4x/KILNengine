@@ -7,7 +7,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         arguments_of.ixx
         const_like.ixx
         forward_like.ixx
-        is_noexcept.ixx
         result_of.ixx
         Signature.ixx
         type_list_drop_front.ixx

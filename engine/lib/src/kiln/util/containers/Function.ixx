@@ -10,10 +10,10 @@ module;
 export module kiln.util.containers.Function;
 
 import kiln.util.concepts.function;
+import kiln.util.concepts.is_noexcept;
 import kiln.util.concepts.specialization_of;
 import kiln.util.containers.Any;
 import kiln.util.type_traits.arguments_of;
-import kiln.util.type_traits.is_noexcept;
 import kiln.util.type_traits.result_of;
 import kiln.util.type_traits.Signature;
 
@@ -74,7 +74,7 @@ struct FunctionTraits<
 
     consteval static auto is_noexcept() noexcept -> bool
     {
-        return is_noexcept_v<Signature_T>;
+        return is_noexcept_c<Signature_T>;
     }
 
     template <typename T>
@@ -145,7 +145,7 @@ struct FunctionTraits<
         using Mimicked = Signature<Signature_T>::template mimic_t<std::decay_t<F>>;
 
         constexpr static bool value
-            = is_noexcept_v<Signature_T>
+            = is_noexcept_c<Signature_T>
                 ? std::is_nothrow_invocable_r_v<Result, Mimicked, FArgs_T...>
                 : std::is_invocable_r_v<Result, Mimicked, FArgs_T...>;
     };
