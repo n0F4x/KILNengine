@@ -92,7 +92,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
             )
 
     def build_requirements(self):
-        self.tool_requires("cmake/[>=4.1]")
+        self.tool_requires("cmake/[>=4.3]")
 
     def requirements(self):
         self.requires("magic_enum/0.9.7", transitive_headers=True)

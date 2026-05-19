@@ -1,13 +1,11 @@
-cmake_minimum_required(VERSION 4.1)
-
 project(simple_scene)
 
 add_executable(${PROJECT_NAME})
 
-target_link_libraries(${PROJECT_NAME} PRIVATE kiln::engine)
-
 find_package(glm CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE kiln::engine)
 
 add_subdirectory(shaders)
 add_subdirectory(workflow)
