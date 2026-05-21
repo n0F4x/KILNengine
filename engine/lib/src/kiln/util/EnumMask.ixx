@@ -46,7 +46,7 @@ public:
     [[nodiscard]]
     constexpr explicit operator bool() const noexcept
     {
-        return underlying() == std::underlying_type_t<Enum_T>{ 0 };
+        return underlying() != std::underlying_type_t<Enum_T>{ 0 };
     }
 
     [[nodiscard]]
