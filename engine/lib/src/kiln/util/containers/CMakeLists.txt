@@ -4,7 +4,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         containers.cppm
         Any.ixx
-        Bool.ixx
         CopyableAny.ixx
         CopyableFunction.ixx
         Function.ixx

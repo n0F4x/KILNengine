@@ -130,7 +130,7 @@ auto GltfModelLoader::set_material_buffer_byte_offset(
     const uint32_t material_buffer_byte_offset
 ) -> void
 {
-    m_offsets.material_offset = material_buffer_byte_offset;
+    m_offsets.material_buffer_byte_offset = material_buffer_byte_offset;
 }
 
 auto GltfModelLoader::set_instance_buffer_byte_offset(
@@ -547,7 +547,7 @@ auto GltfModelLoader::Manifest::preprocess(
     manifest.m_per_mesh_instance_offsets.resize(model.meshes.size(), 0);
     manifest.m_per_mesh_instance_counts.resize(model.meshes.size(), 0);
 
-    uint32_t geometry_writer_count{};
+    uint32_t heuristic_geometry_writer_count{};
     uint32_t material_count{};
     uint32_t instance_count{};
 
@@ -559,16 +559,21 @@ auto GltfModelLoader::Manifest::preprocess(
                 for (const fastgltf::Primitive& primitive :
                      model.meshes[*node.meshIndex].primitives)
                 {
+                    if (primitive.findAttribute("POSITION") == nullptr)
+                    {
+                        continue;
+                    }
+
                     if (primitive.indicesAccessor.has_value())
                     {
-                        ++geometry_writer_count;
+                        ++heuristic_geometry_writer_count;
                     }
 
                     for (const auto& [attribute_name, _] : primitive.attributes)
                     {
                         if (is_supported_attribute(attribute_name))
                         {
-                            ++geometry_writer_count;
+                            ++heuristic_geometry_writer_count;
                         }
                     }
 
@@ -599,7 +604,7 @@ auto GltfModelLoader::Manifest::preprocess(
         increment_counts(model.nodes[node_index]);
     }
 
-    manifest.m_geometry_writers.reserve(geometry_writer_count);
+    manifest.m_geometry_writers.reserve(heuristic_geometry_writer_count);
     manifest.m_materials.resize(material_count);
     manifest.m_transforms.resize(instance_count, glm::identity<glm::mat4x4>());
     manifest.m_normal_matrices.reserve(instance_count);
@@ -692,8 +697,13 @@ auto GltfModelLoader::Manifest::process(
          + manifest.m_per_mesh_instance_counts[mesh_index]] = transform;
     if (manifest.m_per_mesh_instance_counts[mesh_index] == 0)
     {
-        manifest.m_draw_command_count
-            += static_cast<uint32_t>(model.meshes[mesh_index].primitives.size());
+        for (const fastgltf::Primitive& primitive : model.meshes[mesh_index].primitives)
+        {
+            if (primitive.findAttribute("POSITION") != nullptr)
+            {
+                ++manifest.m_draw_command_count;
+            }
+        }
     }
     ++manifest.m_per_mesh_instance_counts[mesh_index];
 }
@@ -802,6 +812,12 @@ auto GltfModelLoader::Manifest::process(
     {
         throw std::runtime_error{ "Non-indexed geometry is not supported" };
     }
+
+    if (primitive.findAttribute("POSITION") == nullptr)
+    {
+        return;
+    }
+
     if (primitive.indicesAccessor.has_value()
         && manifest.m_accessor_element_byte_offsets[*primitive.indicesAccessor]
                == std::numeric_limits<uint32_t>::max())
@@ -1128,6 +1144,8 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
     const fastgltf::Primitive& primitive
 ) const -> shaders::Primitive
 {
+    PRECOND(primitive.findAttribute("POSITION") != nullptr);
+
     shaders::Primitive shader_primitive{};
 
     if (primitive.indicesAccessor.has_value())
@@ -1200,8 +1218,9 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
             m_material_indices[*primitive.materialIndex]
             != std::numeric_limits<uint32_t>::max()
         );
-        shader_primitive.material_index = *global_offsets.material_offset
-                                        + m_material_indices[*primitive.materialIndex];
+        shader_primitive.material_buffer_byte_offset
+            = *global_offsets.material_buffer_byte_offset
+            + m_material_indices[*primitive.materialIndex] * sizeof(shaders::Material);
     }
 
     return shader_primitive;

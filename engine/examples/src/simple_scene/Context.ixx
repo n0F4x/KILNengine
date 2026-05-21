@@ -48,7 +48,8 @@ public:
     auto run(
         kiln::app::App&              app,
         const std::filesystem::path& model_filepath,
-        bool                         limit_fps
+        bool                         limit_fps,
+        uint32_t                     grid_size
     ) -> void;
 
 private:
@@ -67,12 +68,13 @@ private:
     kiln::gfx::renderer::StagingStream                         m_staging_stream;
 
 
-    auto run_worker_thread(
+    auto run_main_worker(
         kiln::app::App&              app,
         std::atomic_bool&            running,
         MainThread&                  main_thread,
         const std::filesystem::path& model_filepath,
-        bool                         limit_fps
+        bool                         limit_fps,
+        uint32_t                     grid_size
     ) -> void;
 
     [[nodiscard]]

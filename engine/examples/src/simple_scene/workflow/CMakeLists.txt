@@ -12,6 +12,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         workflow.cppm
         GltfModelLoader.ixx
         load_scene.ixx
+        ModelDescription.ixx
         Renderer.ixx
         Scene.ixx
 )

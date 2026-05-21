@@ -1,13 +1,18 @@
 module;
 
+#include <algorithm>
 #include <filesystem>
 #include <format>
 #include <memory_resource>
 #include <print>
+#include <ranges>
 #include <span>
-#include <stdexcept>
 
 #include <vk_mem_alloc.h>
+
+#include <fastgltf/types.hpp>
+
+#include <kiln/util/contract_macros.hpp>
 
 module examples.simple_scene.workflow.load_scene;
 
@@ -19,17 +24,45 @@ import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.gfx.renderer.stream.StagingRequest;
 import kiln.gfx.renderer.stream.StagingStream;
+import kiln.util.contracts;
 import kiln.util.Lazy;
 
 import examples.simple_scene.shaders;
 import examples.simple_scene.workflow.GltfModelLoader;
+import examples.simple_scene.workflow.ModelDescription;
 
 namespace demo {
 
+template <typename T>
+constexpr T align_up(const T value, const T alignment)
+{
+    PRECOND(std::has_single_bit(alignment));
+    return (value + (alignment - 1)) & ~(alignment - 1);
+}
+
+template <typename ProjectBufferSize_T, typename ProjectBufferAlignment_T>
+[[nodiscard]]
+auto buffer_size_from(
+    const std::span<const GltfModelLoader> model_loaders,
+    ProjectBufferSize_T&&                  project_buffer_size,
+    ProjectBufferAlignment_T&&             project_buffer_alignment
+) -> uint32_t
+{
+    uint32_t result{};
+
+    for (const GltfModelLoader& model_loader : model_loaders)
+    {
+        result = align_up(result, std::invoke(project_buffer_alignment));
+        result += std::invoke(project_buffer_size, model_loader);
+    }
+
+    return result;
+}
+
 [[nodiscard]]
 auto create_geometry_buffer(
-    kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&          model_loader
+    kiln::gfx::renderer::Allocator&        gpu_allocator,
+    const std::span<const GltfModelLoader> model_loaders
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -37,8 +70,12 @@ auto create_geometry_buffer(
                | vk::BufferUsageFlagBits2::eShaderDeviceAddress,
     };
     const vk::BufferCreateInfo buffer_create_info{
-        .pNext       = &buffer_usage_flags,
-        .size        = model_loader.geometry_buffer_size_bytes(),
+        .pNext = &buffer_usage_flags,
+        .size  = buffer_size_from(
+            model_loaders,
+            &GltfModelLoader::geometry_buffer_size_bytes,
+            GltfModelLoader::geometry_buffer_alignment
+        ),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -47,14 +84,14 @@ auto create_geometry_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.geometry_buffer_alignment()
+        GltfModelLoader::geometry_buffer_alignment()
     );
 }
 
 [[nodiscard]]
 auto create_material_buffer(
-    kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&          model_loader
+    kiln::gfx::renderer::Allocator&        gpu_allocator,
+    const std::span<const GltfModelLoader> model_loaders
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -62,8 +99,12 @@ auto create_material_buffer(
                | vk::BufferUsageFlagBits2::eShaderDeviceAddress,
     };
     const vk::BufferCreateInfo buffer_create_info{
-        .pNext       = &buffer_usage_flags,
-        .size        = model_loader.material_buffer_size_bytes(),
+        .pNext = &buffer_usage_flags,
+        .size  = buffer_size_from(
+            model_loaders,
+            &GltfModelLoader::material_buffer_size_bytes,
+            GltfModelLoader::material_buffer_alignment
+        ),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -72,14 +113,14 @@ auto create_material_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.material_buffer_alignment()
+        GltfModelLoader::material_buffer_alignment()
     );
 }
 
 [[nodiscard]]
 auto create_instance_buffer(
-    kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&          model_loader
+    kiln::gfx::renderer::Allocator&        gpu_allocator,
+    const std::span<const GltfModelLoader> model_loaders
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -87,8 +128,12 @@ auto create_instance_buffer(
                | vk::BufferUsageFlagBits2::eShaderDeviceAddress,
     };
     const vk::BufferCreateInfo buffer_create_info{
-        .pNext       = &buffer_usage_flags,
-        .size        = model_loader.instance_buffer_size_bytes(),
+        .pNext = &buffer_usage_flags,
+        .size  = buffer_size_from(
+            model_loaders,
+            &GltfModelLoader::instance_buffer_size_bytes,
+            GltfModelLoader::instance_buffer_alignment
+        ),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -97,7 +142,7 @@ auto create_instance_buffer(
     return gpu_allocator.create_buffer(
         buffer_create_info,
         allocation_create_info,
-        model_loader.instance_buffer_alignment()
+        GltfModelLoader::instance_buffer_alignment()
     );
 }
 
@@ -109,8 +154,8 @@ consteval auto draw_command_count_size() noexcept -> uint32_t
 
 [[nodiscard]]
 auto create_draw_command_buffer(
-    kiln::gfx::renderer::Allocator& gpu_allocator,
-    const GltfModelLoader&          model_loader
+    kiln::gfx::renderer::Allocator&        gpu_allocator,
+    const std::span<const GltfModelLoader> model_loaders
 ) -> kiln::gfx::renderer::Buffer
 {
     constexpr static vk::BufferUsageFlags2CreateInfo buffer_usage_flags{
@@ -120,8 +165,17 @@ auto create_draw_command_buffer(
     };
     const vk::BufferCreateInfo buffer_create_info{
         .pNext = &buffer_usage_flags,
-        .size  = draw_command_count_size()
-              + sizeof(shaders::DrawCommand) * model_loader.draw_command_count(),
+        .size  = align_up(
+                    draw_command_count_size(),
+                    static_cast<uint32_t>(alignof(shaders::DrawCommand))
+                )
+              + sizeof(shaders::DrawCommand)
+                    * std::ranges::fold_left(
+                        model_loaders
+                            | std::views::transform(&GltfModelLoader::draw_command_count),
+                        0u,
+                        std::plus{}
+                    ),
         .sharingMode = vk::SharingMode::eExclusive,
     };
     constexpr static VmaAllocationCreateInfo allocation_create_info{
@@ -150,13 +204,8 @@ auto stage_geometry_buffer(
     {
         if (model_loader.geometry_buffer_size_bytes() != 0)
         {
-            if (const auto remainder{ buffer_byte_offset
-                                      % model_loader.geometry_buffer_alignment() };
-                remainder != 0)
-            {
-                buffer_byte_offset
-                    += model_loader.geometry_buffer_alignment() - remainder;
-            }
+            buffer_byte_offset
+                = align_up(buffer_byte_offset, model_loader.geometry_buffer_alignment());
 
             model_loader.set_geometry_buffer_byte_offset(buffer_byte_offset);
 
@@ -216,13 +265,8 @@ auto stage_material_buffer(
     {
         if (model_loader.material_buffer_size_bytes() != 0)
         {
-            if (const auto remainder{ buffer_byte_offset
-                                      % model_loader.material_buffer_alignment() };
-                remainder != 0)
-            {
-                buffer_byte_offset
-                    += model_loader.material_buffer_alignment() - remainder;
-            }
+            buffer_byte_offset
+                = align_up(buffer_byte_offset, model_loader.material_buffer_alignment());
 
             model_loader.set_material_buffer_byte_offset(buffer_byte_offset);
 
@@ -282,13 +326,8 @@ auto stage_instance_buffer(
     {
         if (model_loader.instance_buffer_size_bytes() != 0)
         {
-            if (const auto remainder{ buffer_byte_offset
-                                      % model_loader.instance_buffer_alignment() };
-                remainder != 0)
-            {
-                buffer_byte_offset
-                    += model_loader.instance_buffer_alignment() - remainder;
-            }
+            buffer_byte_offset
+                = align_up(buffer_byte_offset, model_loader.instance_buffer_alignment());
 
             model_loader.set_instance_buffer_byte_offset(buffer_byte_offset);
 
@@ -432,12 +471,11 @@ auto stage_models(
 }
 
 auto load_scene(
-    const std::filesystem::path&        model_path,
-    const kiln::gfx::renderer::Device&  device,
-    kiln::gfx::renderer::Allocator&     gpu_allocator,
-    kiln::gfx::asset::gltf::Parser&     model_parser,
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    std::pmr::memory_resource&          transient_memory_resource
+    const std::span<const ModelDescription> model_descriptions,
+    const kiln::gfx::renderer::Device&      device,
+    kiln::gfx::renderer::Allocator&         gpu_allocator,
+    kiln::gfx::renderer::StagingStream&     staging_stream,
+    std::pmr::memory_resource&              transient_memory_resource
 ) -> Scene
 {
     kiln::gfx::renderer::Buffer geometry_buffer;
@@ -447,59 +485,27 @@ auto load_scene(
     uint32_t                    max_draw_count{};
 
     {
-        const auto model{
-            model_parser.load(model_path, true)
-                .value_or(
-                    kiln::util::Lazy{
-                        [&model_path] [[noreturn]]
-                            -> decltype(model_parser.load(model_path))::value_type
-                        {
-                            throw std::runtime_error{
-                                std::format(
-                                    "Model could not be loaded from {}",
-                                    model_path.generic_string()
-                                )   //
-                            };
-                        }   //
-                    }
-                )   //
-        };
+        std::pmr::vector<GltfModelLoader> model_loaders{ &transient_memory_resource };
+        model_loaders.reserve(model_descriptions.size());
+        for (const auto& [model_asset, scene_index, transform] : model_descriptions)
+        {
+            model_loaders.emplace_back(model_asset, scene_index, transform);
+        }
 
-        GltfModelLoader model_loader{
-            std::allocator_arg,
-            &transient_memory_resource,
-            model,
-            model.defaultScene.value_or(
-                kiln::util::Lazy{
-                    [&model_path, &model] -> std::size_t
-                    {
-                        if (model.scenes.empty())
-                        {
-                            throw std::runtime_error{
-                                std::format(
-                                    "The provided glTF asset ({}) is a library"
-                                    " (it has no scenes)"
-                                    " and therefor cannot be loaded directly.",
-                                    model_path.generic_string()
-                                ),
-                            };
-                        }
-                        return 0;
-                    },
-                }
-            ),
-        };
-
-        geometry_buffer     = create_geometry_buffer(gpu_allocator, model_loader);
-        material_buffer     = create_material_buffer(gpu_allocator, model_loader);
-        instance_buffer     = create_instance_buffer(gpu_allocator, model_loader);
-        draw_command_buffer = create_draw_command_buffer(gpu_allocator, model_loader);
-        max_draw_count      = model_loader.draw_command_count();
+        geometry_buffer     = create_geometry_buffer(gpu_allocator, model_loaders);
+        material_buffer     = create_material_buffer(gpu_allocator, model_loaders);
+        instance_buffer     = create_instance_buffer(gpu_allocator, model_loaders);
+        draw_command_buffer = create_draw_command_buffer(gpu_allocator, model_loaders);
+        max_draw_count      = std::ranges::fold_left(
+            model_loaders | std::views::transform(&GltfModelLoader::draw_command_count),
+            0u,
+            std::plus{}
+        );
 
         stage_models(
             gpu_allocator,
             staging_stream,
-            std::span{ &model_loader, 1 },
+            model_loaders,
             geometry_buffer,
             material_buffer,
             instance_buffer,

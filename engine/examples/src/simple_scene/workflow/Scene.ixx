@@ -16,6 +16,7 @@ namespace demo {
 
 export class Scene {
 public:
+    explicit Scene() = default;
     explicit Scene(
         const kiln::gfx::renderer::Device& device,
         kiln::gfx::renderer::Buffer&&      geometry_buffer,
@@ -47,16 +48,20 @@ public:
 
 private:
     kiln::gfx::renderer::Buffer       m_geometry_buffer;
-    vk::DeviceSize                    m_geometry_buffer_address;
+    vk::DeviceSize                    m_geometry_buffer_address{};
     kiln::gfx::renderer::Buffer       m_material_buffer;
-    vk::DeviceSize                    m_material_buffer_address;
+    vk::DeviceSize                    m_material_buffer_address{};
     kiln::gfx::renderer::Buffer       m_instance_buffer;
-    vk::DeviceSize                    m_instance_buffer_address;
+    vk::DeviceSize                    m_instance_buffer_address{};
     kiln::gfx::renderer::Buffer       m_draw_command_buffer;
-    vk::DeviceSize                    m_draw_command_buffer_address;
-    kiln::gfx::renderer::BufferRegion m_draw_command_buffer_region;
-    kiln::gfx::renderer::BufferRegion m_draw_command_count_buffer_region;
-    uint32_t                          m_max_draw_count;
+    vk::DeviceSize                    m_draw_command_buffer_address{};
+    kiln::gfx::renderer::BufferRegion m_draw_command_buffer_region{
+        m_draw_command_buffer
+    };
+    kiln::gfx::renderer::BufferRegion m_draw_command_count_buffer_region{
+        m_draw_command_buffer
+    };
+    uint32_t m_max_draw_count{};
 };
 
 }   // namespace demo

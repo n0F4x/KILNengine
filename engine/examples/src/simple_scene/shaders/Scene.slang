@@ -18,7 +18,7 @@ static const uint32_t UINT32_MAX = 0xFFFFFFFF;
 
 EXPORT struct Scene {
     SLANG_PRIVATE_MEMBER Ptr<uint8_t>     geometry_buffer_address;
-    SLANG_PRIVATE_MEMBER Ptr<Material>    material_buffer_address;
+    SLANG_PRIVATE_MEMBER Ptr<uint8_t>     material_buffer_address;
     SLANG_PRIVATE_MEMBER Ptr<uint8_t>     instance_buffer_address;
     SLANG_PRIVATE_MEMBER Ptr<DrawCommand> draw_command_buffer_address;
 
@@ -75,11 +75,13 @@ EXPORT struct Scene {
 
     public Material material(Primitive primitive)
     {
-        if (primitive.material_index == UINT32_MAX)
+        if (primitive.material_buffer_byte_offset == UINT32_MAX)
         {
             return Material();
         }
-        return material_buffer_address[primitive.material_index];
+        Material* material_buffer
+            = (Material*)(material_buffer_address + primitive.material_buffer_byte_offset);
+        return *material_buffer;
     }
 
     private float4x4 transform(uint32_t draw_id, uint32_t instance_id)

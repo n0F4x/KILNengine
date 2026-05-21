@@ -5,6 +5,7 @@ export import kiln.util.containers;
 export import kiln.util.type_traits;
 
 export import kiln.util.any_of;
+export import kiln.util.Bool;
 export import kiln.util.contracts;
 export import kiln.util.Deleter;
 export import kiln.util.Dummy;

@@ -150,8 +150,10 @@ IncludeCategories:
     Priority: 20
   - Regex: '^<ktx*\.h>'
     Priority: 21
-  - Regex: '^<entt/'
+  - Regex: '^<fastgltf/'
     Priority: 22
+  - Regex: '^<entt/'
+    Priority: 23
   - Regex: '^<.*\..*'
     Priority: 998
   - Regex: '^<.*'

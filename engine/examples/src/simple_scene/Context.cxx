@@ -6,11 +6,21 @@ module;
 #include <filesystem>
 #include <future>
 #include <memory_resource>
+#include <optional>
 #include <print>
 #include <ranges>
+#include <stdexcept>
 #include <thread>
 
 #include <vk_mem_alloc.h>
+
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/vec3.hpp>
+
+#include <fastgltf/core.hpp>
+
+#include <kiln/util/contract_macros.hpp>
 
 module examples.simple_scene.Context;
 
@@ -24,6 +34,8 @@ import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.containers.MoveOnlyFunction;
+import kiln.util.contracts;
+import kiln.util.Lazy;
 import kiln.util.ScopeFail;
 import kiln.wsi.CursorMode;
 import kiln.wsi.Engine;
@@ -38,10 +50,13 @@ import kiln.wsi.WindowedWindowSettings;
 import kiln.wsi.WindowHandle;
 import kiln.wsi.WindowProxy;
 
+import examples.simple_scene.AABB;
 import examples.simple_scene.Camera;
 import examples.simple_scene.Controller;
+import examples.simple_scene.gltf_utils;
 import examples.simple_scene.SPSCQueue;
 import examples.simple_scene.workflow.load_scene;
+import examples.simple_scene.workflow.ModelDescription;
 import examples.simple_scene.workflow.Renderer;
 import examples.simple_scene.workflow.Scene;
 
@@ -141,16 +156,26 @@ auto Context::run_main_thread_loop(
 auto Context::run(
     kiln::app::App&              app,
     const std::filesystem::path& model_filepath,
-    const bool                   limit_fps
+    const bool                   limit_fps,
+    const uint32_t               grid_size
 ) -> void
 {
+    PRECOND(grid_size > 0);
+
     std::atomic_bool running{ true };
     MainThread       main_thread;
 
     std::jthread render_thread{
-        [&app, &model_filepath, limit_fps, this, &running, &main_thread] -> void
+        [&app, &model_filepath, limit_fps, grid_size, this, &running, &main_thread] -> void
         {
-            run_worker_thread(app, running, main_thread, model_filepath, limit_fps);   //
+            run_main_worker(
+                app,
+                running,
+                main_thread,
+                model_filepath,
+                limit_fps,
+                grid_size
+            );   //
         },
     };
     run_main_thread_loop(running, main_thread);
@@ -182,7 +207,7 @@ auto Context::create_window(const kiln::app::Config& config, MainThread& main_th
                 };
 
                 constexpr static kiln::wsi::WindowedWindowSettings screen_settings{
-                    .content_size{ .width = 1280, .height = 720 }
+                    .content_size{ .width = 1'280, .height = 720 }
                 };
 
                 const kiln::wsi::WindowHandle window_handle{
@@ -210,12 +235,124 @@ auto Context::create_window(const kiln::app::Config& config, MainThread& main_th
     return window_promise.get_future().get();
 }
 
-auto Context::run_worker_thread(
+template <typename Repr_T>
+[[nodiscard]]
+auto extent_of(const AABB<Repr_T>& aabb) -> glm::vec<3, Repr_T>
+{
+    return aabb.max - aabb.min;
+}
+
+[[nodiscard]]
+auto model_descriptions_from(
+    const std::pmr::polymorphic_allocator<>& allocator,
+    const fastgltf::Asset&                   model_asset,
+    const std::size_t                        scene_index,
+    const uint32_t                           grid_size
+) -> std::pmr::vector<ModelDescription>
+{
+    std::pmr::vector<ModelDescription> result{ allocator };
+
+    const std::optional<AABB<>> model_aabb{ bounding_box_of(model_asset, scene_index) };
+    if (!model_aabb.has_value())
+    {
+        return result;
+    }
+
+    result.reserve(grid_size * grid_size * grid_size);
+    const glm::vec3 distance{ extent_of(*model_aabb) * 2.f };
+    const glm::vec3 start_offset{ -static_cast<float>(grid_size - 1) * distance / 2.f };
+    for (const auto indices{ std::views::iota(0u, grid_size) };
+         const auto [x, y, z] : std::views::cartesian_product(indices, indices, indices))
+    {
+        const glm::vec3 offset{
+            start_offset.x + (static_cast<float>(x) * distance.x),
+            start_offset.y + (static_cast<float>(y) * distance.y),
+            start_offset.z + (static_cast<float>(z) * distance.z),
+        };
+        result.push_back(
+            ModelDescription{
+                .model_asset = model_asset,
+                .scene_index = scene_index,
+                .transform   = glm::translate(glm::identity<glm::mat4x4>(), offset),
+            }
+        );
+    }
+
+    return result;
+}
+
+[[nodiscard]]
+auto load_scene(
+    const kiln::gfx::renderer::Device&  device,
+    kiln::gfx::renderer::Allocator&     gpu_allocator,
+    kiln::gfx::renderer::StagingStream& staging_stream,
+    kiln::gfx::asset::gltf::Parser&     model_parser,
+    const std::filesystem::path&        model_filepath,
+    const uint32_t                      grid_size,
+    std::pmr::memory_resource&          transient_memory_resource
+) -> Scene
+{
+    const auto model_asset{
+        model_parser.load(model_filepath, true)
+            .value_or(
+                kiln::util::Lazy{
+                    [&model_filepath] [[noreturn]]
+                        -> decltype(model_parser.load(model_filepath))::value_type
+                    {
+                        throw std::runtime_error{
+                            std::format(
+                                "Model could not be loaded from {}",
+                                model_filepath.generic_string()
+                            )   //
+                        };
+                    }   //
+                }
+            )
+    };
+
+    const std::size_t scene_index{
+        model_asset.defaultScene.value_or(
+            kiln::util::Lazy{
+                [&model_filepath, &model_asset] -> std::size_t
+                {
+                    if (model_asset.scenes.empty())
+                    {
+                        throw std::runtime_error{
+                            std::format(
+                                "The provided glTF asset ({}) is a library"
+                                " (it has no scenes)"
+                                " and therefor cannot be loaded directly.",
+                                model_filepath.generic_string()
+                            ),
+                        };
+                    }
+                    return 0;
+                },
+            }
+        ),
+    };
+
+    return load_scene(
+        model_descriptions_from(
+            &transient_memory_resource,
+            model_asset,
+            scene_index,
+            grid_size
+        ),
+        device,
+        gpu_allocator,
+        staging_stream,
+        transient_memory_resource
+    );
+}
+
+auto Context::run_main_worker(
     kiln::app::App&              app,
     std::atomic_bool&            running,
     MainThread&                  main_thread,
     const std::filesystem::path& model_filepath,
-    const bool                   limit_fps
+    const bool                   limit_fps,
+    const uint32_t               grid_size
 ) -> void
 {
     const auto& vulkan_instance{ app.contexts().at<kiln::gfx::vulkan::Instance>() };
@@ -225,11 +362,12 @@ auto Context::run_worker_thread(
 
     const auto  scene_load_start_time{ std::chrono::steady_clock::now() };
     const Scene scene = load_scene(
-        model_filepath,
         render_device,
         render_allocator,
-        gltf_parser,
         m_staging_stream,
+        gltf_parser,
+        model_filepath,
+        grid_size,
         *std::pmr::get_default_resource()
     );
     const auto scene_load_finish_time{ std::chrono::steady_clock::now() };

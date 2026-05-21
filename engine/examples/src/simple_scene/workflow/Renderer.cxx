@@ -416,46 +416,49 @@ auto Renderer::draw_scene(
     graphics_command_buffer.record_render_pass_start(render_pass);
 
 
-    const shaders::Scene shader_scene{
-        .geometry_buffer_address     = scene.geometry_buffer_address(),
-        .material_buffer_address     = scene.material_buffer_address(),
-        .instance_buffer_address     = scene.instance_buffer_address(),
-        .draw_command_buffer_address = scene.draw_command_buffer_address(),
-    };
-    const vk::PushConstantsInfo scene_push_constants_info{
-        .layout     = m_pipeline_layout,
-        .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        .size       = sizeof(decltype(shader_scene)),
-        .pValues    = &shader_scene,
-    };
-    const shaders::Camera shader_camera{
-        .position = glm::vec4{ camera.position(), 1.0 },
-        .view_projection_matrix
-        = glm::perspective(
-              camera.fov(),
-              camera.aspect_ratio(),
-              camera.near_plane(),
-              camera.far_plane()
-          )
-        * glm::mat4_cast(glm::conjugate(camera.orientation()))
-        * glm::translate(glm::identity<glm::dmat4>(), -camera.position()),
-    };
-    const vk::PushConstantsInfo camera_push_constants_info{
-        .layout     = m_pipeline_layout,
-        .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        .offset     = sizeof(shaders::Scene),
-        .size       = sizeof(decltype(shader_camera)),
-        .pValues    = &shader_camera,
-    };
-    graphics_command_buffer.record_push_constants(scene_push_constants_info);
-    graphics_command_buffer.record_push_constants(camera_push_constants_info);
-    graphics_command_buffer.record_pipeline_bind(m_graphics_pipeline);
-    graphics_command_buffer.record_indirect_draw_count(
-        scene.draw_command_buffer_region(),
-        scene.draw_command_count_buffer_region(),
-        scene.max_draw_count(),
-        sizeof(shaders::DrawCommand)
-    );
+    if (scene.max_draw_count() != 0)
+    {
+        const shaders::Scene shader_scene{
+            .geometry_buffer_address     = scene.geometry_buffer_address(),
+            .material_buffer_address     = scene.material_buffer_address(),
+            .instance_buffer_address     = scene.instance_buffer_address(),
+            .draw_command_buffer_address = scene.draw_command_buffer_address(),
+        };
+        const vk::PushConstantsInfo scene_push_constants_info{
+            .layout     = m_pipeline_layout,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+            .size       = sizeof(decltype(shader_scene)),
+            .pValues    = &shader_scene,
+        };
+        const shaders::Camera shader_camera{
+            .position = glm::vec4{ camera.position(), 1.0 },
+            .view_projection_matrix
+            = glm::perspective(
+                  camera.fov(),
+                  camera.aspect_ratio(),
+                  camera.near_plane(),
+                  camera.far_plane()
+              )
+            * glm::mat4_cast(glm::conjugate(camera.orientation()))
+            * glm::translate(glm::identity<glm::dmat4>(), -camera.position()),
+        };
+        const vk::PushConstantsInfo camera_push_constants_info{
+            .layout     = m_pipeline_layout,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+            .offset     = sizeof(shaders::Scene),
+            .size       = sizeof(decltype(shader_camera)),
+            .pValues    = &shader_camera,
+        };
+        graphics_command_buffer.record_push_constants(scene_push_constants_info);
+        graphics_command_buffer.record_push_constants(camera_push_constants_info);
+        graphics_command_buffer.record_pipeline_bind(m_graphics_pipeline);
+        graphics_command_buffer.record_indirect_draw_count(
+            scene.draw_command_buffer_region(),
+            scene.draw_command_count_buffer_region(),
+            scene.max_draw_count(),
+            sizeof(shaders::DrawCommand)
+        );
+    }
 
 
     graphics_command_buffer.record_render_pass_finish();

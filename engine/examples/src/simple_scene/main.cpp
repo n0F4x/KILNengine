@@ -20,7 +20,10 @@ auto default_model_path() -> std::filesystem::path
 }
 
 [[nodiscard]]
-auto model_path_from(const std::span<const char* const> args) -> std::filesystem::path
+auto model_path_from(
+    const std::span<const std::string_view> args,
+    const std::filesystem::path&            default_value = default_model_path()
+) -> std::filesystem::path
 {
     for (std::size_t index{ 1 }; index < args.size(); ++index)
     {
@@ -29,25 +32,59 @@ auto model_path_from(const std::span<const char* const> args) -> std::filesystem
             return std::filesystem::path{ args[index] };
         }
     }
-    return default_model_path();
+    return default_value;
 }
 
 [[nodiscard]]
-auto should_limit_fps(const std::span<const char* const> args) noexcept -> bool
+auto should_limit_fps(const std::span<const std::string_view> args) noexcept -> bool
 {
-    for (const char* const arg : args)
+    return std::ranges::contains(args, "--disable-fps-cap");
+}
+
+[[nodiscard]]
+auto grid_size_from(
+    const std::span<const std::string_view> args,
+    const uint32_t                          default_value = 7
+) -> uint32_t
+{
+    for (const std::string_view arg : args)
     {
-        if (std::strcmp(arg, "--disable-fps-cap") == 0)
+        if (constexpr std::string_view option_initializer{ "--grid-size=" };
+            arg.starts_with(option_initializer))
         {
-            return false;
+            const std::string_view grid_size_string{
+                arg.substr(option_initializer.size())
+            };
+            if (uint32_t result{};   //
+                std::from_chars(
+                    grid_size_string.data(),
+                    grid_size_string.data() + grid_size_string.size(),
+                    result
+                )
+                    .ec
+                != std::errc{})
+            {
+                throw std::runtime_error{ "Invalid grid size given as argument" };
+            }
+            else
+            {
+                if (result == 0)
+                {
+                    throw std::runtime_error{
+                        "Invalid grid size given as argument. Grid size cannot be 0"
+                    };
+                }
+                return result;
+            }
         }
     }
-    return true;
+
+    return default_value;
 }
 
 auto main(const int argc, const char* const argv[]) -> int
 {
-    const std::span args{ argv, static_cast<std::size_t>(argc) };
+    const std::vector<std::string_view> args{ argv, argv + argc };
 
     kiln::app::App app =                    //
         kiln::app::create("Simple scene")   //
@@ -57,5 +94,5 @@ auto main(const int argc, const char* const argv[]) -> int
 
     app.contexts()
         .at<demo::Context>()
-        .run(app, model_path_from(args), should_limit_fps(args));
+        .run(app, model_path_from(args), should_limit_fps(args), grid_size_from(args));
 }

@@ -46,7 +46,7 @@ auto Controller::update(const kiln::event::Timestamp timestamp) noexcept -> void
                       delta_time
                 )
                       .count()
-                * movement_sensitivity;
+                * movement_sensitivity * 10.0;
 
     m_time = timestamp;
 }

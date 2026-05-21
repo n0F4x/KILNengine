@@ -18,5 +18,5 @@ EXPORT struct Primitive {
     PUBLIC_MEMBER uint32_t uv_0_buffer_byte_offset = UINT32_MAX;
     PUBLIC_MEMBER uint32_t uv_1_buffer_byte_offset = UINT32_MAX;
     PUBLIC_MEMBER uint32_t color_buffer_byte_offset = UINT32_MAX;
-    PUBLIC_MEMBER uint32_t material_index = UINT32_MAX;
+    PUBLIC_MEMBER uint32_t material_buffer_byte_offset = UINT32_MAX;
 };

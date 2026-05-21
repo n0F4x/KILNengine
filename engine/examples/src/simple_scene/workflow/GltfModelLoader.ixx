@@ -96,7 +96,7 @@ public:
 private:
     struct Offsets {
         std::optional<uint32_t> geometry_buffer_byte_offset;
-        std::optional<uint32_t> material_offset;
+        std::optional<uint32_t> material_buffer_byte_offset;
         std::optional<uint32_t> instance_buffer_byte_offset;
     };
 
