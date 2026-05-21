@@ -82,6 +82,7 @@ private:
         -> kiln::wsi::WindowProxy;
 
     auto run_render_loop(
+        const kiln::app::Config&            config,
         const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::Allocator&     render_allocator,
         std::atomic_bool&                   running,

@@ -70,6 +70,7 @@ public:
     auto cursor_position() const noexcept -> const Position2d&;
 
 
+    auto set_title(std::string_view title) -> void;
     auto set_cursor_mode(CursorMode cursor_mode) -> void;
 
     [[nodiscard]]

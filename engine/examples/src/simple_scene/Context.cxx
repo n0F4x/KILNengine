@@ -9,16 +9,7 @@ module;
 #include <optional>
 #include <print>
 #include <ranges>
-#include <stdexcept>
 #include <thread>
-
-#include <vk_mem_alloc.h>
-
-#include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/vec3.hpp>
-
-#include <fastgltf/core.hpp>
 
 #include <kiln/util/contract_macros.hpp>
 
@@ -54,8 +45,8 @@ import examples.simple_scene.AABB;
 import examples.simple_scene.Camera;
 import examples.simple_scene.Controller;
 import examples.simple_scene.gltf_utils;
+import examples.simple_scene.load_scene;
 import examples.simple_scene.SPSCQueue;
-import examples.simple_scene.workflow.load_scene;
 import examples.simple_scene.workflow.ModelDescription;
 import examples.simple_scene.workflow.Renderer;
 import examples.simple_scene.workflow.Scene;
@@ -235,117 +226,6 @@ auto Context::create_window(const kiln::app::Config& config, MainThread& main_th
     return window_promise.get_future().get();
 }
 
-template <typename Repr_T>
-[[nodiscard]]
-auto extent_of(const AABB<Repr_T>& aabb) -> glm::vec<3, Repr_T>
-{
-    return aabb.max - aabb.min;
-}
-
-[[nodiscard]]
-auto model_descriptions_from(
-    const std::pmr::polymorphic_allocator<>& allocator,
-    const fastgltf::Asset&                   model_asset,
-    const std::size_t                        scene_index,
-    const uint32_t                           grid_size
-) -> std::pmr::vector<ModelDescription>
-{
-    std::pmr::vector<ModelDescription> result{ allocator };
-
-    const std::optional<AABB<>> model_aabb{ bounding_box_of(model_asset, scene_index) };
-    if (!model_aabb.has_value())
-    {
-        return result;
-    }
-
-    result.reserve(grid_size * grid_size * grid_size);
-    const glm::vec3 distance{ extent_of(*model_aabb) * 2.f };
-    const glm::vec3 start_offset{ -static_cast<float>(grid_size - 1) * distance / 2.f };
-    for (const auto indices{ std::views::iota(0u, grid_size) };
-         const auto [x, y, z] : std::views::cartesian_product(indices, indices, indices))
-    {
-        const glm::vec3 offset{
-            start_offset.x + (static_cast<float>(x) * distance.x),
-            start_offset.y + (static_cast<float>(y) * distance.y),
-            start_offset.z + (static_cast<float>(z) * distance.z),
-        };
-        result.push_back(
-            ModelDescription{
-                .model_asset = model_asset,
-                .scene_index = scene_index,
-                .transform   = glm::translate(glm::identity<glm::mat4x4>(), offset),
-            }
-        );
-    }
-
-    return result;
-}
-
-[[nodiscard]]
-auto load_scene(
-    const kiln::gfx::renderer::Device&  device,
-    kiln::gfx::renderer::Allocator&     gpu_allocator,
-    kiln::gfx::renderer::StagingStream& staging_stream,
-    kiln::gfx::asset::gltf::Parser&     model_parser,
-    const std::filesystem::path&        model_filepath,
-    const uint32_t                      grid_size,
-    std::pmr::memory_resource&          transient_memory_resource
-) -> Scene
-{
-    const auto model_asset{
-        model_parser.load(model_filepath, true)
-            .value_or(
-                kiln::util::Lazy{
-                    [&model_filepath] [[noreturn]]
-                        -> decltype(model_parser.load(model_filepath))::value_type
-                    {
-                        throw std::runtime_error{
-                            std::format(
-                                "Model could not be loaded from {}",
-                                model_filepath.generic_string()
-                            )   //
-                        };
-                    }   //
-                }
-            )
-    };
-
-    const std::size_t scene_index{
-        model_asset.defaultScene.value_or(
-            kiln::util::Lazy{
-                [&model_filepath, &model_asset] -> std::size_t
-                {
-                    if (model_asset.scenes.empty())
-                    {
-                        throw std::runtime_error{
-                            std::format(
-                                "The provided glTF asset ({}) is a library"
-                                " (it has no scenes)"
-                                " and therefor cannot be loaded directly.",
-                                model_filepath.generic_string()
-                            ),
-                        };
-                    }
-                    return 0;
-                },
-            }
-        ),
-    };
-
-    return load_scene(
-        model_descriptions_from(
-            &transient_memory_resource,
-            model_asset,
-            scene_index,
-            grid_size
-        ),
-        device,
-        gpu_allocator,
-        staging_stream,
-        transient_memory_resource
-    );
-}
-
 auto Context::run_main_worker(
     kiln::app::App&              app,
     std::atomic_bool&            running,
@@ -355,6 +235,7 @@ auto Context::run_main_worker(
     const uint32_t               grid_size
 ) -> void
 {
+    const auto& config{ app.contexts().at<kiln::app::Config>() };
     const auto& vulkan_instance{ app.contexts().at<kiln::gfx::vulkan::Instance>() };
     const auto& render_device{ app.contexts().at<kiln::gfx::renderer::Device>() };
     auto&       render_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
@@ -403,6 +284,7 @@ auto Context::run_main_worker(
 
 
     run_render_loop(
+        config,
         render_device,
         render_allocator,
         running,
@@ -418,6 +300,7 @@ auto Context::run_main_worker(
 }
 
 auto Context::run_render_loop(
+    const kiln::app::Config&            config,
     const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::Allocator&     render_allocator,
     std::atomic_bool&                   running,
@@ -431,6 +314,9 @@ auto Context::run_render_loop(
 {
     using std::chrono_literals::operator""ms;
     constexpr static auto target_frame_duration = 1'000ms / 60;
+
+    auto     last_fps_display_time{ std::chrono::steady_clock::now() };
+    uint32_t frame_count{};
 
     Camera     camera{ aspect_ratio_from(*render_surface.extent()) };
     Controller controller{ window };
@@ -465,6 +351,29 @@ auto Context::run_render_loop(
             window.update(event);
             controller.update(event, timestamp, window);
         }
+
+        ++frame_count;
+        if (const auto fps_delta{ frame_start_time - last_fps_display_time };
+            fps_delta > std::chrono::seconds{ 1 })
+        {
+            window.set_title(
+                std::format(
+                    "{} - {} fps",
+                    config.app_name(),
+                    static_cast<uint32_t>(
+                        frame_count
+                        / std::chrono::duration_cast<std::chrono::duration<double>>(
+                              fps_delta
+                        )
+                              .count()
+                    )
+
+                )
+            );
+            last_fps_display_time = frame_start_time;
+            frame_count           = 0;
+        }
+
         window.flush_changes(
             [&](auto window_commands) -> void
             {

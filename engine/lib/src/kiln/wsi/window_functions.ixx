@@ -38,6 +38,7 @@ auto get_cursor_position(const Context&, WindowHandle window) -> Position2d;
 export [[nodiscard]]
 auto is_key_pressed(const Context&, WindowHandle window, Key key) -> bool;
 
+export auto set_title(const Context&, WindowHandle window, const char* title) -> void;
 export auto set_cursor_mode(const Context&, WindowHandle window, CursorMode cursor_mode) -> void;
 
 /*

@@ -211,6 +211,12 @@ auto is_key_pressed(const Context&, const WindowHandle window, const Key key) ->
     return glfwGetKey(window.get(), std::to_underlying(key)) == GLFW_PRESS;
 }
 
+auto set_title(const Context&, const WindowHandle window, const char* const title) -> void
+{
+    PRECOND(window != nullptr);
+    glfwSetWindowTitle(window.get(), title);
+}
+
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue
 auto raw_cursor_mode_from(const CursorMode cursor_mode) -> int

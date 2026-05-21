@@ -40,5 +40,5 @@ float4 main(VertexOutput input) : SV_Target
             ? normalize(cross(ddx(input.world_position), ddy(input.world_position)))
             : normalize(input.world_normal);
 
-    return input.color;
+    return float4(normal, 1);
 }

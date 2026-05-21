@@ -142,6 +142,20 @@ auto WindowProxy::cursor_position() const noexcept -> const Position2d&
     return m_cached_state.cursor_position;
 }
 
+auto WindowProxy::set_title(const std::string_view title) -> void
+{
+    if (!m_destroyed)
+    {
+        m_changes.emplace_back(
+            [handle = m_handle, x_title = std::string{ title }]   //
+            (const Context& context) -> void
+            {
+                wsi::set_title(context, handle, x_title.c_str());   //
+            }
+        );
+    }
+}
+
 auto WindowProxy::set_cursor_mode(const CursorMode cursor_mode) -> void
 {
     if (!m_destroyed)

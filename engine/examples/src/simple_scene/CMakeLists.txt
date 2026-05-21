@@ -15,6 +15,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         Context.cxx
         Controller.cxx
         gltf_utils.cxx
+        load_scene.cxx
         main.cpp
 )
 
@@ -27,5 +28,6 @@ target_sources(${PROJECT_NAME} PRIVATE
         Context.ixx
         Controller.ixx
         gltf_utils.ixx
+        load_scene.ixx
         SPSCQueue.ixx
 )
