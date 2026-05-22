@@ -1,11 +1,12 @@
 module;
 
+#include <array>
 #include <cstdint>
 #include <span>
 
 #include "kiln/util/contract_macros.hpp"
 
-module kiln.gfx.renderer.pipeline.GraphicsPipeline;
+module kiln.gfx.renderer.pipeline.GraphicsPipelineBuilder;
 
 import vulkan_hpp;
 
@@ -17,15 +18,18 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-[[nodiscard]]
-auto create_graphics_pipeline(
-    const Device&                     device,
-    const vk::raii::PipelineLayout&   layout,
-    const ShaderModule&               vertex_shader_module,
-    const ShaderModule&               fragment_shader_module,
-    const std::span<const vk::Format> color_formats,
-    const vk::Format                  depth_format
-) -> vk::raii::Pipeline
+GraphicsPipelineBuilder::GraphicsPipelineBuilder(
+    const vk::raii::PipelineLayout& layout,
+    const ShaderModule&             vertex_shader_module,
+    const ShaderModule&             fragment_shader_module
+)
+    : m_layout{ layout },
+      m_vertex_shader_module{ vertex_shader_module },
+      m_fragment_shader_module{ fragment_shader_module }
+{
+}
+
+auto GraphicsPipelineBuilder::build(const Device& device) const -> GraphicsPipeline
 {
     PRECOND(device.capabilities().contains_features(
         vk::PhysicalDeviceMaintenance5Features{ .maintenance5 = vk::True }
@@ -35,12 +39,12 @@ auto create_graphics_pipeline(
     ));
 
     const vk::ShaderModuleCreateInfo vertex_shader_module_create_info{
-        .codeSize = vertex_shader_module.code().size_bytes(),
-        .pCode    = vertex_shader_module.code().data(),
+        .codeSize = m_vertex_shader_module.get().code().size_bytes(),
+        .pCode    = m_vertex_shader_module.get().code().data(),
     };
     const vk::ShaderModuleCreateInfo fragment_shader_module_create_info{
-        .codeSize = fragment_shader_module.code().size_bytes(),
-        .pCode    = fragment_shader_module.code().data(),
+        .codeSize = m_fragment_shader_module.get().code().size_bytes(),
+        .pCode    = m_fragment_shader_module.get().code().data(),
     };
 
     const std::array shader_stage_create_infos{
@@ -69,8 +73,9 @@ auto create_graphics_pipeline(
         .scissorCount  = 1,
     };
 
-    constexpr static vk::PipelineRasterizationStateCreateInfo
+    const static vk::PipelineRasterizationStateCreateInfo
         rasterization_state_create_info{
+            .cullMode = m_cull_mode,
             .lineWidth = 1.f,
         };
 
@@ -78,7 +83,7 @@ auto create_graphics_pipeline(
         .rasterizationSamples = vk::SampleCountFlagBits::e1,
     };
 
-    const bool depth_enabled{ vulkan::has_depth_component(depth_format) };
+    const bool depth_enabled{ vulkan::has_depth_component(m_depth_format) };
     const vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
         .depthTestEnable       = depth_enabled,
         .depthWriteEnable      = depth_enabled,
@@ -106,9 +111,9 @@ auto create_graphics_pipeline(
     };
 
     const vk::PipelineRenderingCreateInfo pipeline_rendering_create_info{
-        .colorAttachmentCount    = static_cast<uint32_t>(color_formats.size()),
-        .pColorAttachmentFormats = color_formats.data(),
-        .depthAttachmentFormat   = depth_format,
+        .colorAttachmentCount    = static_cast<uint32_t>(m_color_formats.size()),
+        .pColorAttachmentFormats = m_color_formats.data(),
+        .depthAttachmentFormat   = m_depth_format,
     };
 
     const vk::GraphicsPipelineCreateInfo create_info{
@@ -123,38 +128,14 @@ auto create_graphics_pipeline(
         .pDepthStencilState  = &depth_stencil_state_create_info,
         .pColorBlendState    = &color_blend_state_create_info,
         .pDynamicState       = &dynamic_state,
-        .layout              = layout
+        .layout              = m_layout.get()
     };
 
-    return vulkan::check_result(
-        device.logical_device().createGraphicsPipeline(nullptr, create_info)
-    );
-}
-
-GraphicsPipeline::GraphicsPipeline(
-    const Device&                     device,
-    const vk::raii::PipelineLayout&   layout,
-    const ShaderModule&               vertex_shader_module,
-    const ShaderModule&               fragment_shader_module,
-    const std::span<const vk::Format> color_formats,
-    const vk::Format                  depth_format
-)
-    : m_pipeline{
-          create_graphics_pipeline(
-              device,
-              layout,
-              vertex_shader_module,
-              fragment_shader_module,
-              color_formats,
-              depth_format
-          ),
-      }
-{
-}
-
-auto GraphicsPipeline::get() const noexcept -> const vk::raii::Pipeline&
-{
-    return m_pipeline;
+    return GraphicsPipeline{
+        vulkan::check_result(
+            device.logical_device().createGraphicsPipeline(nullptr, create_info)
+        ),
+    };
 }
 
 }   // namespace kiln::gfx::renderer

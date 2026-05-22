@@ -59,7 +59,8 @@ private:
     kiln::gfx::renderer::ShaderModule                          m_shader_module;
     kiln::gfx::renderer::GraphicsPipeline                      m_pipeline;
     std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool> m_graphics_command_pools;
-    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandBuffer> m_graphics_command_buffers;
+    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandBuffer>
+                                          m_graphics_command_buffers;
     std::pmr::vector<vk::raii::Semaphore> m_image_acquired_semaphores;
     std::pmr::vector<vk::raii::Semaphore> m_render_finished_semaphores;
     std::pmr::vector<vk::raii::Fence>     m_render_finished_fences;

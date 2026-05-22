@@ -1,29 +1,25 @@
 module;
 
-#include <span>
+#include <utility>
 
 export module kiln.gfx.renderer.pipeline.GraphicsPipeline;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.device.Device;
-import kiln.gfx.renderer.pipeline.ShaderModule;
-
 namespace kiln::gfx::renderer {
 
 export class GraphicsPipeline {
 public:
-    GraphicsPipeline(
-        const Device&                   device,
-        const vk::raii::PipelineLayout& layout,
-        const ShaderModule&             vertex_shader_module,
-        const ShaderModule&             fragment_shader_module,
-        std::span<const vk::Format>     color_formats = {},
-        vk::Format                      depth_format  = vk::Format::eUndefined
-    );
+    explicit GraphicsPipeline(vk::raii::Pipeline&& pipeline)
+        : m_pipeline{ std::move(pipeline) }
+    {
+    }
 
     [[nodiscard]]
-    auto get() const noexcept -> const vk::raii::Pipeline&;
+    auto get() const noexcept -> const vk::raii::Pipeline&
+    {
+        return m_pipeline;
+    }
 
 private:
     vk::raii::Pipeline m_pipeline;

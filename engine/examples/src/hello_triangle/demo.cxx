@@ -156,7 +156,9 @@ Context::Context(
     const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
-    : m_render_device_ref{ render_device },
+    : m_render_device_ref{
+          render_device
+},
       m_graphics_queue{ *render_queue_provider.graphics_queue() },
       m_window{ create_window(config, wsi_context) },
       m_surface{
@@ -182,11 +184,13 @@ Context::Context(
           )   //
       },
       m_pipeline{
-          render_device,
-          m_pipeline_layout,
-          m_shader_module,
-          m_shader_module,
-          std::array{ m_surface.surface_format().format },
+          kiln::gfx::renderer::GraphicsPipelineBuilder{
+              m_pipeline_layout,
+              m_shader_module,
+              m_shader_module,
+          }
+              .set_color_formats(std::span{ &m_surface.surface_format().format, 1 })
+              .build(render_device)
       },
       m_graphics_command_pools{
           create_graphics_command_pools(

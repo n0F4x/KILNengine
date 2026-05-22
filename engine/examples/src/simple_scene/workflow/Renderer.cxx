@@ -28,6 +28,7 @@ import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.pipeline.ColorAttachment;
 import kiln.gfx.renderer.pipeline.DepthAttachment;
+import kiln.gfx.renderer.pipeline.GraphicsPipelineBuilder;
 import kiln.gfx.renderer.pipeline.RenderPass;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
@@ -241,7 +242,7 @@ Renderer::Renderer(
 )
     : m_graphics_command_pools{
           create_graphics_command_pools(allocator, device, number_of_frames_in_flight)
-      },
+},
       m_scene_pass_command_buffers{
           create_graphics_command_buffers(allocator, m_graphics_command_pools)
       },
@@ -273,12 +274,15 @@ Renderer::Renderer(
           )   //
       },
       m_graphics_pipeline{
-          device,
-          m_pipeline_layout,
-          m_graphics_shader_module,
-          m_graphics_shader_module,
-          std::array{ swapchain_surface_format },
-          pick_depth_format(device.physical_device()),
+          kiln::gfx::renderer::GraphicsPipelineBuilder{
+              m_pipeline_layout,
+              m_graphics_shader_module,
+              m_graphics_shader_module,
+          }
+              .set_cull_mode(vk::CullModeFlagBits::eBack)
+              .set_color_formats(std::span{ &swapchain_surface_format, 1 })
+              .set_depth_format(pick_depth_format(device.physical_device()))
+              .build(device)
       }
 {
 }
