@@ -1,10 +1,13 @@
 module;
 
+#include <algorithm>
 #include <optional>
+#include <ranges>
 
 #include <glm/common.hpp>
 #include <glm/ext/matrix_float4x4.hpp>
-#include <glm/ext/vector_double3.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <fastgltf/tools.hpp>
 
@@ -26,9 +29,9 @@ auto vec3_from(const fastgltf::AccessorBoundsArray& position_accessor_bound) -> 
     PRECOND(position_accessor_bound.size() == 3);
 
     return glm::vec3{
-        position_accessor_bound.get<double>(0),
-        position_accessor_bound.get<double>(1),
-        position_accessor_bound.get<double>(2),
+        static_cast<float>(position_accessor_bound.get<double>(0)),
+        static_cast<float>(position_accessor_bound.get<double>(1)),
+        static_cast<float>(position_accessor_bound.get<double>(2)),
     };
 }
 
@@ -37,9 +40,19 @@ auto change_basis(const glm::vec3& vector) -> glm::vec3
 {
     return glm::vec3{
         vector.x,
-        vector.y * -1,
-        vector.z * -1,
+        vector.y * -1.f,
+        vector.z * -1.f,
     };
+}
+
+[[nodiscard]]
+auto change_basis(const glm::mat4& matrix) -> glm::mat4
+{
+    const glm::mat4x4 vulkan_basis_correction{
+        glm::scale(glm::identity<glm::mat4x4>(), glm::vec3{ 1.f, -1.f, -1.f })
+    };
+
+    return vulkan_basis_correction * matrix * vulkan_basis_correction;
 }
 
 [[nodiscard]]
@@ -48,22 +61,12 @@ auto aabb_from(const fastgltf::Accessor& position_accessor) -> AABB<>
     PRECOND(position_accessor.min.has_value());
     PRECOND(position_accessor.max.has_value());
 
-    return AABB{
-        .min = change_basis(vec3_from(*position_accessor.min)),
-        .max = change_basis(vec3_from(*position_accessor.max)),
-    };
-}
+    const glm::vec3 corrected_min{ change_basis(vec3_from(*position_accessor.min)) };
+    const glm::vec3 corrected_max{ change_basis(vec3_from(*position_accessor.max)) };
 
-template <typename Repr_T>
-[[nodiscard]]
-auto operator*(const fastgltf::math::fmat4x4& transform, const AABB<Repr_T>& aabb)
-    -> AABB<Repr_T>
-{
-    return AABB<Repr_T>{
-        .min = *reinterpret_cast<const glm::mat4*>(transform.data())
-             * glm::vec<4, Repr_T>{ aabb.min, 1 },
-        .max = *reinterpret_cast<const glm::mat4*>(transform.data())
-             * glm::vec<4, Repr_T>{ aabb.max, 1 },
+    return AABB{
+        .min = glm::min(corrected_min, corrected_max),
+        .max = glm::max(corrected_min, corrected_max),
     };
 }
 
@@ -75,6 +78,42 @@ auto merge(const AABB<Repr_T>& lhs, const AABB<Repr_T>& rhs) -> AABB<Repr_T>
         .min = glm::min(lhs.min, rhs.min),
         .max = glm::max(lhs.max, rhs.max),
     };
+}
+
+template <typename Repr_T>
+[[nodiscard]]
+auto operator*(const glm::mat4& transform, const AABB<Repr_T>& aabb) -> AABB<Repr_T>
+{
+    const std::array corners{
+        aabb.min,
+        glm::vec<3, Repr_T>{ aabb.max.x, aabb.min.y, aabb.min.z },
+        glm::vec<3, Repr_T>{ aabb.min.x, aabb.max.y, aabb.min.z },
+        glm::vec<3, Repr_T>{ aabb.min.x, aabb.min.y, aabb.max.z },
+        glm::vec<3, Repr_T>{ aabb.max.x, aabb.max.y, aabb.min.z },
+        glm::vec<3, Repr_T>{ aabb.max.x, aabb.min.y, aabb.max.z },
+        glm::vec<3, Repr_T>{ aabb.min.x, aabb.max.y, aabb.max.z },
+        aabb.max
+    };
+
+    return *std::ranges::fold_left_first(
+        std::views::transform(
+            corners,
+            [&transform](const glm::vec<3, Repr_T>& corner) -> AABB<Repr_T>
+            {
+                const auto transformed_corner{
+                    transform * glm::vec<4, Repr_T>{ corner, 1.f }
+                };
+                return AABB<Repr_T>{
+                    .min = transformed_corner,
+                    .max = transformed_corner,
+                };
+            }
+        ),
+        [](const AABB<Repr_T>& lhs, const AABB<Repr_T>& rhs) -> AABB<Repr_T>
+        {
+            return merge(lhs, rhs);   //
+        }
+    );
 }
 
 auto bounding_box_of(const fastgltf::Asset& model, const size_t scene_index)
@@ -91,43 +130,47 @@ auto bounding_box_of(const fastgltf::Asset& model, const size_t scene_index)
             const fastgltf::math::fmat4x4& transform
         ) -> void
         {
-            if (node.meshIndex.has_value())
+            if (!node.meshIndex.has_value())
             {
-                for (const fastgltf::Primitive& primitive :
-                     model.meshes[*node.meshIndex].primitives)
+                return;
+            }
+
+            for (const fastgltf::Primitive& primitive :
+                 model.meshes[*node.meshIndex].primitives)
+            {
+                const fastgltf::Attribute* position_attribute{
+                    primitive.findAttribute("POSITION")
+                };
+                if (position_attribute == nullptr)
                 {
-                    const fastgltf::Attribute* position_attribute{
-                        primitive.findAttribute("POSITION")
-                    };
-                    if (position_attribute == nullptr)
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    const fastgltf::Accessor& position_accessor{
-                        model.accessors[position_attribute->accessorIndex]
+                const fastgltf::Accessor& position_accessor{
+                    model.accessors[position_attribute->accessorIndex]
+                };
+                if (!position_accessor.min.has_value())
+                {
+                    throw std::runtime_error{
+                        "Invalid glTF: POSITION accessor MUST have \"min\" defined"
                     };
-                    if (!position_accessor.min.has_value())
-                    {
-                        throw std::runtime_error{
-                            "Invalid glTF: POSITION accessor MUST have \"min\" defined"
-                        };
-                    }
-                    if (!position_accessor.max.has_value())
-                    {
-                        throw std::runtime_error{
-                            "Invalid glTF: POSITION accessor MUST have \"max\" defined"
-                        };
-                    }
+                }
+                if (!position_accessor.max.has_value())
+                {
+                    throw std::runtime_error{
+                        "Invalid glTF: POSITION accessor MUST have \"max\" defined"
+                    };
+                }
 
-                    if (!result.has_value())
-                    {
-                        result = transform * aabb_from(position_accessor);
-                    }
-                    else
-                    {
-                        result = merge(*result, transform * aabb_from(position_accessor));
-                    }
+                if (const AABB<> aabb{ change_basis(glm::make_mat4(transform.data()))
+                                       * aabb_from(position_accessor) };
+                    !result.has_value())
+                {
+                    result = aabb;
+                }
+                else
+                {
+                    result = merge(*result, aabb);
                 }
             }
         }
