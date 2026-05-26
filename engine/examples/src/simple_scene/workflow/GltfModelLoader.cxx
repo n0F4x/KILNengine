@@ -416,6 +416,10 @@ auto GltfModelLoader::Manifest::write_draw_commands(
             for (const fastgltf::Primitive& primitive :
                  model.meshes[mesh_index].primitives)
             {
+                if (primitive.findAttribute("POSITION") == primitive.attributes.cend())
+                {
+                    continue;
+                }
                 *out_iter = shaders::DrawCommand{
                     .vertex_count = static_cast<uint32_t>(
                         primitive.indicesAccessor.has_value()
@@ -556,13 +560,16 @@ auto GltfModelLoader::Manifest::preprocess(
         {
             if (node.meshIndex.has_value())
             {
+                bool has_valid_instance{};
                 for (const fastgltf::Primitive& primitive :
                      model.meshes[*node.meshIndex].primitives)
                 {
-                    if (primitive.findAttribute("POSITION") == nullptr)
+                    if (primitive.findAttribute("POSITION")
+                        == primitive.attributes.cend())
                     {
                         continue;
                     }
+                    has_valid_instance = true;
 
                     if (primitive.indicesAccessor.has_value())
                     {
@@ -587,9 +594,11 @@ auto GltfModelLoader::Manifest::preprocess(
                     }
                 }
 
-                ++instance_count;
-
-                ++manifest.m_per_mesh_instance_offsets[*node.meshIndex];
+                if (has_valid_instance)
+                {
+                    ++instance_count;
+                    ++manifest.m_per_mesh_instance_offsets[*node.meshIndex];
+                }
             }
 
             for (const auto child_node_index : node.children)
@@ -692,20 +701,26 @@ auto GltfModelLoader::Manifest::process(
         process(model, primitive, manifest);
     }
 
-    manifest.m_transforms
-        [manifest.m_per_mesh_instance_offsets[mesh_index]
-         + manifest.m_per_mesh_instance_counts[mesh_index]] = transform;
-    if (manifest.m_per_mesh_instance_counts[mesh_index] == 0)
+    bool has_valid_instance{};
+    for (const fastgltf::Primitive& primitive : model.meshes[mesh_index].primitives)
     {
-        for (const fastgltf::Primitive& primitive : model.meshes[mesh_index].primitives)
+        if (primitive.findAttribute("POSITION") != primitive.attributes.cend())
         {
-            if (primitive.findAttribute("POSITION") != nullptr)
+            if (manifest.m_per_mesh_instance_counts[mesh_index] == 0)
             {
                 ++manifest.m_draw_command_count;
             }
+            has_valid_instance = true;
+            ++manifest.m_overall_instance_count;
         }
     }
-    ++manifest.m_per_mesh_instance_counts[mesh_index];
+    if (has_valid_instance)
+    {
+        manifest.m_transforms
+            [manifest.m_per_mesh_instance_offsets[mesh_index]
+             + manifest.m_per_mesh_instance_counts[mesh_index]] = transform;
+        ++manifest.m_per_mesh_instance_counts[mesh_index];
+    }
 }
 
 [[nodiscard]]
@@ -813,7 +828,7 @@ auto GltfModelLoader::Manifest::process(
         throw std::runtime_error{ "Non-indexed geometry is not supported" };
     }
 
-    if (primitive.findAttribute("POSITION") == nullptr)
+    if (primitive.findAttribute("POSITION") == primitive.attributes.cend())
     {
         return;
     }
@@ -1144,7 +1159,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
     const fastgltf::Primitive& primitive
 ) const -> shaders::Primitive
 {
-    PRECOND(primitive.findAttribute("POSITION") != nullptr);
+    PRECOND(primitive.findAttribute("POSITION") != primitive.attributes.cend());
 
     shaders::Primitive shader_primitive{};
 

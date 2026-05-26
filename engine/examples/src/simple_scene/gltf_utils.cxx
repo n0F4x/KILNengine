@@ -141,7 +141,7 @@ auto bounding_box_of(const fastgltf::Asset& model, const size_t scene_index)
                 const fastgltf::Attribute* position_attribute{
                     primitive.findAttribute("POSITION")
                 };
-                if (position_attribute == nullptr)
+                if (position_attribute == primitive.attributes.cend())
                 {
                     continue;
                 }
