@@ -38,7 +38,7 @@ auto model_path_from(
 [[nodiscard]]
 auto should_limit_fps(const std::span<const std::string_view> args) noexcept -> bool
 {
-    return std::ranges::contains(args, "--disable-fps-cap");
+    return !std::ranges::contains(args, "--disable-fps-cap");
 }
 
 [[nodiscard]]
