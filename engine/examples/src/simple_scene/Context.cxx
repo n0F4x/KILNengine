@@ -350,6 +350,12 @@ auto Context::run_render_loop(
         {
             window.update(event);
             controller.update(event, timestamp, window);
+
+            if (event.type == kiln::wsi::EventType::eKeyPressedEvent
+                && event.key_pressed_event.key == kiln::wsi::Key::eEscape)
+            {
+                running = false;
+            }
         }
 
         ++frame_count;
