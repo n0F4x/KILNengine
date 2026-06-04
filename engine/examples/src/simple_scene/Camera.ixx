@@ -10,16 +10,12 @@ namespace demo {
 
 export class Camera {
 public:
-    explicit Camera(double aspect_ratio);
-
     [[nodiscard]]
     auto position() const noexcept -> const glm::dvec3&;
     [[nodiscard]]
     auto orientation() const noexcept -> const glm::dquat&;
     [[nodiscard]]
     auto fov() const noexcept -> double;
-    [[nodiscard]]
-    auto aspect_ratio() const noexcept -> double;
     [[nodiscard]]
     auto near_plane() const noexcept -> double;
     [[nodiscard]]
@@ -30,7 +26,6 @@ public:
     auto set_orientation(const glm::dquat& orientation) -> void;
     auto rotate(const glm::dquat& amount) -> void;
     auto set_fov(double fov) -> void;
-    auto set_aspect_ratio(double aspect_ratio) -> void;
     auto set_near_plane(double near_plane) -> void;
     auto set_far_plane(double far_plane) -> void;
 
@@ -38,7 +33,6 @@ private:
     glm::dvec3 m_position{};
     glm::dquat m_orientation{ glm::identity<glm::dquat>() };
     double     m_fov{ glm::radians(60.0) };
-    double     m_aspect_ratio{};
     double     m_near_plane{ 0.01 };
     double     m_far_plane{ 1000.0 };
 };

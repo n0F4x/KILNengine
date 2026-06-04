@@ -19,7 +19,7 @@ namespace demo {
 
 export class Controller {
 public:
-    explicit Controller(const kiln::wsi::WindowProxy& window) noexcept;
+    explicit Controller(const kiln::wsi::WindowProxy& window, double movement_speed = 1) noexcept;
 
 
     auto update(Camera& camera) const noexcept -> void;
@@ -58,7 +58,7 @@ private:
         .up       = kiln::wsi::Key::eE,
         .down     = kiln::wsi::Key::eQ,
     };
-    constexpr static double movement_sensitivity{ 0.005 };
+    constexpr static double movement_sensitivity{ 0.01 };
     constexpr static double rotation_sensitivity{ 0.002 };
 
     bool                   m_cursor_disabled{};
@@ -68,6 +68,7 @@ private:
     glm::dvec2             m_last_cursor_position;
     double                 m_pitch{};
     double                 m_yaw{};
+    double                 m_movement_speed;
 
 
     [[nodiscard]]

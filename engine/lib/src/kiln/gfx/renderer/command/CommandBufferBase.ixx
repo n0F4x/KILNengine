@@ -11,7 +11,7 @@ namespace kiln::gfx::renderer {
 
 export class CommandBufferBase {
 public:
-    CommandBufferBase(
+    explicit CommandBufferBase(
         vk::raii::CommandBuffer&&               command_buffer,
         util::EnumMask<CommandBufferUsageFlags> usage_flags
     );

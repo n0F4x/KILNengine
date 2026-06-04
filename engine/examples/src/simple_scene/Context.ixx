@@ -39,7 +39,6 @@ public:
     class Builder;
 
     explicit Context(
-        const kiln::app::Config&            config,
         kiln::app::MemoryArena&             memory_arena,
         const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::QueueProvider& render_queue_provider
@@ -49,6 +48,7 @@ public:
         kiln::app::App&              app,
         const std::filesystem::path& model_filepath,
         bool                         limit_fps,
+        bool                         disable_culling,
         uint32_t                     grid_size
     ) -> void;
 
@@ -61,11 +61,9 @@ private:
     constexpr static uint32_t max_enqueued_items{ 1'024 };
 
 
-    std::reference_wrapper<const kiln::app::Config>            m_app_config;
-    std::reference_wrapper<kiln::gfx::renderer::QueueProvider> m_render_queue_provider;
-    kiln::event::EventBuffer<kiln::wsi::Event>                 m_wsi_event_buffer;
-    kiln::event::EventRecorder<kiln::wsi::Event>               m_wsi_event_recorder;
-    kiln::gfx::renderer::StagingStream                         m_staging_stream;
+    kiln::event::EventBuffer<kiln::wsi::Event>   m_wsi_event_buffer;
+    kiln::event::EventRecorder<kiln::wsi::Event> m_wsi_event_recorder;
+    kiln::gfx::renderer::StagingStream           m_staging_stream;
 
 
     auto run_main_worker(
@@ -74,6 +72,7 @@ private:
         MainThread&                  main_thread,
         const std::filesystem::path& model_filepath,
         bool                         limit_fps,
+        bool                         disable_culling,
         uint32_t                     grid_size
     ) -> void;
 
@@ -84,6 +83,7 @@ private:
     auto run_render_loop(
         const kiln::app::Config&            config,
         const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::QueueProvider& queue_provider,
         kiln::gfx::renderer::Allocator&     render_allocator,
         std::atomic_bool&                   running,
         MainThread&                         main_thread,
@@ -91,7 +91,8 @@ private:
         kiln::wsi::WindowProxy&             window,
         kiln::gfx::renderer::RenderSurface& render_surface,
         Renderer&                           renderer,
-        bool                                limit_fps
+        bool                                limit_fps,
+        double                              movement_speed
     ) -> void;
     static auto run_main_thread_loop(
         const std::atomic_bool& running,

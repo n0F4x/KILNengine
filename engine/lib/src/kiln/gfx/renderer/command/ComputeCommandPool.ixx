@@ -1,0 +1,55 @@
+module;
+
+#include "kiln/util/lifetimebound.hpp"
+
+export module kiln.gfx.renderer.command.ComputeCommandPool;
+
+import vulkan_hpp;
+
+import kiln.gfx.renderer.command.CommandBufferUsageFlags;
+import kiln.gfx.renderer.command.CommandPoolBase;
+import kiln.gfx.renderer.command.CommandPoolFlags;
+import kiln.gfx.renderer.command.ComputeCommandBuffer;
+import kiln.gfx.renderer.device.Device;
+import kiln.gfx.vulkan.QueueFamilyIndex;
+import kiln.util.EnumMask;
+
+namespace kiln::gfx::renderer {
+
+export class ComputeCommandPool : public CommandPoolBase {
+public:
+    explicit ComputeCommandPool(
+        [[kiln_lifetimebound]] const Device& device,
+        vulkan::QueueFamilyIndex             queue_family_index,
+        util::EnumMask<CommandPoolFlags>     flags = CommandPoolFlags::eNone
+    );
+
+    auto allocate_primary(
+        util::EnumMask<CommandBufferUsageFlags> usage_flags
+        = CommandBufferUsageFlags::eNone
+    ) [[kiln_lifetimebound]] -> ComputeCommandBuffer;
+};
+
+}   // namespace kiln::gfx::renderer
+
+module :private;
+
+namespace kiln::gfx::renderer {
+
+ComputeCommandPool::ComputeCommandPool(
+    const Device&                          device,
+    const vulkan::QueueFamilyIndex         queue_family_index,
+    const util::EnumMask<CommandPoolFlags> flags
+)
+    : CommandPoolBase{ device, queue_family_index, flags }
+{
+}
+
+auto ComputeCommandPool::allocate_primary(
+    const util::EnumMask<CommandBufferUsageFlags> usage_flags
+) -> ComputeCommandBuffer
+{
+    return ComputeCommandBuffer{ CommandPoolBase::allocate_primary(), usage_flags };
+}
+
+}   // namespace kiln::gfx::renderer

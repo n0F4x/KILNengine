@@ -22,6 +22,7 @@ auto load_scene(
     kiln::gfx::renderer::StagingStream& staging_stream,
     kiln::gfx::asset::gltf::Parser&     model_parser,
     const std::filesystem::path&        model_filepath,
+    bool                                disable_culling,
     uint32_t                            grid_size,
     std::pmr::memory_resource&          transient_memory_resource
 ) -> Scene;

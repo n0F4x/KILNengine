@@ -1,6 +1,8 @@
 export module kiln.gfx.renderer.pipeline;
 
 export import kiln.gfx.renderer.pipeline.ColorAttachment;
+export import kiln.gfx.renderer.pipeline.ComputePipeline;
+export import kiln.gfx.renderer.pipeline.ComputePipelineBuilder;
 export import kiln.gfx.renderer.pipeline.DepthAttachment;
 export import kiln.gfx.renderer.pipeline.GraphicsPipeline;
 export import kiln.gfx.renderer.pipeline.GraphicsPipelineBuilder;

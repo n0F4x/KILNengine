@@ -18,7 +18,9 @@ module examples.simple_scene.Context;
 import vulkan_hpp;
 
 import kiln.event.Timestamp;
+import kiln.gfx.renderer.command.QueueBase;
 import kiln.gfx.renderer.command.QueueProvider;
+import kiln.gfx.renderer.command.TransferQueue;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
@@ -55,38 +57,31 @@ namespace demo {
 
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue
-auto select_staging_queue(const kiln::gfx::renderer::QueueType queue_type)
+auto select_staging_queue(const kiln::gfx::renderer::QueueBase& queue)
     -> std::optional<uint32_t>
 {
-    switch (queue_type)
+    switch (queue.type())
     {
         case kiln::gfx::renderer::QueueType::eGraphics:             return 0;
-        case kiln::gfx::renderer::QueueType::eHostToDeviceTransfer: return 1;
+        case kiln::gfx::renderer::QueueType::eCompute:              return 1;
+        case kiln::gfx::renderer::QueueType::eHostToDeviceTransfer: return 2;
     }
 }
 
 Context::Context(
-    const kiln::app::Config&            config,
     kiln::app::MemoryArena&             memory_arena,
     const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
-    : m_app_config{ config },
-      m_render_queue_provider{ render_queue_provider },
-      m_staging_stream{
+    : m_staging_stream{
           std::allocator_arg,
           memory_arena.pool_allocator(),
           render_device,
-          *render_queue_provider.select_transfer_queue(select_staging_queue),
+          static_cast<kiln::gfx::renderer::TransferQueue&>(
+              *render_queue_provider.select_queue(select_staging_queue)
+          ),
       }
 {
-}
-
-[[nodiscard]]
-auto aspect_ratio_from(const vk::Extent2D frame_buffer_size) -> double
-{
-    return static_cast<double>(frame_buffer_size.width)
-         / static_cast<double>(frame_buffer_size.height);
 }
 
 class Context::EventQueue : public kiln::wsi::EventConsumerQueueInterface {
@@ -148,6 +143,7 @@ auto Context::run(
     kiln::app::App&              app,
     const std::filesystem::path& model_filepath,
     const bool                   limit_fps,
+    const bool                   disable_culling,
     const uint32_t               grid_size
 ) -> void
 {
@@ -157,7 +153,14 @@ auto Context::run(
     MainThread       main_thread;
 
     std::jthread render_thread{
-        [&app, &model_filepath, limit_fps, grid_size, this, &running, &main_thread] -> void
+        [&app,
+         &model_filepath,
+         limit_fps,
+         disable_culling,
+         grid_size,
+         this,
+         &running,
+         &main_thread] -> void
         {
             run_main_worker(
                 app,
@@ -165,6 +168,7 @@ auto Context::run(
                 main_thread,
                 model_filepath,
                 limit_fps,
+                disable_culling,
                 grid_size
             );   //
         },
@@ -232,25 +236,30 @@ auto Context::run_main_worker(
     MainThread&                  main_thread,
     const std::filesystem::path& model_filepath,
     const bool                   limit_fps,
+    const bool                   disable_culling,
     const uint32_t               grid_size
 ) -> void
 {
     const auto& config{ app.contexts().at<kiln::app::Config>() };
     const auto& vulkan_instance{ app.contexts().at<kiln::gfx::vulkan::Instance>() };
     const auto& render_device{ app.contexts().at<kiln::gfx::renderer::Device>() };
+    auto&       queue_provider{ app.contexts().at<kiln::gfx::renderer::QueueProvider>() };
     auto&       render_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
     auto&       gltf_parser{ app.contexts().at<kiln::gfx::asset::gltf::Parser>() };
 
     const auto  scene_load_start_time{ std::chrono::steady_clock::now() };
-    const Scene scene = load_scene(
-        render_device,
-        render_allocator,
-        m_staging_stream,
-        gltf_parser,
-        model_filepath,
-        grid_size,
-        *std::pmr::get_default_resource()
-    );
+    const Scene scene{
+        load_scene(
+            render_device,
+            render_allocator,
+            m_staging_stream,
+            gltf_parser,
+            model_filepath,
+            disable_culling,
+            grid_size,
+            *std::pmr::get_default_resource()
+        ),
+    };
     const auto scene_load_finish_time{ std::chrono::steady_clock::now() };
     std::println(
         "Loading the scene took {}",
@@ -258,7 +267,7 @@ auto Context::run_main_worker(
     );
 
 
-    kiln::wsi::WindowProxy window{ create_window(m_app_config, main_thread) };
+    kiln::wsi::WindowProxy window{ create_window(config, main_thread) };
     if (window == kiln::wsi::WindowHandle{ nullptr })
     {
         running = false;
@@ -275,17 +284,20 @@ auto Context::run_main_worker(
     };
     Renderer renderer{
         render_device,
+        queue_provider,
         render_allocator,
         number_of_frames_in_flight,
         render_surface.surface_format().format,
         *render_surface.extent(),
         render_surface.number_of_images(),
+        disable_culling,
     };
 
 
     run_render_loop(
         config,
         render_device,
+        queue_provider,
         render_allocator,
         running,
         main_thread,
@@ -293,7 +305,8 @@ auto Context::run_main_worker(
         window,
         render_surface,
         renderer,
-        limit_fps
+        limit_fps,
+        grid_size * 2 - 1
     );
 
     render_device.logical_device().waitIdle();
@@ -302,6 +315,7 @@ auto Context::run_main_worker(
 auto Context::run_render_loop(
     const kiln::app::Config&            config,
     const kiln::gfx::renderer::Device&  render_device,
+    kiln::gfx::renderer::QueueProvider& queue_provider,
     kiln::gfx::renderer::Allocator&     render_allocator,
     std::atomic_bool&                   running,
     MainThread&                         main_thread,
@@ -309,7 +323,8 @@ auto Context::run_render_loop(
     kiln::wsi::WindowProxy&             window,
     kiln::gfx::renderer::RenderSurface& render_surface,
     Renderer&                           renderer,
-    const bool                          limit_fps
+    const bool                          limit_fps,
+    const double                        movement_speed
 ) -> void
 {
     using std::chrono_literals::operator""ms;
@@ -318,8 +333,8 @@ auto Context::run_render_loop(
     auto     last_fps_display_time{ std::chrono::steady_clock::now() };
     uint32_t frame_count{};
 
-    Camera     camera{ aspect_ratio_from(*render_surface.extent()) };
-    Controller controller{ window };
+    Camera     camera;
+    Controller controller{ window, movement_speed };
 
     while (running)
     {
@@ -430,7 +445,7 @@ auto Context::run_render_loop(
 
         renderer.render(
             render_device,
-            *m_render_queue_provider.get().graphics_queue(),
+            queue_provider,
             render_surface,
             scene,
             camera,
@@ -455,7 +470,9 @@ auto Context::Builder::create(
     instance_builder.target_api_version(vk::ApiVersion14);
     device_builder.enable_features(
         vk::PhysicalDeviceFeatures{
-            .multiDrawIndirect = vk::True,
+            .multiDrawIndirect         = vk::True,
+            .drawIndirectFirstInstance = vk::True,
+            .shaderInt64               = vk::True,
         }
     );
     device_builder.enable_features(
@@ -468,6 +485,9 @@ auto Context::Builder::create(
         }
     );
     device_builder.enable_features(
+        vk::PhysicalDeviceVulkan13Features{ .maintenance4 = vk::True }
+    );
+    device_builder.enable_features(
         vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
     );
     device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
@@ -476,8 +496,8 @@ auto Context::Builder::create(
 }
 
 auto Context::Builder::build(
-    const kiln::app::Config& config,
-    kiln::app::MemoryArena&  memory_arena,
+    const kiln::app::Config&,
+    kiln::app::MemoryArena& memory_arena,
     const kiln::gfx::vulkan::Instance&,
     const kiln::wsi::Context&,
     const kiln::gfx::renderer::Device&  render_device,
@@ -489,7 +509,6 @@ auto Context::Builder::build(
 ) -> Context
 {
     return Context{
-        config,
         memory_arena,
         render_device,
         gpu_queue_provider,

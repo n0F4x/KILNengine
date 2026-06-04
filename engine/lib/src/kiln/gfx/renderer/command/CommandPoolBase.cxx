@@ -6,6 +6,7 @@ module kiln.gfx.renderer.command.CommandPoolBase;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.vulkan.result.check_result;
 
 namespace kiln::gfx::renderer {
@@ -18,13 +19,15 @@ CommandPoolBase::CommandPoolBase(
     : m_device{ device },
       m_queue_family_index{ queue_family_index },
       m_command_pool{
-          vulkan::check_result(device.logical_device().createCommandPool(
-              vk::CommandPoolCreateInfo{
-                  .flags = vk::CommandPoolCreateFlagBits::eTransient
-                         | vk::CommandPoolCreateFlags{ flags.underlying() },
-                  .queueFamilyIndex = queue_family_index.underlying(),
-              }
-          ))   //
+          vulkan::check_result(
+              device.logical_device().createCommandPool(
+                  vk::CommandPoolCreateInfo{
+                      .flags = vk::CommandPoolCreateFlagBits::eTransient
+                             | vk::CommandPoolCreateFlags{ flags.underlying() },
+                      .queueFamilyIndex = queue_family_index.underlying(),
+                  }
+              )   //
+          ),
       }
 {
 }

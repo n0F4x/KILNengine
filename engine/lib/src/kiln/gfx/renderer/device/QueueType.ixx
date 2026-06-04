@@ -11,7 +11,8 @@ namespace kiln::gfx::renderer {
 export enum struct QueueType : uint32_t
 {
     eGraphics             = 1 << 0,
-    eHostToDeviceTransfer = 1 << 1,
+    eCompute              = 1 << 1,
+    eHostToDeviceTransfer = 1 << 2,
 };
 
 }   // namespace kiln::gfx::renderer

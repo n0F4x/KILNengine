@@ -25,6 +25,16 @@ auto QueueProvider::graphics_queue() -> util::OptionalRef<GraphicsQueue>
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
+auto QueueProvider::compute_queue() -> util::OptionalRef<ComputeQueue>
+{
+    if (m_queues.compute_queue_pack.has_value())
+    {
+        return *m_queues.compute_queue_pack;
+    }
+    return std::nullopt;
+}
+
+// ReSharper disable once CppMemberFunctionMayBeConst
 auto QueueProvider::host_to_device_transfer_queue() -> util::OptionalRef<TransferQueue>
 {
     if (m_queues.host_to_device_transfer_queue_pack.has_value())
@@ -112,6 +122,9 @@ auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
     Queues queues{
         .graphics_queue_pack = device.graphics_queue_info().transform(
             queue_pack_from(std::in_place_type<GraphicsQueue>, QueueType::eGraphics)
+        ),
+        .compute_queue_pack = device.compute_queue_info().transform(
+            queue_pack_from(std::in_place_type<ComputeQueue>, QueueType::eCompute)
         ),
         .host_to_device_transfer_queue_pack
         = device.host_to_device_transfer_queue_info().transform(

@@ -63,7 +63,7 @@ auto create_graphics_command_pools(
 }
 
 [[nodiscard]]
-auto create_graphics_command_buffers(
+auto allocate_command_buffers(
     const std::pmr::polymorphic_allocator<>&                    allocator,
     std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>& command_pools
 ) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandBuffer>
@@ -201,7 +201,7 @@ Context::Context(
           )   //
       },
       m_graphics_command_buffers{
-          create_graphics_command_buffers(allocator, m_graphics_command_pools)
+          allocate_command_buffers(allocator, m_graphics_command_pools)
       },
       m_image_acquired_semaphores{
           create_per_frame_semaphores(allocator, render_device, m_number_of_frames)

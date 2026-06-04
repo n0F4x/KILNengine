@@ -8,12 +8,18 @@ namespace kiln::gfx::renderer {
 
 export class Buffer {
 public:
+    Buffer(const Buffer&)     = delete;
+    Buffer(Buffer&&) noexcept = default;
+
     explicit Buffer() = default;
     explicit Buffer(
         vk::raii::Buffer&& buffer,
         vk::DeviceSize     buffer_size,
         Allocation&&       allocation
     ) noexcept;
+
+    auto operator=(const Buffer&) -> Buffer&     = delete;
+    auto operator=(Buffer&&) noexcept -> Buffer& = default;
 
 
     [[nodiscard]]

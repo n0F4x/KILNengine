@@ -24,6 +24,7 @@ auto load_scene(
     const kiln::gfx::renderer::Device&  device,
     kiln::gfx::renderer::Allocator&     gpu_allocator,
     kiln::gfx::renderer::StagingStream& staging_stream,
+    bool                                disable_culling,
     std::pmr::memory_resource&          transient_memory_resource
 ) -> Scene;
 

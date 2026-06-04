@@ -19,6 +19,7 @@ import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.util.containers.CopyableFunction;
 
+import examples.simple_scene.AABB;
 import examples.simple_scene.shaders;
 
 namespace demo {
@@ -61,9 +62,11 @@ public:
     auto get_allocator() const noexcept -> allocator_type;
 
     [[nodiscard]]
+    auto instance_count() const noexcept -> uint32_t;
+    [[nodiscard]]
     auto geometry_buffer_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
-    auto material_buffer_size_bytes() const noexcept -> uint32_t;
+    auto materials_buffer_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
     auto instance_buffer_size_bytes() const noexcept -> uint32_t;
     [[nodiscard]]
@@ -72,14 +75,24 @@ public:
     [[nodiscard]]
     static auto geometry_buffer_alignment() noexcept -> uint32_t;
     [[nodiscard]]
-    static auto material_buffer_alignment() noexcept -> uint32_t;
+    static auto materials_buffer_alignment() noexcept -> uint32_t;
     [[nodiscard]]
     static auto instance_buffer_alignment() noexcept -> uint32_t;
 
+    auto set_instance_draw_command_index_offset(
+        uint32_t instance_draw_command_index_offset
+    ) -> void;
     auto set_geometry_buffer_byte_offset(uint32_t geometry_buffer_byte_offset) -> void;
-    auto set_material_buffer_byte_offset(uint32_t material_buffer_byte_offset) -> void;
+    auto set_materials_buffer_byte_offset(uint32_t materials_buffer_byte_offset) -> void;
     auto set_instance_buffer_byte_offset(uint32_t instance_buffer_byte_offset) -> void;
+    auto set_instance_index_offset(uint32_t instance_index_offset) -> void;
 
+    [[nodiscard]]
+    auto instance_draw_command_index_writer() const noexcept [[kiln_lifetimebound]]
+    -> kiln::gfx::renderer::LazyCopy;
+    [[nodiscard]]
+    auto instance_sphere_bounding_volume_writer() const noexcept [[kiln_lifetimebound]]
+    -> kiln::gfx::renderer::LazyCopy;
     [[nodiscard]]
     auto geometry_writer() const noexcept [[kiln_lifetimebound]]
     -> kiln::gfx::renderer::LazyCopy;
@@ -95,8 +108,10 @@ public:
 
 private:
     struct Offsets {
+        std::optional<uint32_t> instance_draw_command_index_offset;
         std::optional<uint32_t> geometry_buffer_byte_offset;
-        std::optional<uint32_t> material_buffer_byte_offset;
+        std::optional<uint32_t> materials_buffer_byte_offset;
+        std::optional<uint32_t> instance_index_offset;
         std::optional<uint32_t> instance_buffer_byte_offset;
     };
 
@@ -126,9 +141,11 @@ private:
         auto get_allocator() const noexcept -> allocator_type;
 
         [[nodiscard]]
+        auto instance_count() const noexcept -> uint32_t;
+        [[nodiscard]]
         auto geometry_buffer_size_bytes() const noexcept -> uint32_t;
         [[nodiscard]]
-        auto material_buffer_size_bytes() const noexcept -> uint32_t;
+        auto materials_buffer_size_bytes() const noexcept -> uint32_t;
         [[nodiscard]]
         auto instance_buffer_size_bytes() const noexcept -> uint32_t;
         [[nodiscard]]
@@ -137,10 +154,19 @@ private:
         [[nodiscard]]
         static auto geometry_buffer_alignment() noexcept -> uint32_t;
         [[nodiscard]]
-        static auto material_buffer_alignment() noexcept -> uint32_t;
+        static auto materials_buffer_alignment() noexcept -> uint32_t;
         [[nodiscard]]
         static auto instance_buffer_alignment() noexcept -> uint32_t;
 
+        auto write_instance_draw_command_indices(
+            const fastgltf::Asset& model,
+            const Offsets&         global_offsets,
+            std::span<std::byte>   out
+        ) const -> void;
+        auto write_instance_sphere_bounding_volumes(
+            const fastgltf::Asset& model,
+            std::span<std::byte>   out
+        ) const -> void;
         auto write_geometry(const fastgltf::Asset& model, std::span<std::byte> out) const
             -> void;
         auto write_materials(const fastgltf::Asset& model, std::span<std::byte> out) const
@@ -212,6 +238,7 @@ private:
         [[nodiscard]]
         auto shader_primitive_from(
             const Offsets&             global_offsets,
+            std::size_t                mesh_index,
             const fastgltf::Primitive& primitive
         ) const -> shaders::Primitive;
         [[nodiscard]]
@@ -219,7 +246,8 @@ private:
 
 
         uint32_t m_geometry_buffer_size_bytes{};
-        uint32_t m_material_buffer_size_bytes{};
+        uint32_t m_materials_buffer_size_bytes{};
+        uint32_t m_instance_count{};
         uint32_t m_draw_command_count{};
 
         std::array<uint32_t, std::to_underlying(SupportedElementType::COUNT)>
@@ -228,11 +256,13 @@ private:
         std::pmr::vector<uint32_t> m_material_indices;
         std::pmr::vector<uint32_t> m_per_mesh_instance_offsets;
         std::pmr::vector<uint32_t> m_per_mesh_instance_counts;
+        std::pmr::vector<uint32_t> m_per_mesh_draw_command_index_offsets;
 
         std::pmr::vector<Writer>            m_geometry_writers;
         std::pmr::vector<shaders::Material> m_materials;
         std::pmr::vector<glm::mat4x4>       m_transforms;
         std::pmr::vector<glm::mat3x3>       m_normal_matrices;
+        std::pmr::vector<shaders::SBV>      m_transformed_sphere_bounding_volumes;
     };
 
     using DrawCommandWriterFactory =                                               //

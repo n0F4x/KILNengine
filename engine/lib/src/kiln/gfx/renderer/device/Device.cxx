@@ -93,6 +93,16 @@ auto Device::graphics_queue_info() const noexcept
     return std::nullopt;
 }
 
+auto Device::compute_queue_info() const noexcept
+    -> util::OptionalRef<const vulkan::QueueInfo>
+{
+    if (m_queue_infos.compute_queue_info.has_value())
+    {
+        return *m_queue_infos.compute_queue_info;
+    }
+    return std::nullopt;
+}
+
 auto Device::host_to_device_transfer_queue_info() const noexcept
     -> util::OptionalRef<const vulkan::QueueInfo>
 {
@@ -375,6 +385,69 @@ auto emplace_graphics_queue(
 }
 
 [[nodiscard]]
+auto is_dedicated_compute_queue_family(const vk::QueueFlags flags) -> bool
+{
+    return flags & vk::QueueFlagBits::eCompute && !(flags & vk::QueueFlagBits::eGraphics);
+}
+
+auto emplace_compute_queue(
+    std::pmr::vector<vulkan::QueueFamilyInfo>& out,
+    const vk::raii::PhysicalDevice&            physical_device
+) -> std::optional<vulkan::QueueInfo>
+{
+    const std::vector<vk::QueueFamilyProperties2> queue_family_properties{
+        physical_device.getQueueFamilyProperties2()
+    };
+
+    for (auto&& [family_index, family_properties] :
+         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
+    {
+        if (is_dedicated_compute_queue_family(
+                family_properties.queueFamilyProperties.queueFlags
+            ))
+        {
+            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
+                    out,
+                    family_properties.queueFamilyProperties.queueCount,
+                    vulkan::QueueFamilyIndex{ family_index }
+                );
+                queue_index.has_value())
+            {
+                return vulkan::QueueInfo{
+                    .family_index = vulkan::QueueFamilyIndex{ family_index },
+                    .flags        = family_properties.queueFamilyProperties.queueFlags,
+                    .index        = *queue_index,
+                };
+            }
+        }
+    }
+
+    for (auto&& [family_index, family_properties] :
+         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
+    {
+        if (family_properties.queueFamilyProperties.queueFlags
+            & vk::QueueFlagBits::eCompute)
+        {
+            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
+                    out,
+                    family_properties.queueFamilyProperties.queueCount,
+                    vulkan::QueueFamilyIndex{ family_index }
+                );
+                queue_index.has_value())
+            {
+                return vulkan::QueueInfo{
+                    .family_index = vulkan::QueueFamilyIndex{ family_index },
+                    .flags        = family_properties.queueFamilyProperties.queueFlags,
+                    .index        = *queue_index,
+                };
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+[[nodiscard]]
 auto is_dedicated_transfer_queue_family(const vk::QueueFlags flags) -> bool
 {
     return flags & vk::QueueFlagBits::eTransfer
@@ -453,6 +526,11 @@ auto Device::Builder::create_queue_family_infos(
     {
         out_queue_infos.graphics_queue_info
             = emplace_graphics_queue(result, instance, wsi_context, physical_device);
+    }
+    if (m_requested_queue_types & QueueType::eCompute)
+    {
+        out_queue_infos.compute_queue_info
+            = emplace_compute_queue(result, physical_device);
     }
     if (m_requested_queue_types & QueueType::eHostToDeviceTransfer)
     {

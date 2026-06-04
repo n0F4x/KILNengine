@@ -7,8 +7,6 @@ module examples.simple_scene.Camera;
 
 namespace demo {
 
-Camera::Camera(const double aspect_ratio) : m_aspect_ratio{ aspect_ratio } {}
-
 auto Camera::position() const noexcept -> const glm::dvec3&
 {
     return m_position;
@@ -22,11 +20,6 @@ auto Camera::orientation() const noexcept -> const glm::dquat&
 auto Camera::fov() const noexcept -> double
 {
     return m_fov;
-}
-
-auto Camera::aspect_ratio() const noexcept -> double
-{
-    return m_aspect_ratio;
 }
 
 auto Camera::near_plane() const noexcept -> double
@@ -62,11 +55,6 @@ auto Camera::rotate(const glm::dquat& amount) -> void
 auto Camera::set_fov(const double fov) -> void
 {
     m_fov = fov;
-}
-
-auto Camera::set_aspect_ratio(const double aspect_ratio) -> void
-{
-    m_aspect_ratio = aspect_ratio;
 }
 
 auto Camera::set_near_plane(const double near_plane) -> void

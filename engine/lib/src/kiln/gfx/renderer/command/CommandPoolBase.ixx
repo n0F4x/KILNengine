@@ -17,7 +17,7 @@ namespace kiln::gfx::renderer {
 
 export class CommandPoolBase {
 public:
-    CommandPoolBase(
+    explicit CommandPoolBase(
         [[kiln_lifetimebound]]
         const Device&                    device,
         vulkan::QueueFamilyIndex         queue_family_index,

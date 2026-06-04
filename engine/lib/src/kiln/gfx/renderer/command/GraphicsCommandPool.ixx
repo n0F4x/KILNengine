@@ -18,11 +18,10 @@ namespace kiln::gfx::renderer {
 
 export class GraphicsCommandPool : public CommandPoolBase {
 public:
-    GraphicsCommandPool(
-        [[kiln_lifetimebound]]
-        const Device&                    device,
-        vulkan::QueueFamilyIndex         queue_family_index,
-        util::EnumMask<CommandPoolFlags> flags = CommandPoolFlags::eNone
+    explicit GraphicsCommandPool(
+        [[kiln_lifetimebound]] const Device& device,
+        vulkan::QueueFamilyIndex             queue_family_index,
+        util::EnumMask<CommandPoolFlags>     flags = CommandPoolFlags::eNone
     );
 
     auto allocate_primary(

@@ -21,12 +21,14 @@ module examples.simple_scene.workflow.Renderer;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.command.CommandBufferBase;
 import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.renderer.command.DependencyInfo;
 import kiln.gfx.renderer.command.SubmitInfo;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.pipeline.ColorAttachment;
+import kiln.gfx.renderer.pipeline.ComputePipelineBuilder;
 import kiln.gfx.renderer.pipeline.DepthAttachment;
 import kiln.gfx.renderer.pipeline.GraphicsPipelineBuilder;
 import kiln.gfx.renderer.pipeline.RenderPass;
@@ -44,57 +46,97 @@ Renderer::Renderer(Renderer&& other, [[maybe_unused]] const allocator_type& allo
 }
 
 Renderer::Renderer(
-    const kiln::gfx::renderer::Device& device,
-    kiln::gfx::renderer::Allocator&    render_allocator,
-    const uint32_t                     number_of_frames_in_flight,
-    const vk::Format                   swapchain_surface_format,
-    const vk::Extent2D&                swapchain_surface_extent,
-    const uint32_t                     number_of_swapchain_images
+    const kiln::gfx::renderer::Device&  device,
+    kiln::gfx::renderer::QueueProvider& queue_provider,
+    kiln::gfx::renderer::Allocator&     render_allocator,
+    const uint32_t                      number_of_frames_in_flight,
+    const vk::Format                    swapchain_surface_format,
+    const vk::Extent2D&                 swapchain_surface_extent,
+    const uint32_t                      number_of_swapchain_images,
+    const bool                          disable_culling
 )
     : Renderer{
           std::allocator_arg,   //
           std::pmr::get_default_resource(),
           device,
+          queue_provider,
           render_allocator,
           number_of_frames_in_flight,
           swapchain_surface_format,
           swapchain_surface_extent,
           number_of_swapchain_images,
+          disable_culling,
       }
 {
 }
 
 [[nodiscard]]
-auto create_graphics_command_pool(const kiln::gfx::renderer::Device& render_device)
-    -> kiln::gfx::renderer::GraphicsCommandPool
-{
-    return kiln::gfx::renderer::GraphicsCommandPool{
-        render_device,
-        render_device.graphics_queue_info()->family_index,
-        kiln::gfx::renderer::CommandPoolFlags::eResettable,
-    };
-}
-
-[[nodiscard]]
-auto create_graphics_command_pools(
+auto create_compute_command_pools(
     const std::pmr::polymorphic_allocator<>& allocator,
     const kiln::gfx::renderer::Device&       render_device,
+    kiln::gfx::renderer::QueueProvider&      queue_provider,
     const uint32_t                           count
-) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>
+) -> std::pmr::vector<kiln::gfx::renderer::ComputeCommandPool>
 {
-    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool> result{ allocator };
+    std::pmr::vector<kiln::gfx::renderer::ComputeCommandPool> result{ allocator };
     result.reserve(count);
 
+    // ReSharper disable once CppDFAUnreadVariable
     for (auto _ : std::views::repeat(std::ignore, count))
     {
-        result.push_back(create_graphics_command_pool(render_device));
+        result.emplace_back(
+            render_device,
+            queue_provider.graphics_queue()->family_index(),
+            kiln::gfx::renderer::CommandPoolFlags::eResettable
+        );
     }
 
     return result;
 }
 
 [[nodiscard]]
-auto create_graphics_command_buffers(
+auto allocate_command_buffers(
+    const std::pmr::polymorphic_allocator<>&                   allocator,
+    std::pmr::vector<kiln::gfx::renderer::ComputeCommandPool>& command_pools
+) -> std::pmr::vector<kiln::gfx::renderer::ComputeCommandBuffer>
+{
+    std::pmr::vector<kiln::gfx::renderer::ComputeCommandBuffer> result{ allocator };
+    result.reserve(command_pools.size());
+
+    for (const std::size_t index : std::views::iota(0uz, command_pools.size()))
+    {
+        result.push_back(command_pools[index].allocate_primary());
+    }
+
+    return result;
+}
+
+[[nodiscard]]
+auto create_graphics_command_pools(
+    const std::pmr::polymorphic_allocator<>& allocator,
+    const kiln::gfx::renderer::Device&       render_device,
+    kiln::gfx::renderer::QueueProvider&      queue_provider,
+    const uint32_t                           count
+) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>
+{
+    std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool> result{ allocator };
+    result.reserve(count);
+
+    // ReSharper disable once CppDFAUnreadVariable
+    for (auto _ : std::views::repeat(std::ignore, count))
+    {
+        result.emplace_back(
+            render_device,
+            queue_provider.graphics_queue()->family_index(),
+            kiln::gfx::renderer::CommandPoolFlags::eResettable
+        );
+    }
+
+    return result;
+}
+
+[[nodiscard]]
+auto allocate_command_buffers(
     const std::pmr::polymorphic_allocator<>&                    allocator,
     std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>& command_pools
 ) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandBuffer>
@@ -155,6 +197,57 @@ auto create_per_frame_fences(
 }
 
 [[nodiscard]]
+auto create_frustum_culling_pipeline_layout(const vk::raii::Device& device)
+    -> vk::raii::PipelineLayout
+{
+    constexpr static vk::PushConstantRange push_constant_range{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .size       = sizeof(shaders::FrustumCullingPushConstants),
+    };
+
+    constexpr static vk::PipelineLayoutCreateInfo create_info{
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges    = &push_constant_range,
+    };
+
+    return kiln::gfx::vulkan::check_result(device.createPipelineLayout(create_info));
+}
+
+[[nodiscard]]
+auto create_draw_command_generation_pipeline_layout(const vk::raii::Device& device)
+    -> vk::raii::PipelineLayout
+{
+    constexpr static vk::PushConstantRange push_constant_range{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .size       = sizeof(shaders::DrawCommandGenerationPushConstants),
+    };
+
+    constexpr static vk::PipelineLayoutCreateInfo create_info{
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges    = &push_constant_range,
+    };
+
+    return kiln::gfx::vulkan::check_result(device.createPipelineLayout(create_info));
+}
+
+[[nodiscard]]
+auto create_instance_index_generation_pipeline_layout(const vk::raii::Device& device)
+    -> vk::raii::PipelineLayout
+{
+    constexpr static vk::PushConstantRange push_constant_range{
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .size       = sizeof(shaders::InstanceIndexGenerationPushConstants),
+    };
+
+    constexpr static vk::PipelineLayoutCreateInfo create_info{
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges    = &push_constant_range,
+    };
+
+    return kiln::gfx::vulkan::check_result(device.createPipelineLayout(create_info));
+}
+
+[[nodiscard]]
 auto create_graphics_pipeline_layout(const vk::raii::Device& device)
     -> vk::raii::PipelineLayout
 {
@@ -170,6 +263,14 @@ auto create_graphics_pipeline_layout(const vk::raii::Device& device)
 
     return kiln::gfx::vulkan::check_result(device.createPipelineLayout(create_info));
 }
+
+const auto shader_kernel_directory{
+    std::filesystem::path{ std::source_location::current().file_name() }
+            .parent_path()
+            .parent_path()
+        / "shaders"
+        / "kernels",
+};
 
 [[nodiscard]]
 auto pick_depth_format(const vk::raii::PhysicalDevice& physical_device) -> vk::Format
@@ -232,19 +333,46 @@ auto create_depth_image_view(
 
 Renderer::Renderer(
     std::allocator_arg_t,
-    const allocator_type&              allocator,
-    const kiln::gfx::renderer::Device& device,
-    kiln::gfx::renderer::Allocator&    render_allocator,
-    const uint32_t                     number_of_frames_in_flight,
-    const vk::Format                   swapchain_surface_format,
-    const vk::Extent2D&                swapchain_surface_extent,
-    const uint32_t                     number_of_swapchain_images
+    const allocator_type&               allocator,
+    const kiln::gfx::renderer::Device&  device,
+    kiln::gfx::renderer::QueueProvider& queue_provider,
+    kiln::gfx::renderer::Allocator&     render_allocator,
+    const uint32_t                      number_of_frames_in_flight,
+    const vk::Format                    swapchain_surface_format,
+    const vk::Extent2D&                 swapchain_surface_extent,
+    const uint32_t                      number_of_swapchain_images,
+    const bool                          disable_culling
 )
-    : m_graphics_command_pools{
-          create_graphics_command_pools(allocator, device, number_of_frames_in_flight)
+    : m_disable_culling{
+          disable_culling
 },
-      m_scene_pass_command_buffers{
-          create_graphics_command_buffers(allocator, m_graphics_command_pools)
+      m_compute_command_pools{
+          create_compute_command_pools(
+              allocator,
+              device,
+              queue_provider,
+              number_of_frames_in_flight
+          ),
+      },
+      m_frustum_culling_command_buffers{
+          allocate_command_buffers(allocator, m_compute_command_pools)
+      },
+      m_draw_command_generation_command_buffers{
+          allocate_command_buffers(allocator, m_compute_command_pools)
+      },
+      m_instance_index_generation_command_buffers{
+          allocate_command_buffers(allocator, m_compute_command_pools)
+      },
+      m_graphics_command_pools{
+          create_graphics_command_pools(
+              allocator,
+              device,
+              queue_provider,
+              number_of_frames_in_flight
+          ),
+      },
+      m_graphics_command_buffers{
+          allocate_command_buffers(allocator, m_graphics_command_pools)
       },
       m_image_acquired_semaphores{
           create_per_frame_semaphores(allocator, device, number_of_frames_in_flight)
@@ -263,19 +391,62 @@ Renderer::Renderer(
           create_depth_image(device, render_allocator, swapchain_surface_extent),
       },
       m_depth_image_view{ create_depth_image_view(device, m_depth_image) },
-      m_pipeline_layout{ create_graphics_pipeline_layout(device.logical_device()) },
+      m_frustum_culling_pipeline_layout{
+          create_frustum_culling_pipeline_layout(device.logical_device()),
+      },
+      m_draw_command_generation_pipeline_layout{
+          create_draw_command_generation_pipeline_layout(device.logical_device()),
+      },
+      m_instance_index_generation_pipeline_layout{
+          create_instance_index_generation_pipeline_layout(device.logical_device()),
+      },
+      m_graphics_pipeline_layout{
+          create_graphics_pipeline_layout(device.logical_device())
+      },
+      m_frustum_culling_shader_module{
+          *kiln::gfx::renderer::ShaderModule::load_from_file(
+              shader_kernel_directory / "frustum_cull.spv"
+          ),
+      },
+      m_draw_command_generation_shader_module{
+          *kiln::gfx::renderer::ShaderModule::load_from_file(
+              shader_kernel_directory / "generate_draw_commands.spv"
+          ),
+      },
+      m_instance_index_generation_shader_module{
+          *kiln::gfx::renderer::ShaderModule::load_from_file(
+              shader_kernel_directory / "generate_instance_indices.spv"
+          ),
+      },
       m_graphics_shader_module{
           *kiln::gfx::renderer::ShaderModule::load_from_file(
-              std::filesystem::path{ std::source_location::current().file_name() }
-                  .parent_path()
-                  .parent_path()
-              / "shaders"
-              / "main.spv"
-          )   //
+              shader_kernel_directory / "shade.spv"
+          ),
+      },
+      m_frustum_culling_pipeline{
+          kiln::gfx::renderer::ComputePipelineBuilder{
+              m_frustum_culling_pipeline_layout,
+              m_frustum_culling_shader_module,
+          }
+              .build(device),
+      },
+      m_draw_command_generation_pipeline{
+          kiln::gfx::renderer::ComputePipelineBuilder{
+              m_draw_command_generation_pipeline_layout,
+              m_draw_command_generation_shader_module,
+          }
+              .build(device),
+      },
+      m_instance_index_generation_pipeline{
+          kiln::gfx::renderer::ComputePipelineBuilder{
+              m_instance_index_generation_pipeline_layout,
+              m_instance_index_generation_shader_module,
+          }
+              .build(device),
       },
       m_graphics_pipeline{
           kiln::gfx::renderer::GraphicsPipelineBuilder{
-              m_pipeline_layout,
+              m_graphics_pipeline_layout,
               m_graphics_shader_module,
               m_graphics_shader_module,
           }
@@ -302,9 +473,16 @@ auto Renderer::resize(
     m_depth_image_view = create_depth_image_view(device, m_depth_image);
 }
 
+[[nodiscard]]
+auto aspect_ratio_from(const vk::Extent2D frame_buffer_size) -> float
+{
+    return static_cast<float>(frame_buffer_size.width)
+         / static_cast<float>(frame_buffer_size.height);
+}
+
 auto Renderer::render(
     const kiln::gfx::renderer::Device&  device,
-    kiln::gfx::renderer::GraphicsQueue& graphics_queue,
+    kiln::gfx::renderer::QueueProvider& queue_provider,
     kiln::gfx::renderer::RenderSurface& surface,
     const Scene&                        scene,
     const Camera&                       camera,
@@ -327,8 +505,23 @@ auto Renderer::render(
     device.logical_device().resetFences(*m_render_finished_fences[m_current_frame_index]);
 
 
-    draw_scene(
-        graphics_queue,
+    if (!m_disable_culling)
+    {
+        m_compute_command_pools[m_current_frame_index].reset();
+        frustum_cull(
+            queue_provider,
+            scene,
+            camera,
+            aspect_ratio_from(*surface.extent()),
+            transient_memory_resource
+        );
+        generate_draw_commands(queue_provider, scene, transient_memory_resource);
+        generate_instance_indices(queue_provider, scene, transient_memory_resource);
+    }
+
+    m_graphics_command_pools[m_current_frame_index].reset();
+    draw(
+        queue_provider,
         surface,
         scene,
         camera,
@@ -338,7 +531,7 @@ auto Renderer::render(
 
 
     surface.present(
-        graphics_queue,
+        *queue_provider.graphics_queue(),
         *swapchain_image_index,
         std::span{ &*m_render_finished_semaphores[*swapchain_image_index], 1 }
     );
@@ -352,8 +545,398 @@ auto Renderer::number_of_frames_in_flight() const noexcept -> uint32_t
     return static_cast<uint32_t>(m_graphics_command_pools.size());
 }
 
-auto Renderer::draw_scene(
-    kiln::gfx::renderer::GraphicsQueue&       graphics_queue,
+[[nodiscard]]
+auto frustum_from(const Camera& camera, const double aspect_ratio) -> shaders::Frustum
+{
+    const glm::dmat4 view_matrix{
+        glm::translate(
+            glm::mat4_cast(glm::conjugate(camera.orientation())),
+            -camera.position()
+        ),
+    };
+    const glm::dmat4 projection_matrix{
+        glm::perspectiveRH_ZO(
+            camera.fov(),
+            aspect_ratio,
+            camera.near_plane(),
+            camera.far_plane()
+        ),
+    };
+    const glm::mat4x4 view_projection_matrix{ projection_matrix * view_matrix };
+    const auto        extract_plane = [&view_projection_matrix]   //
+        (const int row, const float sign) -> shaders::Plane
+    {
+        const glm::vec4 p{
+            view_projection_matrix[0][3] + sign * view_projection_matrix[0][row],
+            view_projection_matrix[1][3] + sign * view_projection_matrix[1][row],
+            view_projection_matrix[2][3] + sign * view_projection_matrix[2][row],
+            view_projection_matrix[3][3] + sign * view_projection_matrix[3][row],
+        };
+
+        const float length{ glm::length(glm::vec3(p)) };
+        return shaders::Plane{ .normal = glm::vec3(p) / length, .offset = p.w / length };
+    };
+    const auto extract_near_plane = [&view_projection_matrix]() -> shaders::Plane
+    {
+        const glm::vec4 p{
+            view_projection_matrix[0][2],
+            view_projection_matrix[1][2],
+            view_projection_matrix[2][2],
+            view_projection_matrix[3][2],
+        };
+
+        const float length{ glm::length(glm::vec3(p)) };
+        return shaders::Plane{ .normal = glm::vec3(p) / length, .offset = p.w / length };
+    };
+
+    return shaders::Frustum{
+        .planes{
+                extract_plane(0, 1),    // Left
+            extract_plane(0, -1),   // Right
+            extract_plane(1, 1),    // Bottom
+            extract_plane(1, -1),   // Top
+            extract_near_plane(),   // Near
+            extract_plane(2, -1),   // Far
+        },
+    };
+}
+
+auto Renderer::frustum_cull(
+    kiln::gfx::renderer::QueueProvider& queue_provider,
+    const Scene&                        scene,
+    const Camera&                       camera,
+    const double                        aspect_ratio,
+    std::pmr::memory_resource&          transient_memory_resource
+) -> void
+{
+    if (scene.max_instance_count() == 0)
+    {
+        return;
+    }
+
+    kiln::gfx::renderer::ComputeCommandBuffer& command_buffer{
+        m_frustum_culling_command_buffers[m_current_frame_index]
+    };
+
+
+    command_buffer.begin_recording();
+
+
+    const vk::BufferMemoryBarrier2
+        draw_command_instance_counts_clear_buffer_memory_barrier{
+            .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+            .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
+            .dstStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+            .buffer = scene.draw_command_instance_counts_buffer_region().buffer().get(),
+            .offset = scene.draw_command_instance_counts_buffer_region().offset(),
+            .size   = scene.draw_command_instance_counts_buffer_region().size(),
+        };
+    const kiln::gfx::renderer::DependencyInfo clear_dependency_info{
+        .buffer_memory_barriers
+        = std::span{ &draw_command_instance_counts_clear_buffer_memory_barrier, 1 },
+    };
+    command_buffer.record_barrier(clear_dependency_info);
+
+    command_buffer
+        .record_buffer_fill(scene.draw_command_instance_counts_buffer_region(), 0);
+
+    command_buffer.record_pipeline_bind(m_frustum_culling_pipeline);
+
+    const shaders::FrustumCullingPushConstants push_constants{
+        .global_instance_count = scene.max_instance_count(),
+        .instance_draw_command_indices
+        = scene.instance_draw_command_indices_buffer_address(),
+        .bounding_spheres = scene.instance_sphere_bounding_volumes_buffer_address(),
+        .frustum          = frustum_from(camera, aspect_ratio),
+        .draw_command_instance_counts
+        = scene.draw_command_instance_counts_buffer_address(),
+        .instance_draw_command_offsets
+        = scene.instance_draw_command_offsets_buffer_address(),
+    };
+    const vk::PushConstantsInfo push_constants_info{
+        .layout     = m_frustum_culling_pipeline_layout,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .size       = sizeof(decltype(push_constants)),
+        .pValues    = &push_constants,
+    };
+    command_buffer.record_push_constants(push_constants_info);
+
+    const std::array dispatch_buffer_memory_barriers{
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+                                 .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer = scene.draw_command_instance_counts_buffer_region().buffer().get(),
+                                 .offset = scene.draw_command_instance_counts_buffer_region().offset(),
+                                 .size   = scene.draw_command_instance_counts_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer = scene.instance_draw_command_offsets_buffer_region().buffer().get(),
+                                 .offset = scene.instance_draw_command_offsets_buffer_region().offset(),
+                                 .size   = scene.instance_draw_command_offsets_buffer_region().size(),
+                                 },
+    };
+    const kiln::gfx::renderer::DependencyInfo dispatch_dependency_info{
+        .buffer_memory_barriers = dispatch_buffer_memory_barriers,
+    };
+    command_buffer.record_barrier(dispatch_dependency_info);
+
+    command_buffer.record_dispatch((scene.max_instance_count() + 31) / 32, 1, 1);
+
+
+    command_buffer.end_recording();
+
+
+    const kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
+    queue_provider.graphics_queue()->submit(
+        static_cast<kiln::gfx::renderer::GraphicsCommandBuffer&>(
+            static_cast<kiln::gfx::renderer::CommandBufferBase&>(command_buffer)
+        ),
+        submit_info
+    );
+}
+
+auto Renderer::generate_draw_commands(
+    kiln::gfx::renderer::QueueProvider& queue_provider,
+    const Scene&                        scene,
+    std::pmr::memory_resource&          transient_memory_resource
+) -> void
+{
+    if (scene.max_instance_count() == 0)
+    {
+        return;
+    }
+
+    kiln::gfx::renderer::ComputeCommandBuffer& command_buffer{
+        m_draw_command_generation_command_buffers[m_current_frame_index]
+    };
+
+
+    command_buffer.begin_recording();
+
+
+    const vk::BufferMemoryBarrier2 instance_counter_clear_buffer_memory_barrier{
+        .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+        .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+        .dstStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+        .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+        .buffer        = scene.instance_counter_buffer_region().buffer().get(),
+        .offset        = scene.instance_counter_buffer_region().offset(),
+        .size          = scene.instance_counter_buffer_region().size(),
+    };
+    const kiln::gfx::renderer::DependencyInfo instance_counter_clear_dependency_info{
+        .buffer_memory_barriers
+        = std::span{ &instance_counter_clear_buffer_memory_barrier, 1 },
+    };
+    command_buffer.record_barrier(instance_counter_clear_dependency_info);
+
+    command_buffer.record_buffer_fill(scene.instance_counter_buffer_region(), 0);
+
+
+    const vk::BufferMemoryBarrier2 draw_command_count_clear_buffer_memory_barrier{
+        .srcStageMask  = vk::PipelineStageFlagBits2::eDrawIndirect,
+        .srcAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+        .dstStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+        .dstAccessMask = vk::AccessFlagBits2::eTransferWrite,
+        .buffer        = scene.draw_command_count_buffer_region().buffer().get(),
+        .offset        = scene.draw_command_count_buffer_region().offset(),
+        .size          = scene.draw_command_count_buffer_region().size(),
+    };
+    const kiln::gfx::renderer::DependencyInfo draw_command_count_clear_dependency_info{
+        .buffer_memory_barriers
+        = std::span{ &draw_command_count_clear_buffer_memory_barrier, 1 },
+    };
+    command_buffer.record_barrier(draw_command_count_clear_dependency_info);
+
+    command_buffer.record_buffer_fill(scene.draw_command_count_buffer_region(), 0);
+
+
+    command_buffer.record_pipeline_bind(m_draw_command_generation_pipeline);
+
+    const shaders::DrawCommandGenerationPushConstants push_constants{
+        .draw_command_count = scene.max_draw_command_count(),
+        .original_draw_commands_buffer_address
+        = scene.original_draw_commands_buffer_address(),
+        .draw_command_instance_counts
+        = scene.draw_command_instance_counts_buffer_address(),
+        .instance_counter     = scene.instance_counter_buffer_address(),
+        .draw_command_counter = scene.draw_command_count_buffer_address(),
+        .generated_draw_commands_buffer_address
+        = scene.generated_draw_commands_buffer_address(),
+        .draw_command_instance_offsets
+        = scene.draw_command_instance_offsets_buffer_address(),
+    };
+    const vk::PushConstantsInfo push_constants_info{
+        .layout     = m_draw_command_generation_pipeline_layout,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .size       = sizeof(decltype(push_constants)),
+        .pValues    = &push_constants,
+    };
+    command_buffer.record_push_constants(push_constants_info);
+
+    const std::array dispatch_buffer_memory_barriers{
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .buffer = scene.draw_command_instance_counts_buffer_region().buffer().get(),
+                                 .offset = scene.draw_command_instance_counts_buffer_region().offset(),
+                                 .size   = scene.draw_command_instance_counts_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+                                 .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer        = scene.instance_counter_buffer_region().buffer().get(),
+                                 .offset        = scene.instance_counter_buffer_region().offset(),
+                                 .size          = scene.instance_counter_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+                                 .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer        = scene.draw_command_count_buffer_region().buffer().get(),
+                                 .offset        = scene.draw_command_count_buffer_region().offset(),
+                                 .size          = scene.draw_command_count_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eDrawIndirect,
+                                 .srcAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer        = scene.generated_draw_commands_buffer_region().buffer().get(),
+                                 .offset        = scene.generated_draw_commands_buffer_region().offset(),
+                                 .size          = scene.generated_draw_commands_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer = scene.draw_command_instance_offsets_buffer_region().buffer().get(),
+                                 .offset = scene.draw_command_instance_offsets_buffer_region().offset(),
+                                 .size   = scene.draw_command_instance_offsets_buffer_region().size(),
+                                 },
+    };
+    const kiln::gfx::renderer::DependencyInfo dispatch_dependency_info{
+        .buffer_memory_barriers = dispatch_buffer_memory_barriers,
+    };
+    command_buffer.record_barrier(dispatch_dependency_info);
+
+    command_buffer.record_dispatch((scene.max_draw_command_count() + 255) / 256, 1, 1);
+
+
+    command_buffer.end_recording();
+
+
+    const kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
+    queue_provider.graphics_queue()->submit(
+        static_cast<kiln::gfx::renderer::GraphicsCommandBuffer&>(
+            static_cast<kiln::gfx::renderer::CommandBufferBase&>(command_buffer)
+        ),
+        submit_info
+    );
+}
+
+auto Renderer::generate_instance_indices(
+    kiln::gfx::renderer::QueueProvider& queue_provider,
+    const Scene&                        scene,
+    std::pmr::memory_resource&          transient_memory_resource
+) -> void
+{
+    if (scene.max_instance_count() == 0)
+    {
+        return;
+    }
+
+    kiln::gfx::renderer::ComputeCommandBuffer& command_buffer{
+        m_instance_index_generation_command_buffers[m_current_frame_index]
+    };
+
+
+    command_buffer.begin_recording();
+
+
+    command_buffer.record_pipeline_bind(m_instance_index_generation_pipeline);
+
+    const shaders::InstanceIndexGenerationPushConstants push_constants{
+        .global_instance_count = scene.max_instance_count(),
+        .instance_draw_command_offsets
+        = scene.instance_draw_command_offsets_buffer_address(),
+        .instance_draw_command_indices
+        = scene.instance_draw_command_indices_buffer_address(),
+        .draw_command_instance_offsets
+        = scene.draw_command_instance_offsets_buffer_address(),
+        .instance_indices = scene.instance_indices_buffer_address(),
+    };
+    const vk::PushConstantsInfo push_constants_info{
+        .layout     = m_instance_index_generation_pipeline_layout,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .size       = sizeof(decltype(push_constants)),
+        .pValues    = &push_constants,
+    };
+    command_buffer.record_push_constants(push_constants_info);
+
+    const std::array dispatch_buffer_memory_barriers{
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .buffer = scene.instance_draw_command_offsets_buffer_region().buffer().get(),
+                                 .offset = scene.instance_draw_command_offsets_buffer_region().offset(),
+                                 .size   = scene.instance_draw_command_offsets_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .buffer = scene.draw_command_instance_offsets_buffer_region().buffer().get(),
+                                 .offset = scene.draw_command_instance_offsets_buffer_region().offset(),
+                                 .size   = scene.draw_command_instance_offsets_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eVertexShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .buffer        = scene.instance_indices_buffer_region().buffer().get(),
+                                 .offset        = scene.instance_indices_buffer_region().offset(),
+                                 .size          = scene.instance_indices_buffer_region().size(),
+                                 },
+    };
+    const kiln::gfx::renderer::DependencyInfo dispatch_dependency_info{
+        .buffer_memory_barriers = dispatch_buffer_memory_barriers,
+    };
+    command_buffer.record_barrier(dispatch_dependency_info);
+
+    command_buffer.record_dispatch((scene.max_instance_count() + 255) / 256, 1, 1);
+
+
+    command_buffer.end_recording();
+
+
+    const kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
+    queue_provider.graphics_queue()->submit(
+        static_cast<kiln::gfx::renderer::GraphicsCommandBuffer&>(
+            static_cast<kiln::gfx::renderer::CommandBufferBase&>(command_buffer)
+        ),
+        submit_info
+    );
+}
+
+auto Renderer::draw(
+    kiln::gfx::renderer::QueueProvider&       queue_provider,
     const kiln::gfx::renderer::RenderSurface& surface,
     const Scene&                              scene,
     const Camera&                             camera,
@@ -361,14 +944,41 @@ auto Renderer::draw_scene(
     std::pmr::memory_resource&                transient_memory_resource
 ) -> void
 {
-    m_graphics_command_pools[m_current_frame_index].reset();
-
-    kiln::gfx::renderer::GraphicsCommandBuffer& graphics_command_buffer{
-        m_scene_pass_command_buffers[m_current_frame_index]
+    kiln::gfx::renderer::GraphicsCommandBuffer& command_buffer{
+        m_graphics_command_buffers[m_current_frame_index]
     };
 
-    graphics_command_buffer.begin_recording();
+    command_buffer.begin_recording();
 
+    const std::array render_buffer_memory_barriers{
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eVertexShader,
+                                 .dstAccessMask = vk::AccessFlagBits2::eShaderRead,
+                                 .buffer        = scene.instance_indices_buffer_region().buffer().get(),
+                                 .offset        = scene.instance_indices_buffer_region().offset(),
+                                 .size          = scene.instance_indices_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eDrawIndirect,
+                                 .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+                                 .buffer        = scene.draw_command_count_buffer_region().buffer().get(),
+                                 .offset        = scene.draw_command_count_buffer_region().offset(),
+                                 .size          = scene.draw_command_count_buffer_region().size(),
+                                 },
+        vk::BufferMemoryBarrier2{
+                                 .srcStageMask  = vk::PipelineStageFlagBits2::eComputeShader,
+                                 .srcAccessMask = vk::AccessFlagBits2::eShaderWrite,
+                                 .dstStageMask  = vk::PipelineStageFlagBits2::eDrawIndirect,
+                                 .dstAccessMask = vk::AccessFlagBits2::eIndirectCommandRead,
+                                 .buffer        = scene.generated_draw_commands_buffer_region().buffer().get(),
+                                 .offset        = scene.generated_draw_commands_buffer_region().offset(),
+                                 .size          = scene.generated_draw_commands_buffer_region().size(),
+                                 },
+    };
     const std::array render_image_memory_barriers{
         vk::ImageMemoryBarrier2{
             .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -399,9 +1009,10 @@ auto Renderer::draw_scene(
         },
     };
     const kiln::gfx::renderer::DependencyInfo render_dependency_info{
-        .image_memory_barriers = std::span{ render_image_memory_barriers },
+        .buffer_memory_barriers = render_buffer_memory_barriers,
+        .image_memory_barriers  = render_image_memory_barriers,
     };
-    graphics_command_buffer.record_barrier(render_dependency_info);
+    command_buffer.record_barrier(render_dependency_info);
 
     const vk::Rect2D render_area{
         .extent = *surface.extent(),
@@ -417,19 +1028,24 @@ auto Renderer::draw_scene(
         kiln::gfx::renderer::DepthAttachment{ m_depth_image_view }
         .set_clear_value(1)
     };
-    graphics_command_buffer.record_render_pass_start(render_pass);
+    command_buffer.record_render_pass_start(render_pass);
 
 
-    if (scene.max_draw_count() != 0)
+    if (scene.max_draw_command_count() != 0)
     {
+        command_buffer.record_pipeline_bind(m_graphics_pipeline);
+
         const shaders::Scene shader_scene{
-            .geometry_buffer_address     = scene.geometry_buffer_address(),
-            .material_buffer_address     = scene.material_buffer_address(),
-            .instance_buffer_address     = scene.instance_buffer_address(),
-            .draw_command_buffer_address = scene.draw_command_buffer_address(),
+            .geometry_buffer_address  = scene.geometry_buffer_address(),
+            .materials_buffer_address = scene.materials_buffer_address(),
+            .instance_buffer_address  = scene.instance_buffer_address(),
+            .instance_indices_buffer_address
+            = m_disable_culling ? vk::DeviceAddress{}
+                                : scene.instance_indices_buffer_address(),
+            .draw_command_buffer_address = scene.generated_draw_commands_buffer_address(),
         };
         const vk::PushConstantsInfo scene_push_constants_info{
-            .layout     = m_pipeline_layout,
+            .layout     = m_graphics_pipeline_layout,
             .stageFlags = vk::ShaderStageFlagBits::eVertex,
             .size       = sizeof(decltype(shader_scene)),
             .pValues    = &shader_scene,
@@ -437,9 +1053,10 @@ auto Renderer::draw_scene(
         const shaders::Camera shader_camera{
             .position = glm::vec4{ camera.position(), 1.0 },
             .view_projection_matrix
-            = glm::perspective(
+            = glm::perspectiveFovRH_ZO(
                   camera.fov(),
-                  camera.aspect_ratio(),
+                  static_cast<double>(surface.extent()->width),
+                  static_cast<double>(surface.extent()->height),
                   camera.near_plane(),
                   camera.far_plane()
               )
@@ -447,25 +1064,25 @@ auto Renderer::draw_scene(
             * glm::translate(glm::identity<glm::dmat4>(), -camera.position()),
         };
         const vk::PushConstantsInfo camera_push_constants_info{
-            .layout     = m_pipeline_layout,
+            .layout     = m_graphics_pipeline_layout,
             .stageFlags = vk::ShaderStageFlagBits::eVertex,
             .offset     = sizeof(shaders::Scene),
             .size       = sizeof(decltype(shader_camera)),
             .pValues    = &shader_camera,
         };
-        graphics_command_buffer.record_push_constants(scene_push_constants_info);
-        graphics_command_buffer.record_push_constants(camera_push_constants_info);
-        graphics_command_buffer.record_pipeline_bind(m_graphics_pipeline);
-        graphics_command_buffer.record_indirect_draw_count(
-            scene.draw_command_buffer_region(),
+        command_buffer.record_push_constants(scene_push_constants_info);
+        command_buffer.record_push_constants(camera_push_constants_info);
+
+        command_buffer.record_indirect_draw_count(
+            scene.generated_draw_commands_buffer_region(),
             scene.draw_command_count_buffer_region(),
-            scene.max_draw_count(),
+            scene.max_draw_command_count(),
             sizeof(shaders::DrawCommand)
         );
     }
 
 
-    graphics_command_buffer.record_render_pass_finish();
+    command_buffer.record_render_pass_finish();
 
     const vk::ImageMemoryBarrier2 present_image_memory_barrier {
         .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
@@ -485,12 +1102,12 @@ auto Renderer::draw_scene(
     const kiln::gfx::renderer::DependencyInfo present_dependency_info{
         .image_memory_barriers = std::span{ &present_image_memory_barrier, 1 },
     };
-    graphics_command_buffer.record_barrier(present_dependency_info);
+    command_buffer.record_barrier(present_dependency_info);
 
-    graphics_command_buffer.end_recording();
+    command_buffer.end_recording();
 
 
-    const vk::SemaphoreSubmitInfo render_wait_semaphore_info{
+    const vk::SemaphoreSubmitInfo image_acquired_semaphore_info{
         .semaphore = m_image_acquired_semaphores[m_current_frame_index],
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
     };
@@ -499,10 +1116,10 @@ auto Renderer::draw_scene(
         .stageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
     };
     kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
-    submit_info.wait_semaphores().push_back(render_wait_semaphore_info);
+    submit_info.wait_semaphores().push_back(image_acquired_semaphore_info);
     submit_info.signal_semaphores().push_back(render_finished_semaphore_info);
     submit_info.fence() = *m_render_finished_fences[m_current_frame_index];
-    graphics_queue.submit(graphics_command_buffer, submit_info);
+    queue_provider.graphics_queue()->submit(command_buffer, submit_info);
 }
 
 }   // namespace demo

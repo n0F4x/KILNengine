@@ -8,6 +8,7 @@ module;
 #include <memory_resource>
 #include <numeric>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <vector>
 
@@ -28,6 +29,8 @@ module examples.simple_scene.workflow.GltfModelLoader;
 import kiln.util.contracts;
 import kiln.util.Overloaded;
 
+import examples.simple_scene.algorithms;
+import examples.simple_scene.gltf_utils;
 import examples.simple_scene.shaders;
 
 namespace demo {
@@ -86,9 +89,9 @@ auto GltfModelLoader::geometry_buffer_size_bytes() const noexcept -> uint32_t
     return m_manifest.geometry_buffer_size_bytes();
 }
 
-auto GltfModelLoader::material_buffer_size_bytes() const noexcept -> uint32_t
+auto GltfModelLoader::materials_buffer_size_bytes() const noexcept -> uint32_t
 {
-    return m_manifest.material_buffer_size_bytes();
+    return m_manifest.materials_buffer_size_bytes();
 }
 
 auto GltfModelLoader::instance_buffer_size_bytes() const noexcept -> uint32_t
@@ -101,6 +104,11 @@ auto GltfModelLoader::draw_command_count() const noexcept -> uint32_t
     return m_manifest.draw_command_count();
 }
 
+auto GltfModelLoader::instance_count() const noexcept -> uint32_t
+{
+    return m_manifest.instance_count();
+}
+
 // ReSharper disable once CppDFAConstantFunctionResult
 auto GltfModelLoader::geometry_buffer_alignment() noexcept -> uint32_t
 {
@@ -108,15 +116,22 @@ auto GltfModelLoader::geometry_buffer_alignment() noexcept -> uint32_t
 }
 
 // ReSharper disable once CppDFAConstantFunctionResult
-auto GltfModelLoader::material_buffer_alignment() noexcept -> uint32_t
+auto GltfModelLoader::materials_buffer_alignment() noexcept -> uint32_t
 {
-    return Manifest::material_buffer_alignment();
+    return Manifest::materials_buffer_alignment();
 }
 
 // ReSharper disable once CppDFAConstantFunctionResult
 auto GltfModelLoader::instance_buffer_alignment() noexcept -> uint32_t
 {
     return Manifest::instance_buffer_alignment();
+}
+
+auto GltfModelLoader::set_instance_draw_command_index_offset(
+    const uint32_t instance_draw_command_index_offset
+) -> void
+{
+    m_offsets.instance_draw_command_index_offset = instance_draw_command_index_offset;
 }
 
 auto GltfModelLoader::set_geometry_buffer_byte_offset(
@@ -126,11 +141,11 @@ auto GltfModelLoader::set_geometry_buffer_byte_offset(
     m_offsets.geometry_buffer_byte_offset = geometry_buffer_byte_offset;
 }
 
-auto GltfModelLoader::set_material_buffer_byte_offset(
-    const uint32_t material_buffer_byte_offset
+auto GltfModelLoader::set_materials_buffer_byte_offset(
+    const uint32_t materials_buffer_byte_offset
 ) -> void
 {
-    m_offsets.material_buffer_byte_offset = material_buffer_byte_offset;
+    m_offsets.materials_buffer_byte_offset = materials_buffer_byte_offset;
 }
 
 auto GltfModelLoader::set_instance_buffer_byte_offset(
@@ -138,6 +153,34 @@ auto GltfModelLoader::set_instance_buffer_byte_offset(
 ) -> void
 {
     m_offsets.instance_buffer_byte_offset = instance_buffer_byte_offset;
+}
+
+auto GltfModelLoader::set_instance_index_offset(const uint32_t instance_index_offset)
+    -> void
+{
+    m_offsets.instance_index_offset = instance_index_offset;
+}
+
+auto GltfModelLoader::instance_draw_command_index_writer() const noexcept
+    -> kiln::gfx::renderer::LazyCopy
+{
+    return kiln::gfx::renderer::LazyCopy{
+        [this](const std::span<std::byte> out) -> void
+        {
+            m_manifest.write_instance_draw_command_indices(m_model, m_offsets, out);   //
+        },
+    };
+}
+
+auto GltfModelLoader::instance_sphere_bounding_volume_writer() const noexcept
+    -> kiln::gfx::renderer::LazyCopy
+{
+    return kiln::gfx::renderer::LazyCopy{
+        [this](const std::span<std::byte> out) -> void
+        {
+            m_manifest.write_instance_sphere_bounding_volumes(m_model, out);   //
+        },
+    };
 }
 
 auto GltfModelLoader::geometry_writer() const noexcept -> kiln::gfx::renderer::LazyCopy
@@ -183,36 +226,56 @@ auto GltfModelLoader::draw_command_writer() const noexcept
 
 GltfModelLoader::Manifest::Manifest(const Manifest& other, const allocator_type& allocator)
     : m_geometry_buffer_size_bytes{ other.m_geometry_buffer_size_bytes },
-      m_material_buffer_size_bytes{ other.m_material_buffer_size_bytes },
+      m_materials_buffer_size_bytes{ other.m_materials_buffer_size_bytes },
+      m_instance_count{ other.m_instance_count },
       m_draw_command_count{ other.m_draw_command_count },
       m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
       m_accessor_element_byte_offsets{ other.m_accessor_element_byte_offsets, allocator },
       m_material_indices{ other.m_material_indices, allocator },
       m_per_mesh_instance_offsets{ other.m_per_mesh_instance_offsets, allocator },
       m_per_mesh_instance_counts{ other.m_per_mesh_instance_counts, allocator },
+      m_per_mesh_draw_command_index_offsets{ other.m_per_mesh_draw_command_index_offsets,
+                                             allocator },
       m_geometry_writers{ other.m_geometry_writers, allocator },
       m_materials{ other.m_materials, allocator },
       m_transforms{ other.m_transforms, allocator },
-      m_normal_matrices{ other.m_normal_matrices, allocator }
+      m_normal_matrices{ other.m_normal_matrices, allocator },
+      m_transformed_sphere_bounding_volumes{ other.m_transformed_sphere_bounding_volumes,
+                                             allocator }
 {
 }
 
 GltfModelLoader::Manifest::Manifest(Manifest&& other, const allocator_type& allocator)
     : m_geometry_buffer_size_bytes{ other.m_geometry_buffer_size_bytes },
-      m_material_buffer_size_bytes{ other.m_material_buffer_size_bytes },
+      m_materials_buffer_size_bytes{ other.m_materials_buffer_size_bytes },
+      m_instance_count{ other.m_instance_count },
       m_draw_command_count{ other.m_draw_command_count },
       m_element_buffer_byte_offsets{ other.m_element_buffer_byte_offsets },
-      m_accessor_element_byte_offsets{ std::move(other.m_accessor_element_byte_offsets),
-                                       allocator },
+      m_accessor_element_byte_offsets{
+          std::move(other.m_accessor_element_byte_offsets),
+          allocator,
+      },
       m_material_indices{ std::move(other.m_material_indices), allocator },
-      m_per_mesh_instance_offsets{ std::move(other.m_per_mesh_instance_offsets),
-                                   allocator },
-      m_per_mesh_instance_counts{ std::move(other.m_per_mesh_instance_counts),
-                                  allocator },
+      m_per_mesh_instance_offsets{
+          std::move(other.m_per_mesh_instance_offsets),
+          allocator,
+      },
+      m_per_mesh_instance_counts{
+          std::move(other.m_per_mesh_instance_counts),
+          allocator,
+      },
+      m_per_mesh_draw_command_index_offsets{
+          std::move(other.m_per_mesh_draw_command_index_offsets),
+          allocator,
+      },
       m_geometry_writers{ std::move(other.m_geometry_writers), allocator },
       m_materials{ std::move(other.m_materials), allocator },
       m_transforms{ std::move(other.m_transforms), allocator },
-      m_normal_matrices{ std::move(other.m_normal_matrices), allocator }
+      m_normal_matrices{ std::move(other.m_normal_matrices), allocator },
+      m_transformed_sphere_bounding_volumes{
+          std::move(other.m_transformed_sphere_bounding_volumes),
+          allocator
+      }
 {
 }
 
@@ -254,6 +317,13 @@ GltfModelLoader::Manifest::Manifest(
         process(model, transform, model.nodes[node_index], *this);
     }
 
+    std::exclusive_scan(
+        m_per_mesh_draw_command_index_offsets.begin(),
+        m_per_mesh_draw_command_index_offsets.end(),
+        m_per_mesh_draw_command_index_offsets.begin(),
+        0
+    );
+
     m_geometry_buffer_size_bytes = std::reduce(
         m_element_buffer_byte_offsets.begin(),
         m_element_buffer_byte_offsets.end()
@@ -267,15 +337,8 @@ GltfModelLoader::Manifest::Manifest(
 
     assert(m_normal_matrices.empty());
     assert(m_normal_matrices.capacity() == m_transforms.size());
-    for (glm::mat4x4& instance_transform : m_transforms)
+    for (const glm::mat4x4& instance_transform : m_transforms)
     {
-        const glm::mat4x4 vulkan_basis_correction{
-            glm::scale(glm::identity<glm::mat4x4>(), glm::vec3{ 1, -1, -1 })
-        };
-
-        instance_transform
-            = vulkan_basis_correction * instance_transform * vulkan_basis_correction;
-
         const glm::mat3x3 orientation_matrix{ instance_transform };
 
         m_normal_matrices.push_back(
@@ -295,7 +358,7 @@ auto GltfModelLoader::Manifest::geometry_buffer_size_bytes() const noexcept -> u
     return m_geometry_buffer_size_bytes;
 }
 
-auto GltfModelLoader::Manifest::material_buffer_size_bytes() const noexcept -> uint32_t
+auto GltfModelLoader::Manifest::materials_buffer_size_bytes() const noexcept -> uint32_t
 {
     return static_cast<uint32_t>(
         m_materials.size() * sizeof(decltype(m_materials)::value_type)
@@ -315,12 +378,17 @@ auto GltfModelLoader::Manifest::draw_command_count() const noexcept -> uint32_t
     return m_draw_command_count;
 }
 
+auto GltfModelLoader::Manifest::instance_count() const noexcept -> uint32_t
+{
+    return m_instance_count;
+}
+
 auto GltfModelLoader::Manifest::geometry_buffer_alignment() noexcept -> uint32_t
 {
     return std::max(alignof(shaders::Index), alignof(float));
 }
 
-auto GltfModelLoader::Manifest::material_buffer_alignment() noexcept -> uint32_t
+auto GltfModelLoader::Manifest::materials_buffer_alignment() noexcept -> uint32_t
 {
     return alignof(decltype(m_materials)::value_type);
 }
@@ -330,6 +398,63 @@ auto GltfModelLoader::Manifest::instance_buffer_alignment() noexcept -> uint32_t
     return std::max(
         alignof(decltype(m_transforms)::value_type),
         alignof(decltype(m_normal_matrices)::value_type)
+    );
+}
+
+auto GltfModelLoader::Manifest::write_instance_draw_command_indices(
+    const fastgltf::Asset& model,
+    const Offsets&         global_offsets,
+    std::span<std::byte>   out
+) const -> void
+{
+    PRECOND(out.size() == m_instance_count * sizeof(uint32_t));
+    PRECOND(reinterpret_cast<std::uintptr_t>(out.data()) % alignof(uint32_t) == 0);
+
+    const std::span out_instance_draw_command_indices{
+        reinterpret_cast<uint32_t*>(out.data()),
+        m_instance_count
+    };
+
+    for (std::size_t mesh_index{}; mesh_index < model.meshes.size(); ++mesh_index)
+    {
+        const uint32_t mesh_draw_command_index_offset{
+            m_per_mesh_draw_command_index_offsets[mesh_index]
+        };
+        const uint32_t mesh_instance_count{ m_per_mesh_instance_counts[mesh_index] };
+
+        for (uint32_t primitive_index{};
+             primitive_index < model.meshes[mesh_index].primitives.size();
+             ++primitive_index)
+        {
+            const uint32_t instance_offset{
+                m_per_mesh_instance_offsets[mesh_index]
+                    + primitive_index * mesh_instance_count,
+            };
+
+            std::ranges::fill(
+                out_instance_draw_command_indices
+                    .subspan(instance_offset, mesh_instance_count),
+                *global_offsets.instance_draw_command_index_offset
+                    + mesh_draw_command_index_offset
+                    + primitive_index
+            );
+        }
+    }
+}
+
+auto GltfModelLoader::Manifest::write_instance_sphere_bounding_volumes(
+    const fastgltf::Asset&,
+    std::span<std::byte> out
+) const -> void
+{
+    PRECOND(out.size() == m_instance_count * sizeof(shaders::SBV));
+    PRECOND(reinterpret_cast<std::uintptr_t>(out.data()) % alignof(shaders::SBV) == 0);
+
+    std::memcpy(
+        out.data(),
+        m_transformed_sphere_bounding_volumes.data(),
+        m_transformed_sphere_bounding_volumes.size()
+            * sizeof(decltype(m_transformed_sphere_bounding_volumes)::value_type)
     );
 }
 
@@ -354,9 +479,9 @@ auto GltfModelLoader::Manifest::write_materials(
     const std::span<std::byte> out
 ) const -> void
 {
-    PRECOND(out.size() == material_buffer_size_bytes());
+    PRECOND(out.size() == materials_buffer_size_bytes());
     PRECOND(
-        reinterpret_cast<std::uintptr_t>(out.data()) % material_buffer_alignment() == 0
+        reinterpret_cast<std::uintptr_t>(out.data()) % materials_buffer_alignment() == 0
     );
 
     std::memcpy(
@@ -405,50 +530,38 @@ auto GltfModelLoader::Manifest::write_draw_commands(
 
     const std::span out_draw_commands{
         reinterpret_cast<shaders::DrawCommand*>(out.data()),
-        m_draw_command_count,
+        out.size(),
     };
 
     auto out_iter{ out_draw_commands.begin() };
     for (std::size_t mesh_index{}; mesh_index < model.meshes.size(); ++mesh_index)
     {
-        if (m_per_mesh_instance_counts[mesh_index] > 0)
+        if (m_per_mesh_instance_counts[mesh_index] <= 0)
         {
-            for (const fastgltf::Primitive& primitive :
-                 model.meshes[mesh_index].primitives)
+            continue;
+        }
+
+        for (const fastgltf::Primitive& primitive : model.meshes[mesh_index].primitives)
+        {
+            const auto position_attribute{ primitive.findAttribute("POSITION") };
+            if (position_attribute == primitive.attributes.cend())
             {
-                if (primitive.findAttribute("POSITION") == primitive.attributes.cend())
-                {
-                    continue;
-                }
-                *out_iter = shaders::DrawCommand{
-                    .vertex_count = static_cast<uint32_t>(
-                        primitive.indicesAccessor.has_value()
-                            ? model.accessors[*primitive.indicesAccessor].count
-                            : model.accessors[primitive.attributes.front().accessorIndex]
-                                  .count
-                    ),
-                    .instance_count = m_per_mesh_instance_counts[mesh_index],
-                    .first_vertex   = 0,
-                    .first_instance = 0,
-                    .primitive      = shader_primitive_from(global_offsets, primitive),
-                    .transform_buffer_byte_offset
-                    = *global_offsets.instance_buffer_byte_offset
-                    + m_per_mesh_instance_offsets[mesh_index]
-                          * static_cast<uint32_t>(
-                              sizeof(decltype(m_transforms)::value_type)
-                          ),
-                    .normal_matrix_buffer_byte_offset
-                    = *global_offsets.instance_buffer_byte_offset
-                    + static_cast<uint32_t>(
-                        m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
-                    )
-                    + m_per_mesh_instance_offsets[mesh_index]
-                          * static_cast<uint32_t>(
-                              sizeof(decltype(m_normal_matrices)::value_type)
-                          ),
-                };
-                ++out_iter;
+                continue;
             }
+
+            *out_iter = shaders::DrawCommand{
+                .vertex_count = static_cast<uint32_t>(
+                    primitive.indicesAccessor.has_value()
+                        ? model.accessors[*primitive.indicesAccessor].count
+                        : model.accessors[position_attribute->accessorIndex].count
+                ),
+                .instance_count = m_per_mesh_instance_counts[mesh_index],
+                .first_vertex   = 0,
+                .first_instance = 0,
+                .primitive = shader_primitive_from(global_offsets, mesh_index, primitive),
+            };
+
+            ++out_iter;
         }
     }
 }
@@ -550,17 +663,17 @@ auto GltfModelLoader::Manifest::preprocess(
         .resize(model.materials.size(), std::numeric_limits<uint32_t>::max());
     manifest.m_per_mesh_instance_offsets.resize(model.meshes.size(), 0);
     manifest.m_per_mesh_instance_counts.resize(model.meshes.size(), 0);
+    manifest.m_per_mesh_draw_command_index_offsets.resize(model.meshes.size(), 0);
 
     uint32_t heuristic_geometry_writer_count{};
     uint32_t material_count{};
-    uint32_t instance_count{};
 
     const auto increment_counts{
         [&](this const auto& self, const fastgltf::Node& node) -> void
         {
             if (node.meshIndex.has_value())
             {
-                bool has_valid_instance{};
+                uint32_t valid_primitive_count{};
                 for (const fastgltf::Primitive& primitive :
                      model.meshes[*node.meshIndex].primitives)
                 {
@@ -569,7 +682,7 @@ auto GltfModelLoader::Manifest::preprocess(
                     {
                         continue;
                     }
-                    has_valid_instance = true;
+                    ++valid_primitive_count;
 
                     if (primitive.indicesAccessor.has_value())
                     {
@@ -594,11 +707,9 @@ auto GltfModelLoader::Manifest::preprocess(
                     }
                 }
 
-                if (has_valid_instance)
-                {
-                    ++instance_count;
-                    ++manifest.m_per_mesh_instance_offsets[*node.meshIndex];
-                }
+                manifest.m_per_mesh_instance_offsets[*node.meshIndex]
+                    += valid_primitive_count;
+                manifest.m_instance_count += valid_primitive_count;
             }
 
             for (const auto child_node_index : node.children)
@@ -615,8 +726,9 @@ auto GltfModelLoader::Manifest::preprocess(
 
     manifest.m_geometry_writers.reserve(heuristic_geometry_writer_count);
     manifest.m_materials.resize(material_count);
-    manifest.m_transforms.resize(instance_count, glm::identity<glm::mat4x4>());
-    manifest.m_normal_matrices.reserve(instance_count);
+    manifest.m_transforms.resize(manifest.m_instance_count, glm::identity<glm::mat4x4>());
+    manifest.m_normal_matrices.reserve(manifest.m_instance_count);
+    manifest.m_transformed_sphere_bounding_volumes.resize(manifest.m_instance_count);
 
     for (uint32_t original_material_index{};
          original_material_index < model.materials.size();
@@ -675,7 +787,10 @@ auto GltfModelLoader::Manifest::process(
 ) -> void
 {
     const glm::mat4x4 global_transform{
-        transform * transform_matrix_from(node.transform),
+        transform
+            * apply_vulkan_basis_correction_on_transform(
+                transform_matrix_from(node.transform)
+            ),
     };
 
     if (node.meshIndex.has_value())
@@ -687,6 +802,28 @@ auto GltfModelLoader::Manifest::process(
     {
         process(model, global_transform, model.nodes[child_node_index], manifest);
     }
+}
+
+[[nodiscard]]
+auto sphere_bounding_volume_from(const glm::mat4x4& transform, const AABB<>& aabb)
+    -> shaders::SBV
+{
+    std::array corners{
+        aabb.min,
+        glm::vec3{ aabb.max.x, aabb.min.y, aabb.min.z },
+        glm::vec3{ aabb.min.x, aabb.max.y, aabb.min.z },
+        glm::vec3{ aabb.min.x, aabb.min.y, aabb.max.z },
+        glm::vec3{ aabb.max.x, aabb.max.y, aabb.min.z },
+        glm::vec3{ aabb.max.x, aabb.min.y, aabb.max.z },
+        glm::vec3{ aabb.min.x, aabb.max.y, aabb.max.z },
+        aabb.max
+    };
+    for (glm::vec3& corner : corners)
+    {
+        corner = transform * glm::vec4{ corner, 1 };
+    }
+
+    return welzl(corners);
 }
 
 auto GltfModelLoader::Manifest::process(
@@ -701,24 +838,45 @@ auto GltfModelLoader::Manifest::process(
         process(model, primitive, manifest);
     }
 
-    bool has_valid_instance{};
-    for (const fastgltf::Primitive& primitive : model.meshes[mesh_index].primitives)
+    uint32_t valid_primitive_count{};
+    for (const auto [primitive_index, primitive] :
+         std::views::enumerate(model.meshes[mesh_index].primitives))
     {
-        if (primitive.findAttribute("POSITION") != primitive.attributes.cend())
+        const fastgltf::Attribute* position_attribute{
+            primitive.findAttribute("POSITION"),
+        };
+        if (position_attribute == primitive.attributes.cend())
         {
-            if (manifest.m_per_mesh_instance_counts[mesh_index] == 0)
-            {
-                ++manifest.m_draw_command_count;
-            }
-            has_valid_instance = true;
-            ++manifest.m_overall_instance_count;
+            continue;
         }
+        ++valid_primitive_count;
+
+        const uint32_t instance_offset{
+            manifest.m_per_mesh_instance_offsets[mesh_index]
+                + manifest.m_per_mesh_instance_counts[mesh_index]
+                + static_cast<uint32_t>(primitive_index),
+        };
+        manifest.m_transforms[instance_offset] = transform;
+        manifest.m_transformed_sphere_bounding_volumes[instance_offset]
+            = sphere_bounding_volume_from(
+                transform,
+                aabb_from_position_accessor(
+                    model.accessors[position_attribute->accessorIndex]
+                )
+            );
     }
-    if (has_valid_instance)
+
+    if (manifest.m_per_mesh_instance_counts[mesh_index] == 0)
     {
-        manifest.m_transforms
-            [manifest.m_per_mesh_instance_offsets[mesh_index]
-             + manifest.m_per_mesh_instance_counts[mesh_index]] = transform;
+        manifest.m_draw_command_count += valid_primitive_count;
+
+        assert(manifest.m_per_mesh_draw_command_index_offsets[mesh_index] == 0);
+        manifest.m_per_mesh_draw_command_index_offsets[mesh_index]
+            = valid_primitive_count;
+    }
+
+    if (valid_primitive_count != 0)
+    {
         ++manifest.m_per_mesh_instance_counts[mesh_index];
     }
 }
@@ -1156,12 +1314,27 @@ auto GltfModelLoader::Manifest::color_vec3_writer_from(
 
 auto GltfModelLoader::Manifest::shader_primitive_from(
     const Offsets&             global_offsets,
+    const std::size_t          mesh_index,
     const fastgltf::Primitive& primitive
 ) const -> shaders::Primitive
 {
     PRECOND(primitive.findAttribute("POSITION") != primitive.attributes.cend());
 
-    shaders::Primitive shader_primitive{};
+    shaders::Primitive shader_primitive{
+        .global_instance_offset
+        = *global_offsets.instance_index_offset + m_per_mesh_instance_offsets[mesh_index],
+        .transform_buffer_byte_offset
+        = *global_offsets.instance_buffer_byte_offset
+        + m_per_mesh_instance_offsets[mesh_index]
+              * static_cast<uint32_t>(sizeof(decltype(m_transforms)::value_type)),
+        .normal_matrix_buffer_byte_offset
+        = *global_offsets.instance_buffer_byte_offset
+        + static_cast<uint32_t>(
+            m_transforms.size() * sizeof(decltype(m_transforms)::value_type)
+        )
+        + m_per_mesh_instance_offsets[mesh_index]
+              * static_cast<uint32_t>(sizeof(decltype(m_normal_matrices)::value_type)),
+    };
 
     if (primitive.indicesAccessor.has_value())
     {
@@ -1174,7 +1347,7 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
     for (const auto& [attribute_name, accessor_index] : primitive.attributes)
     {
         if (attribute_name == "POSITION")
-        {
+        {   // NOLINT(*-branch-clone)
             shader_primitive.position_buffer_byte_offset
                 = *global_offsets.geometry_buffer_byte_offset
                 + m_element_buffer_byte_offsets   //
@@ -1233,8 +1406,8 @@ auto GltfModelLoader::Manifest::shader_primitive_from(
             m_material_indices[*primitive.materialIndex]
             != std::numeric_limits<uint32_t>::max()
         );
-        shader_primitive.material_buffer_byte_offset
-            = *global_offsets.material_buffer_byte_offset
+        shader_primitive.materials_buffer_byte_offset
+            = *global_offsets.materials_buffer_byte_offset
             + m_material_indices[*primitive.materialIndex] * sizeof(shaders::Material);
     }
 

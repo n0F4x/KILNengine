@@ -42,6 +42,12 @@ auto should_limit_fps(const std::span<const std::string_view> args) noexcept -> 
 }
 
 [[nodiscard]]
+auto should_disable_culling(const std::span<const std::string_view> args) noexcept -> bool
+{
+    return std::ranges::contains(args, "--disable-culling");
+}
+
+[[nodiscard]]
 auto grid_size_from(
     const std::span<const std::string_view> args,
     const uint32_t                          default_value = 7
@@ -92,7 +98,11 @@ auto main(const int argc, const char* const argv[]) -> int
             .use_context<demo::Context>()
             .build();
 
-    app.contexts()
-        .at<demo::Context>()
-        .run(app, model_path_from(args), should_limit_fps(args), grid_size_from(args));
+    app.contexts().at<demo::Context>().run(
+        app,
+        model_path_from(args),
+        should_limit_fps(args),
+        should_disable_culling(args),
+        grid_size_from(args)
+    );
 }

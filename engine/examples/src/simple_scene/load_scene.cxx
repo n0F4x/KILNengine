@@ -36,7 +36,7 @@ auto model_descriptions_from(
 {
     std::pmr::vector<ModelDescription> result{ allocator };
 
-    const std::optional<AABB<>> model_aabb{ bounding_box_of(model_asset, scene_index) };
+    const std::optional<AABB<>> model_aabb{ aabb_of(model_asset, scene_index) };
     if (!model_aabb.has_value())
     {
         return result;
@@ -49,9 +49,9 @@ auto model_descriptions_from(
          const auto [x, y, z] : std::views::cartesian_product(indices, indices, indices))
     {
         const glm::vec3 offset{
-            start_offset.x + (static_cast<float>(x) * distance.x),
-            start_offset.y + (static_cast<float>(y) * distance.y),
-            start_offset.z + (static_cast<float>(z) * distance.z),
+            start_offset.x + static_cast<float>(x) * distance.x,
+            start_offset.y + static_cast<float>(y) * distance.y,
+            start_offset.z + static_cast<float>(z) * distance.z,
         };
         result.push_back(
             ModelDescription{
@@ -72,6 +72,7 @@ auto load_scene(
     kiln::gfx::renderer::StagingStream& staging_stream,
     kiln::gfx::asset::gltf::Parser&     model_parser,
     const std::filesystem::path&        model_filepath,
+    const bool                          disable_culling,
     const uint32_t                      grid_size,
     std::pmr::memory_resource&          transient_memory_resource
 ) -> Scene
@@ -126,6 +127,7 @@ auto load_scene(
         device,
         gpu_allocator,
         staging_stream,
+        disable_culling,
         transient_memory_resource
     );
 }

@@ -1,6 +1,8 @@
 target_sources(${PROJECT_NAME} PRIVATE
         CommandBufferBase.cxx
         CommandPoolBase.cxx
+        ComputeCommandBuffer.cxx
+        ComputeQueue.cxx
         GraphicsCommandBuffer.cxx
         GraphicsQueue.cxx
         QueueBase.cxx
@@ -18,6 +20,9 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandBufferUsageFlags.ixx
         CommandPoolBase.ixx
         CommandPoolFlags.ixx
+        ComputeCommandBuffer.ixx
+        ComputeCommandPool.ixx
+        ComputeQueue.ixx
         DependencyInfo.ixx
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx

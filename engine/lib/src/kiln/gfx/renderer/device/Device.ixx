@@ -31,6 +31,7 @@ namespace kiln::gfx::renderer {
 
 struct QueueInfos {
     std::optional<vulkan::QueueInfo> graphics_queue_info;
+    std::optional<vulkan::QueueInfo> compute_queue_info;
     std::optional<vulkan::QueueInfo> host_to_device_transfer_queue_info;
 };
 
@@ -69,6 +70,9 @@ public:
     auto capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&;
     [[nodiscard]]
     auto graphics_queue_info() const noexcept
+        -> util::OptionalRef<const vulkan::QueueInfo>;
+    [[nodiscard]]
+    auto compute_queue_info() const noexcept
         -> util::OptionalRef<const vulkan::QueueInfo>;
     [[nodiscard]]
     auto host_to_device_transfer_queue_info() const noexcept

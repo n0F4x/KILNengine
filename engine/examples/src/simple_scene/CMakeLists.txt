@@ -11,6 +11,7 @@ add_subdirectory(shaders)
 add_subdirectory(workflow)
 
 target_sources(${PROJECT_NAME} PRIVATE
+        algorithms.cxx
         Camera.cxx
         Context.cxx
         Controller.cxx
@@ -24,6 +25,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         BASE_DIRS ${PROJECT_SOURCE_DIR}
         FILES
         AABB.ixx
+        algorithms.ixx
         Camera.ixx
         Context.ixx
         Controller.ixx

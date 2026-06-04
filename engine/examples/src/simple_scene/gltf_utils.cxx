@@ -17,7 +17,29 @@ module examples.simple_scene.gltf_utils;
 
 import kiln.util.contracts;
 
+import examples.simple_scene.AABB;
+
 namespace demo {
+
+[[nodiscard]]
+auto apply_vulkan_basis_correction_on_position(const glm::vec3& vector) -> glm::vec3
+{
+    return glm::vec3{
+        vector.x,
+        vector.y * -1.f,
+        vector.z * -1.f,
+    };
+}
+
+auto apply_vulkan_basis_correction_on_transform(const glm::mat4x4& transform)
+    -> glm::mat4x4
+{
+    static const glm::mat4x4 vulkan_basis_correction{
+        glm::scale(glm::identity<glm::mat4x4>(), glm::vec3{ 1, -1, -1 })
+    };
+
+    return vulkan_basis_correction * transform * vulkan_basis_correction;
+}
 
 [[nodiscard]]
 auto vec3_from(const fastgltf::AccessorBoundsArray& position_accessor_bound) -> glm::vec3
@@ -35,34 +57,27 @@ auto vec3_from(const fastgltf::AccessorBoundsArray& position_accessor_bound) -> 
     };
 }
 
-[[nodiscard]]
-auto change_basis(const glm::vec3& vector) -> glm::vec3
+auto aabb_from_position_accessor(const fastgltf::Accessor& position_accessor) -> AABB<>
 {
-    return glm::vec3{
-        vector.x,
-        vector.y * -1.f,
-        vector.z * -1.f,
+    if (!position_accessor.min.has_value())
+    {
+        throw std::runtime_error{
+            "Invalid glTF: POSITION accessor MUST have \"min\" defined"
+        };
+    }
+    if (!position_accessor.max.has_value())
+    {
+        throw std::runtime_error{
+            "Invalid glTF: POSITION accessor MUST have \"max\" defined"
+        };
+    }
+
+    const glm::vec3 corrected_min{
+        apply_vulkan_basis_correction_on_position(vec3_from(*position_accessor.min))
     };
-}
-
-[[nodiscard]]
-auto change_basis(const glm::mat4& matrix) -> glm::mat4
-{
-    const glm::mat4x4 vulkan_basis_correction{
-        glm::scale(glm::identity<glm::mat4x4>(), glm::vec3{ 1.f, -1.f, -1.f })
+    const glm::vec3 corrected_max{
+        apply_vulkan_basis_correction_on_position(vec3_from(*position_accessor.max))
     };
-
-    return vulkan_basis_correction * matrix * vulkan_basis_correction;
-}
-
-[[nodiscard]]
-auto aabb_from(const fastgltf::Accessor& position_accessor) -> AABB<>
-{
-    PRECOND(position_accessor.min.has_value());
-    PRECOND(position_accessor.max.has_value());
-
-    const glm::vec3 corrected_min{ change_basis(vec3_from(*position_accessor.min)) };
-    const glm::vec3 corrected_max{ change_basis(vec3_from(*position_accessor.max)) };
 
     return AABB{
         .min = glm::min(corrected_min, corrected_max),
@@ -82,7 +97,8 @@ auto merge(const AABB<Repr_T>& lhs, const AABB<Repr_T>& rhs) -> AABB<Repr_T>
 
 template <typename Repr_T>
 [[nodiscard]]
-auto operator*(const glm::mat4& transform, const AABB<Repr_T>& aabb) -> AABB<Repr_T>
+auto operator*(const glm::mat<4, 4, Repr_T>& transform, const AABB<Repr_T>& aabb)
+    -> AABB<Repr_T>
 {
     const std::array corners{
         aabb.min,
@@ -100,7 +116,7 @@ auto operator*(const glm::mat4& transform, const AABB<Repr_T>& aabb) -> AABB<Rep
             corners,
             [&transform](const glm::vec<3, Repr_T>& corner) -> AABB<Repr_T>
             {
-                const auto transformed_corner{
+                const glm::vec<4, Repr_T> transformed_corner{
                     transform * glm::vec<4, Repr_T>{ corner, 1.f }
                 };
                 return AABB<Repr_T>{
@@ -116,7 +132,7 @@ auto operator*(const glm::mat4& transform, const AABB<Repr_T>& aabb) -> AABB<Rep
     );
 }
 
-auto bounding_box_of(const fastgltf::Asset& model, const size_t scene_index)
+auto aabb_of(const fastgltf::Asset& model, const size_t scene_index)
     -> std::optional<AABB<>>
 {
     std::optional<AABB<>> result{};
@@ -162,8 +178,11 @@ auto bounding_box_of(const fastgltf::Asset& model, const size_t scene_index)
                     };
                 }
 
-                if (const AABB<> aabb{ change_basis(glm::make_mat4(transform.data()))
-                                       * aabb_from(position_accessor) };
+                if (const AABB aabb{
+                        apply_vulkan_basis_correction_on_transform(
+                            glm::make_mat4(transform.data())
+                        ) * aabb_from_position_accessor(position_accessor),
+                    };
                     !result.has_value())
                 {
                     result = aabb;

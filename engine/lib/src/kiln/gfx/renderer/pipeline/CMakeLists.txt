@@ -1,4 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
+        ComputePipelineBuilder.cxx
         GraphicsPipelineBuilder.cxx
         RenderPass.cxx
 )
@@ -9,6 +10,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         pipeline.cppm
         ColorAttachment.ixx
+        ComputePipeline.ixx
+        ComputePipelineBuilder.ixx
         DepthAttachment.ixx
         GraphicsPipeline.ixx
         GraphicsPipelineBuilder.ixx

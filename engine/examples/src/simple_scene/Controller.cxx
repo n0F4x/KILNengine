@@ -25,8 +25,12 @@ auto dvec2_from(const kiln::wsi::Position2d& position) noexcept -> glm::dvec2
     return glm::dvec2{ position.x, position.y };
 }
 
-Controller::Controller(const kiln::wsi::WindowProxy& window) noexcept
-    : m_last_cursor_position{ dvec2_from(window.cursor_position()) }
+Controller::Controller(
+    const kiln::wsi::WindowProxy& window,
+    const double                  movement_speed
+) noexcept
+    : m_last_cursor_position{ dvec2_from(window.cursor_position()) },
+      m_movement_speed{ movement_speed }
 {
 }
 
@@ -46,7 +50,8 @@ auto Controller::update(const kiln::event::Timestamp timestamp) noexcept -> void
                       delta_time
                 )
                       .count()
-                * movement_sensitivity * 10.0;
+                * movement_sensitivity
+                * m_movement_speed;
 
     m_time = timestamp;
 }
