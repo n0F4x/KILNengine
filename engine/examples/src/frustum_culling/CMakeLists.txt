@@ -1,4 +1,4 @@
-project(simple_scene)
+project(frustum_culling)
 
 add_executable(${PROJECT_NAME})
 

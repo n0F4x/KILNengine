@@ -5,14 +5,14 @@ module;
 
 #include <kiln/util/contract_macros.hpp>
 
-module examples.simple_scene.workflow.Scene;
+module examples.frustum_culling.workflow.Scene;
 
 import vulkan_hpp;
 
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
-import examples.simple_scene.shaders;
+import examples.frustum_culling.shaders;
 
 namespace demo {
 

@@ -24,14 +24,14 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module examples.simple_scene.workflow.GltfModelLoader;
+module examples.frustum_culling.workflow.GltfModelLoader;
 
 import kiln.util.contracts;
 import kiln.util.Overloaded;
 
-import examples.simple_scene.algorithms;
-import examples.simple_scene.gltf_utils;
-import examples.simple_scene.shaders;
+import examples.frustum_culling.algorithms;
+import examples.frustum_culling.gltf_utils;
+import examples.frustum_culling.shaders;
 
 namespace demo {
 

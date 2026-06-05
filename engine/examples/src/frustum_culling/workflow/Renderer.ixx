@@ -3,7 +3,7 @@ module;
 #include <cstdint>
 #include <vector>
 
-export module examples.simple_scene.workflow.Renderer;
+export module examples.frustum_culling.workflow.Renderer;
 
 import vulkan_hpp;
 
@@ -22,8 +22,8 @@ import kiln.gfx.renderer.pipeline.GraphicsPipeline;
 import kiln.gfx.renderer.pipeline.ShaderModule;
 import kiln.gfx.renderer.presentation.RenderSurface;
 
-import examples.simple_scene.Camera;
-import examples.simple_scene.workflow.Scene;
+import examples.frustum_culling.Camera;
+import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 

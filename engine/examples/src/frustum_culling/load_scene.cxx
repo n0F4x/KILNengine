@@ -8,14 +8,14 @@ module;
 
 #include <fastgltf/core.hpp>
 
-module examples.simple_scene.load_scene;
+module examples.frustum_culling.load_scene;
 
 import kiln.util.Lazy;
 
-import examples.simple_scene.AABB;
-import examples.simple_scene.gltf_utils;
-import examples.simple_scene.workflow.load_scene;
-import examples.simple_scene.workflow.ModelDescription;
+import examples.frustum_culling.AABB;
+import examples.frustum_culling.gltf_utils;
+import examples.frustum_culling.workflow.load_scene;
+import examples.frustum_culling.workflow.ModelDescription;
 
 namespace demo {
 

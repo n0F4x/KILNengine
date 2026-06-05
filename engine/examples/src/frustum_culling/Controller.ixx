@@ -4,7 +4,7 @@ module;
 #include <glm/ext/vector_double2.hpp>
 #include <glm/ext/vector_double3.hpp>
 
-export module examples.simple_scene.Controller;
+export module examples.frustum_culling.Controller;
 
 import kiln.event.Timestamp;
 import kiln.wsi.event.Event;
@@ -13,7 +13,7 @@ import kiln.wsi.event.Key;
 import kiln.wsi.Position;
 import kiln.wsi.WindowProxy;
 
-import examples.simple_scene.Camera;
+import examples.frustum_culling.Camera;
 
 namespace demo {
 

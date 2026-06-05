@@ -14,7 +14,7 @@ module;
 #include <kiln/util/contract_macros.hpp>
 #include <kiln/util/lifetimebound.hpp>
 
-module examples.simple_scene.workflow.load_scene;
+module examples.frustum_culling.workflow.load_scene;
 
 import vulkan_hpp;
 
@@ -27,9 +27,9 @@ import kiln.gfx.renderer.stream.StagingStream;
 import kiln.util.contracts;
 import kiln.util.Lazy;
 
-import examples.simple_scene.shaders;
-import examples.simple_scene.workflow.GltfModelLoader;
-import examples.simple_scene.workflow.ModelDescription;
+import examples.frustum_culling.shaders;
+import examples.frustum_culling.workflow.GltfModelLoader;
+import examples.frustum_culling.workflow.ModelDescription;
 
 namespace demo {
 

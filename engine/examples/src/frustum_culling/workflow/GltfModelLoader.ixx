@@ -13,14 +13,14 @@ module;
 
 #include "kiln/util/lifetimebound.hpp"
 
-export module examples.simple_scene.workflow.GltfModelLoader;
+export module examples.frustum_culling.workflow.GltfModelLoader;
 
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.util.containers.CopyableFunction;
 
-import examples.simple_scene.AABB;
-import examples.simple_scene.shaders;
+import examples.frustum_culling.AABB;
+import examples.frustum_culling.shaders;
 
 namespace demo {
 

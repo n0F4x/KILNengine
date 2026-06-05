@@ -13,7 +13,7 @@ module;
 
 #include <kiln/util/contract_macros.hpp>
 
-module examples.simple_scene.Context;
+module examples.frustum_culling.Context;
 
 import vulkan_hpp;
 
@@ -42,15 +42,15 @@ import kiln.wsi.WindowedWindowSettings;
 import kiln.wsi.WindowHandle;
 import kiln.wsi.WindowProxy;
 
-import examples.simple_scene.AABB;
-import examples.simple_scene.Camera;
-import examples.simple_scene.Controller;
-import examples.simple_scene.gltf_utils;
-import examples.simple_scene.load_scene;
-import examples.simple_scene.SPSCQueue;
-import examples.simple_scene.workflow.ModelDescription;
-import examples.simple_scene.workflow.Renderer;
-import examples.simple_scene.workflow.Scene;
+import examples.frustum_culling.AABB;
+import examples.frustum_culling.Camera;
+import examples.frustum_culling.Controller;
+import examples.frustum_culling.gltf_utils;
+import examples.frustum_culling.load_scene;
+import examples.frustum_culling.SPSCQueue;
+import examples.frustum_culling.workflow.ModelDescription;
+import examples.frustum_culling.workflow.Renderer;
+import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 

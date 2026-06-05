@@ -7,7 +7,7 @@ module;
 
 #include <fastgltf/core.hpp>
 
-export module examples.simple_scene.workflow.ModelDescription;
+export module examples.frustum_culling.workflow.ModelDescription;
 
 namespace demo {
 

@@ -17,7 +17,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module examples.simple_scene.workflow.Renderer;
+module examples.frustum_culling.workflow.Renderer;
 
 import vulkan_hpp;
 
@@ -36,7 +36,7 @@ import kiln.gfx.renderer.pipeline.RenderPass;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
-import examples.simple_scene.shaders;
+import examples.frustum_culling.shaders;
 
 namespace demo {
 

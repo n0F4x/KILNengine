@@ -13,7 +13,7 @@ module;
 #include "modules/SBV.slang"
 #include "modules/Scene.slang"
 
-export module examples.simple_scene.shaders;
+export module examples.frustum_culling.shaders;
 
 namespace demo::shaders {
 

@@ -2,7 +2,7 @@ module;
 
 #include <glm/vec3.hpp>
 
-export module examples.simple_scene.AABB;
+export module examples.frustum_culling.AABB;
 
 namespace demo {
 

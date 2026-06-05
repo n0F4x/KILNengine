@@ -4,7 +4,7 @@ module;
 #include <memory_resource>
 #include <span>
 
-export module examples.simple_scene.workflow.load_scene;
+export module examples.frustum_culling.workflow.load_scene;
 
 import vulkan_hpp;
 
@@ -13,8 +13,8 @@ import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.stream.StagingStream;
 
-import examples.simple_scene.workflow.ModelDescription;
-import examples.simple_scene.workflow.Scene;
+import examples.frustum_culling.workflow.ModelDescription;
+import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 

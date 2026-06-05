@@ -8,9 +8,9 @@ module;
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/norm.hpp>
 
-module examples.simple_scene.algorithms;
+module examples.frustum_culling.algorithms;
 
-import examples.simple_scene.shaders;
+import examples.frustum_culling.shaders;
 
 namespace demo {
 

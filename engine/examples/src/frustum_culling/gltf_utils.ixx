@@ -6,9 +6,9 @@ module;
 
 #include <fastgltf/core.hpp>
 
-export module examples.simple_scene.gltf_utils;
+export module examples.frustum_culling.gltf_utils;
 
-import examples.simple_scene.AABB;
+import examples.frustum_culling.AABB;
 
 namespace demo {
 

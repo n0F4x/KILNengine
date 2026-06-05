@@ -4,7 +4,7 @@
 
 import kiln;
 
-import examples.simple_scene.Context;
+import examples.frustum_culling.Context;
 
 [[nodiscard]]
 auto default_model_path() -> std::filesystem::path

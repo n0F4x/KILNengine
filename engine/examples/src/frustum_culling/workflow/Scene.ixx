@@ -2,7 +2,7 @@ module;
 
 #include <cstdint>
 
-export module examples.simple_scene.workflow.Scene;
+export module examples.frustum_culling.workflow.Scene;
 
 import vulkan_hpp;
 

@@ -3,7 +3,7 @@ module;
 #include <filesystem>
 #include <functional>
 
-export module examples.simple_scene.Context;
+export module examples.frustum_culling.Context;
 
 import kiln.app.App;
 import kiln.app.Builder;
@@ -28,9 +28,9 @@ import kiln.wsi.Engine;
 import kiln.wsi.event.Event;
 import kiln.wsi.WindowProxy;
 
-import examples.simple_scene.SPSCQueue;
-import examples.simple_scene.workflow.Renderer;
-import examples.simple_scene.workflow.Scene;
+import examples.frustum_culling.SPSCQueue;
+import examples.frustum_culling.workflow.Renderer;
+import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 

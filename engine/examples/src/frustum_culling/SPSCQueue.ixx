@@ -15,7 +15,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module examples.simple_scene.SPSCQueue;
+export module examples.frustum_culling.SPSCQueue;
 
 import kiln.util.concepts.storable;
 import kiln.util.contracts;

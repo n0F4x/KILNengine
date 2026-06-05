@@ -4,14 +4,14 @@ module;
 #include <filesystem>
 #include <memory_resource>
 
-export module examples.simple_scene.load_scene;
+export module examples.frustum_culling.load_scene;
 
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.stream.StagingStream;
 
-import examples.simple_scene.workflow.Scene;
+import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 

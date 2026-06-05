@@ -4,7 +4,7 @@ module;
 #include <glm/ext/quaternion_double.hpp>
 #include <glm/ext/vector_double3.hpp>
 
-export module examples.simple_scene.Camera;
+export module examples.frustum_culling.Camera;
 
 namespace demo {
 

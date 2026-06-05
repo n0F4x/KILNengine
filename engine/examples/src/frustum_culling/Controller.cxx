@@ -8,7 +8,7 @@ module;
 #include <glm/ext/vector_int2.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-module examples.simple_scene.Controller;
+module examples.frustum_culling.Controller;
 
 import kiln.event.Timestamp;
 import kiln.wsi.CursorMode;

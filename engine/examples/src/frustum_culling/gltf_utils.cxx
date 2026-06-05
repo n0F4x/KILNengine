@@ -13,11 +13,11 @@ module;
 
 #include <kiln/util/contract_macros.hpp>
 
-module examples.simple_scene.gltf_utils;
+module examples.frustum_culling.gltf_utils;
 
 import kiln.util.contracts;
 
-import examples.simple_scene.AABB;
+import examples.frustum_culling.AABB;
 
 namespace demo {
 

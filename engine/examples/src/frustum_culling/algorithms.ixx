@@ -4,9 +4,9 @@ module;
 
 #include <glm/ext/vector_float3.hpp>
 
-export module examples.simple_scene.algorithms;
+export module examples.frustum_culling.algorithms;
 
-import examples.simple_scene.shaders;
+import examples.frustum_culling.shaders;
 
 namespace demo {
 
