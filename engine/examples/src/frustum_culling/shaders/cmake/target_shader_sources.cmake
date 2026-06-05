@@ -31,9 +31,9 @@ function(target_shader_sources TARGET)
                 VERBATIM
         )
 
-        string(MAKE_C_IDENTIFIER "${TARGET}_${SHADER_NAME}_spv_target" TARGET_DUMMY_NAME)
-        add_custom_target(${TARGET_DUMMY_NAME} DEPENDS "${SPV_OUT}")
+        string(MAKE_C_IDENTIFIER "${TARGET}_${SHADER_NAME}" SHADER_TARGET)
+        add_custom_target(${SHADER_TARGET} DEPENDS "${SPV_OUT}")
 
-        add_dependencies(${TARGET} ${TARGET_DUMMY_NAME})
+        add_dependencies(${TARGET} ${SHADER_TARGET})
     endforeach ()
 endfunction()
