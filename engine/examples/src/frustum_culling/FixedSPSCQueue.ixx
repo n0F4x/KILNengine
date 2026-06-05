@@ -24,7 +24,7 @@ import kiln.util.ScopeFail;
 namespace demo {
 
 template <typename T>
-class split_span_view : public std::ranges::view_base {
+class SplitSpanView : public std::ranges::view_base {
 public:
     class iterator {
     public:
@@ -132,7 +132,7 @@ public:
         }
 
     private:
-        friend class split_span_view;
+        friend class SplitSpanView;
 
         explicit iterator(
             const std::span<T>* first,
@@ -153,7 +153,7 @@ public:
         std::size_t         m_index{};
     };
 
-    explicit split_span_view(std::span<T> first, std::span<T> second) noexcept
+    explicit SplitSpanView(std::span<T> first, std::span<T> second) noexcept
         : m_first{ first },
           m_second{ second }
     {
@@ -187,10 +187,10 @@ private:
     std::span<T> m_second;
 };
 
-static_assert(std::ranges::view<split_span_view<int>>);
-static_assert(std::ranges::random_access_range<split_span_view<int>>);
-static_assert(std::ranges::sized_range<split_span_view<int>>);
-static_assert(std::ranges::common_range<split_span_view<int>>);
+static_assert(std::ranges::view<SplitSpanView<int>>);
+static_assert(std::ranges::random_access_range<SplitSpanView<int>>);
+static_assert(std::ranges::sized_range<SplitSpanView<int>>);
+static_assert(std::ranges::common_range<SplitSpanView<int>>);
 
 class SPSCQueuePrecondition {
 public:
@@ -248,10 +248,10 @@ public:
         requires std::move_constructible<T>;
     template <typename F>
         requires std::invocable<F, std::ranges::as_rvalue_view<std::span<T>>>
-              && std::invocable<F, std::ranges::as_rvalue_view<split_span_view<T>>>
+              && std::invocable<F, std::ranges::as_rvalue_view<SplitSpanView<T>>>
     auto pop_all(F&& callback) noexcept(
         std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<std::span<T>>>
-        && std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<split_span_view<T>>>
+        && std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<SplitSpanView<T>>>
     ) -> std::size_t;
 
 private:
@@ -479,10 +479,10 @@ auto FixedSPSCQueue<T>::try_pop() noexcept(std::is_nothrow_move_constructible_v<
 template <kiln::util::storable_c T>
 template <typename F>
     requires std::invocable<F, std::ranges::as_rvalue_view<std::span<T>>>
-          && std::invocable<F, std::ranges::as_rvalue_view<split_span_view<T>>>
+          && std::invocable<F, std::ranges::as_rvalue_view<SplitSpanView<T>>>
 auto FixedSPSCQueue<T>::pop_all(F&& callback) noexcept(
     std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<std::span<T>>>
-    && std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<split_span_view<T>>>
+    && std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<SplitSpanView<T>>>
 ) -> std::size_t
 {
     const std::size_t head{ m_head.load(std::memory_order_relaxed) };
@@ -520,7 +520,7 @@ auto FixedSPSCQueue<T>::pop_all(F&& callback) noexcept(
     else
     {
         const std::size_t     second_length{ count - first_length };
-        const split_span_view concatenated_spans{
+        const SplitSpanView concatenated_spans{
             std::span{ std::addressof(at(head)),  first_length },
             std::span{  std::addressof(at(0uz)), second_length }
         };
