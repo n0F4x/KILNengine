@@ -20,7 +20,6 @@ VertexOutput main(
 )
 {
     let primitive = scene.primitive(draw_index);
-    let material = scene.material(primitive);
     let instance_index = scene.instance_index(primitive, instance_id);
     let vertex_index = scene.vertex_index(primitive, vertex_id);
     let world_position = scene.world_position(primitive, instance_index, vertex_index);
@@ -31,7 +30,6 @@ VertexOutput main(
     output.world_position = world_position.xyz;
     output.clip_position = mul(camera.view_projection_matrix, world_position);
     output.world_normal = world_normal;
-    // output.color = color * material.base_color_factor;
     output.color
         = float4(
             (instance_id >> 0) & 1,
