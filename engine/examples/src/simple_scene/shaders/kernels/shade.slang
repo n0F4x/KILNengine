@@ -34,10 +34,10 @@ VertexOutput main(
     // output.color = color * material.base_color_factor;
     output.color
         = float4(
-            (draw_index >> 0) & 1,
-            (draw_index >> 1) & 1,
-            (draw_index >> 2) & 1,
-            (draw_index >> 3) & 1,
+            (instance_id >> 0) & 1,
+            (instance_id >> 1) & 1,
+            (instance_id >> 2) & 1,
+            (instance_id >> 3) & 1,
           );
     return output;
 }
