@@ -50,7 +50,7 @@ auto should_disable_culling(const std::span<const std::string_view> args) noexce
 [[nodiscard]]
 auto grid_size_from(
     const std::span<const std::string_view> args,
-    const uint32_t                          default_value = 7
+    const uint32_t                          default_value = 1
 ) -> uint32_t
 {
     for (const std::string_view arg : args)
