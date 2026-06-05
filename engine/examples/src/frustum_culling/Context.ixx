@@ -28,7 +28,7 @@ import kiln.wsi.Engine;
 import kiln.wsi.event.Event;
 import kiln.wsi.WindowProxy;
 
-import examples.frustum_culling.SPSCQueue;
+import examples.frustum_culling.FixedSPSCQueue;
 import examples.frustum_culling.workflow.Renderer;
 import examples.frustum_culling.workflow.Scene;
 

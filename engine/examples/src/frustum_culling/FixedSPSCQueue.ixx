@@ -15,7 +15,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module examples.frustum_culling.SPSCQueue;
+export module examples.frustum_culling.FixedSPSCQueue;
 
 import kiln.util.concepts.storable;
 import kiln.util.contracts;
@@ -201,25 +201,25 @@ public:
 };
 
 export template <kiln::util::storable_c T>
-class SPSCQueue : SPSCQueuePrecondition {
+class FixedSPSCQueue : SPSCQueuePrecondition {
 public:
     using value_type     = T;
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
-    SPSCQueue(const SPSCQueue&) = delete;
-    SPSCQueue(SPSCQueue&&)      = delete;
-    ~SPSCQueue();
+    FixedSPSCQueue(const FixedSPSCQueue&) = delete;
+    FixedSPSCQueue(FixedSPSCQueue&&)      = delete;
+    ~FixedSPSCQueue();
 
-    explicit SPSCQueue(std::size_t capacity);
-    explicit SPSCQueue(
+    explicit FixedSPSCQueue(std::size_t capacity);
+    explicit FixedSPSCQueue(
         std::allocator_arg_t,
         const allocator_type& allocator,
         std::size_t           capacity
     );
 
-    SPSCQueue& operator=(const SPSCQueue&) = delete;
-    SPSCQueue& operator=(SPSCQueue&&)      = delete;
+    FixedSPSCQueue& operator=(const FixedSPSCQueue&) = delete;
+    FixedSPSCQueue& operator=(FixedSPSCQueue&&)      = delete;
 
 
     [[nodiscard]]
@@ -274,7 +274,7 @@ private:
 namespace demo {
 
 template <kiln::util::storable_c T>
-SPSCQueue<T>::~SPSCQueue()
+FixedSPSCQueue<T>::~FixedSPSCQueue()
 {
     if constexpr (!std::is_trivially_destructible_v<T>)
     {
@@ -289,14 +289,14 @@ SPSCQueue<T>::~SPSCQueue()
 }
 
 template <kiln::util::storable_c T>
-SPSCQueue<T>::SPSCQueue(const std::size_t capacity)
+FixedSPSCQueue<T>::FixedSPSCQueue(const std::size_t capacity)
 
-    : SPSCQueue{ std::allocator_arg, std::pmr::get_default_resource(), capacity }
+    : FixedSPSCQueue{ std::allocator_arg, std::pmr::get_default_resource(), capacity }
 {
 }
 
 template <kiln::util::storable_c T>
-SPSCQueue<T>::SPSCQueue(
+FixedSPSCQueue<T>::FixedSPSCQueue(
     std::allocator_arg_t,
     const allocator_type& allocator,
     const std::size_t     capacity
@@ -310,26 +310,26 @@ SPSCQueue<T>::SPSCQueue(
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::get_allocator() const noexcept -> allocator_type
+auto FixedSPSCQueue<T>::get_allocator() const noexcept -> allocator_type
 {
     return allocator_type{ m_allocator };
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::capacity() const noexcept -> std::size_t
+auto FixedSPSCQueue<T>::capacity() const noexcept -> std::size_t
 {
     return m_capacity;
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::try_push(const T& value) -> bool
+auto FixedSPSCQueue<T>::try_push(const T& value) -> bool
     requires std::copy_constructible<T>
 {
     return try_emplace(value);
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::try_push(T&& value) -> bool
+auto FixedSPSCQueue<T>::try_push(T&& value) -> bool
     requires std::move_constructible<T>
 {
     return try_emplace(std::move(value));
@@ -338,7 +338,7 @@ auto SPSCQueue<T>::try_push(T&& value) -> bool
 template <kiln::util::storable_c T>
 template <typename... Args_T>
     requires std::constructible_from<T, Args_T&&...>
-auto SPSCQueue<T>::try_emplace(Args_T&&... args) -> bool
+auto FixedSPSCQueue<T>::try_emplace(Args_T&&... args) -> bool
 {
     const std::size_t tail{ m_tail.load(std::memory_order_relaxed) };
 
@@ -361,7 +361,7 @@ auto SPSCQueue<T>::try_emplace(Args_T&&... args) -> bool
 template <kiln::util::storable_c T>
 template <std::ranges::input_range R>
     requires std::constructible_from<T, std::ranges::range_reference_t<R>>
-auto SPSCQueue<T>::try_append_range(R&& values) -> std::size_t
+auto FixedSPSCQueue<T>::try_append_range(R&& values) -> std::size_t
 {
     const std::size_t tail{ m_tail.load(std::memory_order_relaxed) };
 
@@ -446,7 +446,7 @@ auto SPSCQueue<T>::try_append_range(R&& values) -> std::size_t
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::try_pop() noexcept(std::is_nothrow_move_constructible_v<T>)
+auto FixedSPSCQueue<T>::try_pop() noexcept(std::is_nothrow_move_constructible_v<T>)
     -> std::optional<T>
     requires std::move_constructible<T>
 {
@@ -480,7 +480,7 @@ template <kiln::util::storable_c T>
 template <typename F>
     requires std::invocable<F, std::ranges::as_rvalue_view<std::span<T>>>
           && std::invocable<F, std::ranges::as_rvalue_view<split_span_view<T>>>
-auto SPSCQueue<T>::pop_all(F&& callback) noexcept(
+auto FixedSPSCQueue<T>::pop_all(F&& callback) noexcept(
     std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<std::span<T>>>
     && std::is_nothrow_invocable_v<F, std::ranges::as_rvalue_view<split_span_view<T>>>
 ) -> std::size_t
@@ -541,7 +541,7 @@ auto SPSCQueue<T>::pop_all(F&& callback) noexcept(
 }
 
 template <kiln::util::storable_c T>
-auto SPSCQueue<T>::at(const std::size_t index) noexcept -> T&
+auto FixedSPSCQueue<T>::at(const std::size_t index) noexcept -> T&
 {
     return m_data[index & m_mask];
 }

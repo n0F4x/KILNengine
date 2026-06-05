@@ -29,7 +29,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         Camera.ixx
         Context.ixx
         Controller.ixx
+        FixedSPSCQueue.ixx
         gltf_utils.ixx
         load_scene.ixx
-        SPSCQueue.ixx
 )

@@ -47,7 +47,7 @@ import examples.frustum_culling.Camera;
 import examples.frustum_culling.Controller;
 import examples.frustum_culling.gltf_utils;
 import examples.frustum_culling.load_scene;
-import examples.frustum_culling.SPSCQueue;
+import examples.frustum_culling.FixedSPSCQueue;
 import examples.frustum_culling.workflow.ModelDescription;
 import examples.frustum_culling.workflow.Renderer;
 import examples.frustum_culling.workflow.Scene;
@@ -109,15 +109,15 @@ public:
     }
 
 private:
-    SPSCQueue<value_type> m_concurrent_queue{ max_enqueued_items };
+    FixedSPSCQueue<value_type> m_concurrent_queue{ max_enqueued_items };
 };
 
 struct Context::MainThread {
     using Task = kiln::util::MoveOnlyFunction<auto(MainThread&) &&->void>;
 
-    EventQueue        event_queue;
-    kiln::wsi::Engine wsi_engine{ event_queue };
-    SPSCQueue<Task>   work_queue{ max_enqueued_items };
+    EventQueue           event_queue;
+    kiln::wsi::Engine    wsi_engine{ event_queue };
+    FixedSPSCQueue<Task> work_queue{ max_enqueued_items };
 };
 
 auto Context::run_main_thread_loop(
