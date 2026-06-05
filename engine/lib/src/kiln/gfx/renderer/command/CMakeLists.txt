@@ -2,13 +2,16 @@ target_sources(${PROJECT_NAME} PRIVATE
         CommandBufferBase.cxx
         CommandPoolBase.cxx
         ComputeCommandBuffer.cxx
-        ComputeQueue.cxx
+        ComputeQueueRef.cxx
         GraphicsCommandBuffer.cxx
-        GraphicsQueue.cxx
-        QueueBase.cxx
+        GraphicsQueueRef.cxx
+        PresentQueueRef.cxx
+        Queue.cxx
+        QueueRef.cxx
+        QueueRefBase.cxx
         QueueProvider.cxx
         TransferCommandBuffer.cxx
-        TransferQueue.cxx
+        TransferQueueRef.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -22,16 +25,19 @@ target_sources(${PROJECT_NAME} PUBLIC
         CommandPoolFlags.ixx
         ComputeCommandBuffer.ixx
         ComputeCommandPool.ixx
-        ComputeQueue.ixx
+        ComputeQueueRef.ixx
         DependencyInfo.ixx
         GraphicsCommandBuffer.ixx
         GraphicsCommandPool.ixx
-        GraphicsQueue.ixx
-        QueueBase.ixx
+        GraphicsQueueRef.ixx
+        PresentQueueRef.ixx
+        Queue.ixx
+        QueueRef.ixx
+        QueueRefBase.ixx
         QueueProvider.ixx
         QueueProviderBuilder.ixx
         SubmitInfo.ixx
         TransferCommandBuffer.ixx
         TransferCommandPool.ixx
-        TransferQueue.ixx
+        TransferQueueRef.ixx
 )

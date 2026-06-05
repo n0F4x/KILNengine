@@ -9,10 +9,10 @@ import vulkan_hpp;
 
 import kiln.gfx.renderer.command.ComputeCommandBuffer;
 import kiln.gfx.renderer.command.ComputeCommandPool;
-import kiln.gfx.renderer.command.ComputeQueue;
+import kiln.gfx.renderer.command.ComputeQueueRef;
 import kiln.gfx.renderer.command.GraphicsCommandBuffer;
 import kiln.gfx.renderer.command.GraphicsCommandPool;
-import kiln.gfx.renderer.command.GraphicsQueue;
+import kiln.gfx.renderer.command.GraphicsQueueRef;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;

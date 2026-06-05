@@ -32,8 +32,8 @@ auto create_window(const kiln::app::Config& config, const kiln::wsi::Context& ws
 
 [[nodiscard]]
 auto create_graphics_command_pool(
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::GraphicsQueue& graphics_queue
+    const kiln::gfx::renderer::Device&           render_device,
+    const kiln::gfx::renderer::GraphicsQueueRef& graphics_queue
 ) -> kiln::gfx::renderer::GraphicsCommandPool
 {
     return kiln::gfx::renderer::GraphicsCommandPool{
@@ -45,10 +45,10 @@ auto create_graphics_command_pool(
 
 [[nodiscard]]
 auto create_graphics_command_pools(
-    const std::pmr::polymorphic_allocator<>&  allocator,
-    const kiln::gfx::renderer::Device&        render_device,
-    const kiln::gfx::renderer::GraphicsQueue& graphics_queue,
-    const uint8_t                             number_of_frames
+    const std::pmr::polymorphic_allocator<>&    allocator,
+    const kiln::gfx::renderer::Device&          render_device,
+    const kiln::gfx::renderer::GraphicsQueueRef graphics_queue,
+    const uint8_t                               number_of_frames
 ) -> std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool>
 {
     std::pmr::vector<kiln::gfx::renderer::GraphicsCommandPool> result{ allocator };
@@ -128,7 +128,7 @@ auto create_per_frame_fences(
 
 Context::Context(Context&& other, const allocator_type& allocator)
     : m_render_device_ref{ std::move(other.m_render_device_ref) },
-      m_graphics_queue{ std::move(other.m_graphics_queue) },
+      m_render_queue_provider_ref{ std::move(other.m_render_queue_provider_ref) },
       m_number_of_frames{ other.m_number_of_frames },
       m_current_frame_index{ other.m_current_frame_index },
       m_window{ std::move(other.m_window) },
@@ -159,7 +159,7 @@ Context::Context(
     : m_render_device_ref{
           render_device
 },
-      m_graphics_queue{ *render_queue_provider.graphics_queue() },
+      m_render_queue_provider_ref{ render_queue_provider },
       m_window{ create_window(config, wsi_context) },
       m_surface{
           kiln::gfx::vulkan::check_result(
@@ -196,7 +196,7 @@ Context::Context(
           create_graphics_command_pools(
               allocator,
               render_device,
-              m_graphics_queue,
+              *m_render_queue_provider_ref.get().graphics_queue(),
               m_number_of_frames
           )   //
       },
@@ -338,10 +338,14 @@ auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> vo
     submit_info.wait_semaphores().push_back(render_wait_semaphore_info);
     submit_info.signal_semaphores().push_back(render_finished_semaphore_info);
     submit_info.fence() = *m_render_finished_fences[m_current_frame_index];
-    m_graphics_queue.get().submit(graphics_command_buffer, submit_info);
+    m_render_queue_provider_ref.get().graphics_queue()->submit(
+        graphics_command_buffer,
+        submit_info
+    );
 
     m_surface.present(
-        m_graphics_queue,
+        *m_render_queue_provider_ref.get()
+             .graphics_queue_as<kiln::gfx::renderer::PresentQueueRef>(),
         *swapchain_image_index,
         std::span{ &*m_render_finished_semaphores[*swapchain_image_index], 1 }
     );

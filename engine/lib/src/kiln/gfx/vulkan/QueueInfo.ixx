@@ -11,9 +11,9 @@ import kiln.gfx.vulkan.QueueFamilyIndex;
 namespace kiln::gfx::vulkan {
 
 export struct QueueInfo {
-    QueueFamilyIndex family_index;
-    vk::QueueFlags   flags;
-    uint32_t         index;
+    QueueFamilyIndex           family_index;
+    vk::DeviceQueueCreateFlags flags;
+    uint32_t                   index;
 };
 
 }   // namespace kiln::gfx::vulkan

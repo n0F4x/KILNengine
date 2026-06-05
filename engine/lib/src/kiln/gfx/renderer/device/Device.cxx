@@ -1,12 +1,15 @@
 module;
 
 #include <algorithm>
+#include <cassert>
 #include <memory_resource>
 #include <ranges>
 #include <span>
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.device.Device;
 
@@ -18,6 +21,7 @@ import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.structure_chain.StructureChain;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueFamilyInfo;
+import kiln.util.contracts;
 import kiln.wsi.Context;
 import kiln.wsi.vulkan_queue_family_supports_presenting;
 
@@ -27,15 +31,17 @@ Device::Device(Device&& other, const allocator_type& allocator)
     : m_physical_device{ std::move(other.m_physical_device) },
       m_logical_device{ std::move(other.m_logical_device) },
       m_capabilities{ std::move(other.m_capabilities), allocator },
+      m_queue_family_infos{ std::move(other.m_queue_family_infos), allocator },
       m_queue_infos{ other.m_queue_infos }
 {
 }
 
 Device::Device(
-    vk::raii::PhysicalDevice&&           physical_device,
-    vk::raii::Device&&                   logical_device,
-    vulkan::PhysicalDeviceCapabilities&& capabilities,
-    const QueueInfos&                    queue_infos
+    vk::raii::PhysicalDevice&&                  physical_device,
+    vk::raii::Device&&                          logical_device,
+    vulkan::PhysicalDeviceCapabilities&&        capabilities,
+    std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
+    const QueueInfos&                           queue_infos
 )
     : Device{
           std::allocator_arg,   //
@@ -43,6 +49,7 @@ Device::Device(
           std::move(physical_device),
           std::move(logical_device),
           std::move(capabilities),
+          std::move(queue_family_infos),
           queue_infos,
       }
 {
@@ -50,15 +57,17 @@ Device::Device(
 
 Device::Device(
     std::allocator_arg_t,
-    const allocator_type&                allocator,
-    vk::raii::PhysicalDevice&&           physical_device,
-    vk::raii::Device&&                   logical_device,
-    vulkan::PhysicalDeviceCapabilities&& capabilities,
-    const QueueInfos&                    queue_infos
+    const allocator_type&                       allocator,
+    vk::raii::PhysicalDevice&&                  physical_device,
+    vk::raii::Device&&                          logical_device,
+    vulkan::PhysicalDeviceCapabilities&&        capabilities,
+    std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
+    const QueueInfos&                           queue_infos
 )
     : m_physical_device{ std::move(physical_device) },
       m_logical_device{ std::move(logical_device) },
       m_capabilities{ std::move(capabilities), allocator },
+      m_queue_family_infos{ std::move(queue_family_infos), allocator },
       m_queue_infos{ queue_infos }
 {
 }
@@ -81,6 +90,19 @@ auto Device::logical_device() const noexcept -> const vk::raii::Device&
 auto Device::capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&
 {
     return m_capabilities;
+}
+
+auto Device::queue_family(const vulkan::QueueFamilyIndex family_index) const noexcept
+    -> const vulkan::QueueFamilyInfo&
+{
+    PRECOND(family_index.underlying() < m_queue_family_infos.size());
+
+    const vulkan::QueueFamilyInfo& result{
+        m_queue_family_infos.at(family_index.underlying())
+    };
+    assert(result.index() == family_index);
+
+    return result;
 }
 
 auto Device::graphics_queue_info() const noexcept
@@ -165,11 +187,20 @@ auto device_queue_create_infos_from(
 ) -> std::pmr::vector<vk::DeviceQueueCreateInfo>
 {
     std::pmr::vector<vk::DeviceQueueCreateInfo> result{ allocator };
-    result.reserve(family_infos.size());
+    result.reserve(
+        std::ranges::fold_left(
+            std::views::transform(family_infos, &vulkan::QueueFamilyInfo::queue_count),
+            0,
+            std::plus{}
+        )
+    );
 
     for (const vulkan::QueueFamilyInfo& family_info : family_infos)
     {
-        result.push_back(static_cast<const vk::DeviceQueueCreateInfo&>(family_info));
+        for (const auto& create_info : family_info.create_infos())
+        {
+            result.push_back(static_cast<const vk::DeviceQueueCreateInfo&>(create_info));
+        }
     }
 
     return result;
@@ -248,15 +279,14 @@ auto Device::Builder::build(
     );
     capabilities.insert_features(supported_optional_features);
 
-    QueueInfos             queue_infos;
-    // TODO: use std::inplace_vector
-    const std::pmr::vector queue_family_infos{
+    QueueInfos       queue_infos;
+    std::pmr::vector queue_family_infos{
         create_queue_family_infos(
             instance,
             wsi_context,
             physical_device,
             queue_infos,
-            &transient_memory_resource
+            memory_arena.pool_allocator()
         )   //
     };
     const std::pmr::vector queue_create_infos{
@@ -283,6 +313,7 @@ auto Device::Builder::build(
         std::move(physical_device),
         std::move(device),
         std::move(capabilities),
+        std::move(queue_family_infos),
         queue_infos,
     };
 }
@@ -308,76 +339,24 @@ auto queue_family_is_full(
 }
 
 auto try_emplace_queue(
-    std::pmr::vector<vulkan::QueueFamilyInfo>& out,
-    const uint32_t                             queue_family_capacity,
-    const vulkan::QueueFamilyIndex             queue_family_index,
-    const vk::DeviceQueueCreateFlags           flags    = {},
-    const float                                priority = 0.5f
-) -> std::optional<uint32_t>
-{
-    if (queue_family_is_full(out, queue_family_capacity, queue_family_index))
-    {
-        return std::nullopt;
-    }
-
-    if (const auto iter{
-            std::ranges::find_if(
-                out,
-                [queue_family_index,
-                 flags](const vulkan::QueueFamilyInfo& family_info) -> bool
-                {
-                    return family_info.index() == queue_family_index
-                        && family_info.flags() == flags;
-                }
-            )   //
-        };
-        iter != out.cend())
-    {
-        iter->emplace_back(priority);
-        return iter->queue_count() - 1;
-    }
-
-    vulkan::QueueFamilyInfo& queue_family_info
-        = out.emplace_back(queue_family_index, flags);
-    queue_family_info.emplace_back(priority);
-    return queue_family_info.queue_count() - 1;
-}
-
-auto emplace_graphics_queue(
-    std::pmr::vector<vulkan::QueueFamilyInfo>& out,
-    const vulkan::Instance&                    instance,
-    const wsi::Context&                        wsi_context,
-    const vk::raii::PhysicalDevice&            physical_device
+    vulkan::QueueFamilyInfo&         out,
+    const vk::DeviceQueueCreateFlags flags    = {},
+    const float                      priority = 0.5f
 ) -> std::optional<vulkan::QueueInfo>
 {
-    for (auto&& [family_index, family_properties] : std::views::zip(
-             std::views::iota(uint32_t{}),
-             physical_device.getQueueFamilyProperties2()
-         ))
+    return out.try_emplace(flags, priority);
+}
+
+auto try_emplace_graphics_queue(const std::span<vulkan::QueueFamilyInfo> out)
+    -> std::optional<vulkan::QueueInfo>
+{
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
     {
-        // TODO: move presentation support logic elsewhere
-        if (family_properties.queueFamilyProperties.queueFlags
-                & vk::QueueFlagBits::eGraphics
-            && wsi::vulkan_queue_family_supports_presenting(
-                wsi_context,
-                instance.get(),
-                physical_device,
-                vulkan::QueueFamilyIndex{ family_index }
-            ))
+        if (queue_family_info.flags() & vk::QueueFlagBits::eGraphics
+            // TODO: move presentation support logic elsewhere
+            && queue_family_info.supports_presentation())
         {
-            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
-                    out,
-                    family_properties.queueFamilyProperties.queueCount,
-                    vulkan::QueueFamilyIndex{ family_index }
-                );
-                queue_index.has_value())
-            {
-                return vulkan::QueueInfo{
-                    .family_index = vulkan::QueueFamilyIndex{ family_index },
-                    .flags        = family_properties.queueFamilyProperties.queueFlags,
-                    .index        = *queue_index,
-                };
-            }
+            return try_emplace_queue(queue_family_info);
         }
     }
 
@@ -390,57 +369,22 @@ auto is_dedicated_compute_queue_family(const vk::QueueFlags flags) -> bool
     return flags & vk::QueueFlagBits::eCompute && !(flags & vk::QueueFlagBits::eGraphics);
 }
 
-auto emplace_compute_queue(
-    std::pmr::vector<vulkan::QueueFamilyInfo>& out,
-    const vk::raii::PhysicalDevice&            physical_device
-) -> std::optional<vulkan::QueueInfo>
+auto try_emplace_compute_queue(const std::span<vulkan::QueueFamilyInfo> out)
+    -> std::optional<vulkan::QueueInfo>
 {
-    const std::vector<vk::QueueFamilyProperties2> queue_family_properties{
-        physical_device.getQueueFamilyProperties2()
-    };
-
-    for (auto&& [family_index, family_properties] :
-         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
     {
-        if (is_dedicated_compute_queue_family(
-                family_properties.queueFamilyProperties.queueFlags
-            ))
+        if (is_dedicated_compute_queue_family(queue_family_info.flags()))
         {
-            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
-                    out,
-                    family_properties.queueFamilyProperties.queueCount,
-                    vulkan::QueueFamilyIndex{ family_index }
-                );
-                queue_index.has_value())
-            {
-                return vulkan::QueueInfo{
-                    .family_index = vulkan::QueueFamilyIndex{ family_index },
-                    .flags        = family_properties.queueFamilyProperties.queueFlags,
-                    .index        = *queue_index,
-                };
-            }
+            return try_emplace_queue(queue_family_info);
         }
     }
 
-    for (auto&& [family_index, family_properties] :
-         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
     {
-        if (family_properties.queueFamilyProperties.queueFlags
-            & vk::QueueFlagBits::eCompute)
+        if (queue_family_info.flags() & vk::QueueFlagBits::eCompute)
         {
-            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
-                    out,
-                    family_properties.queueFamilyProperties.queueCount,
-                    vulkan::QueueFamilyIndex{ family_index }
-                );
-                queue_index.has_value())
-            {
-                return vulkan::QueueInfo{
-                    .family_index = vulkan::QueueFamilyIndex{ family_index },
-                    .flags        = family_properties.queueFamilyProperties.queueFlags,
-                    .index        = *queue_index,
-                };
-            }
+            return try_emplace_queue(queue_family_info);
         }
     }
 
@@ -455,57 +399,22 @@ auto is_dedicated_transfer_queue_family(const vk::QueueFlags flags) -> bool
         && !(flags & vk::QueueFlagBits::eCompute);
 }
 
-auto emplace_transfer_queue(
-    std::pmr::vector<vulkan::QueueFamilyInfo>& out,
-    const vk::raii::PhysicalDevice&            physical_device
-) -> std::optional<vulkan::QueueInfo>
+auto try_emplace_transfer_queue(const std::span<vulkan::QueueFamilyInfo> out)
+    -> std::optional<vulkan::QueueInfo>
 {
-    const std::vector<vk::QueueFamilyProperties2> queue_family_properties{
-        physical_device.getQueueFamilyProperties2()
-    };
-
-    for (auto&& [family_index, family_properties] :
-         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
     {
-        if (is_dedicated_transfer_queue_family(
-                family_properties.queueFamilyProperties.queueFlags
-            ))
+        if (is_dedicated_transfer_queue_family(queue_family_info.flags()))
         {
-            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
-                    out,
-                    family_properties.queueFamilyProperties.queueCount,
-                    vulkan::QueueFamilyIndex{ family_index }
-                );
-                queue_index.has_value())
-            {
-                return vulkan::QueueInfo{
-                    .family_index = vulkan::QueueFamilyIndex{ family_index },
-                    .flags        = family_properties.queueFamilyProperties.queueFlags,
-                    .index        = *queue_index,
-                };
-            }
+            return try_emplace_queue(queue_family_info);
         }
     }
 
-    for (auto&& [family_index, family_properties] :
-         std::views::zip(std::views::iota(uint32_t{}), queue_family_properties))
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
     {
-        if (family_properties.queueFamilyProperties.queueFlags
-            & vk::QueueFlagBits::eTransfer)
+        if (queue_family_info.flags() & vk::QueueFlagBits::eTransfer)
         {
-            if (const std::optional<uint32_t> queue_index = try_emplace_queue(
-                    out,
-                    family_properties.queueFamilyProperties.queueCount,
-                    vulkan::QueueFamilyIndex{ family_index }
-                );
-                queue_index.has_value())
-            {
-                return vulkan::QueueInfo{
-                    .family_index = vulkan::QueueFamilyIndex{ family_index },
-                    .flags        = family_properties.queueFamilyProperties.queueFlags,
-                    .index        = *queue_index,
-                };
-            }
+            return try_emplace_queue(queue_family_info);
         }
     }
 
@@ -520,22 +429,39 @@ auto Device::Builder::create_queue_family_infos(
     const std::pmr::polymorphic_allocator<>& allocator
 ) const -> std::pmr::vector<vulkan::QueueFamilyInfo>
 {
+    const auto queue_family_properties{ physical_device.getQueueFamilyProperties2() };
+
     std::pmr::vector<vulkan::QueueFamilyInfo> result{ allocator };
+    result.reserve(queue_family_properties.size());
+    for (auto&& [index, properties] : std::views::enumerate(queue_family_properties))
+    {
+        const vulkan::QueueFamilyIndex family_index{
+            static_cast<vulkan::QueueFamilyIndex::Underlying>(index)
+        };
+        result.emplace_back(
+            family_index,
+            properties,
+            wsi::vulkan_queue_family_supports_presenting(
+                wsi_context,
+                instance.get(),
+                physical_device,
+                family_index
+            )
+        );
+    }
 
     if (m_requested_queue_types & QueueType::eGraphics)
     {
-        out_queue_infos.graphics_queue_info
-            = emplace_graphics_queue(result, instance, wsi_context, physical_device);
+        out_queue_infos.graphics_queue_info = try_emplace_graphics_queue(result);
     }
     if (m_requested_queue_types & QueueType::eCompute)
     {
-        out_queue_infos.compute_queue_info
-            = emplace_compute_queue(result, physical_device);
+        out_queue_infos.compute_queue_info = try_emplace_compute_queue(result);
     }
     if (m_requested_queue_types & QueueType::eHostToDeviceTransfer)
     {
         out_queue_infos.host_to_device_transfer_queue_info
-            = emplace_transfer_queue(result, physical_device);
+            = try_emplace_transfer_queue(result);
     }
 
     return result;

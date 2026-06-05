@@ -50,7 +50,7 @@ public:
 
 private:
     std::reference_wrapper<const kiln::gfx::renderer::Device>  m_render_device_ref;
-    std::reference_wrapper<kiln::gfx::renderer::GraphicsQueue> m_graphics_queue;
+    std::reference_wrapper<kiln::gfx::renderer::QueueProvider> m_render_queue_provider_ref;
     uint8_t                                                    m_number_of_frames{ 2 };
     uint8_t                                                    m_current_frame_index{};
     kiln::wsi::Window                                          m_window;

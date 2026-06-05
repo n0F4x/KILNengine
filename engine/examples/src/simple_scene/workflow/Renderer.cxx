@@ -24,6 +24,7 @@ import vulkan_hpp;
 import kiln.gfx.renderer.command.CommandBufferBase;
 import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.renderer.command.DependencyInfo;
+import kiln.gfx.renderer.command.PresentQueueRef;
 import kiln.gfx.renderer.command.SubmitInfo;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Image;
@@ -531,7 +532,7 @@ auto Renderer::render(
 
 
     surface.present(
-        *queue_provider.graphics_queue(),
+        *queue_provider.graphics_queue_as<kiln::gfx::renderer::PresentQueueRef>(),
         *swapchain_image_index,
         std::span{ &*m_render_finished_semaphores[*swapchain_image_index], 1 }
     );
@@ -694,12 +695,8 @@ auto Renderer::frustum_cull(
 
 
     const kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
-    queue_provider.graphics_queue()->submit(
-        static_cast<kiln::gfx::renderer::GraphicsCommandBuffer&>(
-            static_cast<kiln::gfx::renderer::CommandBufferBase&>(command_buffer)
-        ),
-        submit_info
-    );
+    queue_provider.graphics_queue_as<kiln::gfx::renderer::ComputeQueueRef>()
+        ->submit(command_buffer, submit_info);
 }
 
 auto Renderer::generate_draw_commands(
@@ -839,12 +836,8 @@ auto Renderer::generate_draw_commands(
 
 
     const kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
-    queue_provider.graphics_queue()->submit(
-        static_cast<kiln::gfx::renderer::GraphicsCommandBuffer&>(
-            static_cast<kiln::gfx::renderer::CommandBufferBase&>(command_buffer)
-        ),
-        submit_info
-    );
+    queue_provider.graphics_queue_as<kiln::gfx::renderer::ComputeQueueRef>()
+        ->submit(command_buffer, submit_info);
 }
 
 auto Renderer::generate_instance_indices(
@@ -927,12 +920,8 @@ auto Renderer::generate_instance_indices(
 
 
     const kiln::gfx::renderer::SubmitInfo submit_info{ &transient_memory_resource };
-    queue_provider.graphics_queue()->submit(
-        static_cast<kiln::gfx::renderer::GraphicsCommandBuffer&>(
-            static_cast<kiln::gfx::renderer::CommandBufferBase&>(command_buffer)
-        ),
-        submit_info
-    );
+    queue_provider.graphics_queue_as<kiln::gfx::renderer::ComputeQueueRef>()
+        ->submit(command_buffer, submit_info);
 }
 
 auto Renderer::draw(

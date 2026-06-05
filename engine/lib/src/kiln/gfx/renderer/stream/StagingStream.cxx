@@ -24,7 +24,7 @@ import kiln.util.reflection;
 namespace kiln::gfx::renderer {
 
 StagingStream::StagingStream(StagingStream&& other, const allocator_type& allocator)
-    : m_queue_ref{ other.m_queue_ref },
+    : m_queue{ other.m_queue },
       m_command_pool{ std::move(other.m_command_pool) },
       m_command_buffer{ std::move(other.m_command_buffer) },
       m_memory_pool{ std::move(other.m_memory_pool), allocator },
@@ -38,7 +38,7 @@ StagingStream::StagingStream(StagingStream&& other, const allocator_type& alloca
 {
 }
 
-StagingStream::StagingStream(const Device& device, TransferQueue& queue)
+StagingStream::StagingStream(const Device& device, const TransferQueueRef queue)
     : StagingStream{
           std::allocator_arg,
           std::pmr::get_default_resource(),
@@ -57,11 +57,11 @@ auto create_fence(const vk::raii::Device& device) -> vk::raii::Fence
 
 StagingStream::StagingStream(
     std::allocator_arg_t,
-    const allocator_type& allocator,
-    const Device&         device,
-    TransferQueue&        queue
+    const allocator_type&  allocator,
+    const Device&          device,
+    const TransferQueueRef queue
 )
-    : m_queue_ref{ queue },
+    : m_queue{ queue },
       m_command_pool{ device, queue.family_index() },
       m_command_buffer{
           m_command_pool.allocate_primary(CommandBufferUsageFlags::eReusable)
@@ -200,7 +200,7 @@ auto StagingStream::flush(Allocator& allocator, SubmitInfo&& submit_info) -> voi
         allocator.flush(staging_buffer);
     }
 
-    m_queue_ref.get().submit(m_command_buffer, submit_info);
+    m_queue.submit(m_command_buffer, submit_info);
 }
 
 }   // namespace kiln::gfx::renderer

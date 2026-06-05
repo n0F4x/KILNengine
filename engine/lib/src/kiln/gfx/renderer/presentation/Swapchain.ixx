@@ -9,7 +9,7 @@ export module kiln.gfx.renderer.presentation.Swapchain;
 
 import vulkan_hpp;
 
-import kiln.gfx.renderer.command.QueueBase;
+import kiln.gfx.renderer.command.PresentQueueRef;
 import kiln.gfx.renderer.device.Device;
 import kiln.util.containers.OptionalRef;
 
@@ -45,7 +45,7 @@ public:
     ) -> std::optional<uint32_t>;
 
     auto present(
-        QueueBase&                     queue,
+        const PresentQueueRef&         queue,
         uint32_t                       image_index,
         std::span<const vk::Semaphore> wait_semaphores
     ) -> bool;

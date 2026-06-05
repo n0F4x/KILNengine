@@ -256,7 +256,7 @@ auto Swapchain::acquire_next_image_index(
 }
 
 auto Swapchain::present(
-    QueueBase&                           queue,
+    const PresentQueueRef&               queue,
     const uint32_t                       image_index,
     const std::span<const vk::Semaphore> wait_semaphores
 ) -> bool
@@ -273,16 +273,9 @@ auto Swapchain::present(
         .pSwapchains        = &*m_swapchain,
         .pImageIndices      = &image_index,
     };
-    const std::variant result
-        = vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
-            // TODO: use C++ method when it handles out of date result
-            queue.get().getDispatcher()->vkQueuePresentKHR(
-                *queue.get(),
-                reinterpret_cast<const vk::PresentInfoKHR::NativeType*>(&present_info)
-            )
-        );
 
-    if (std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(
+    if (const std::variant result = queue.present(present_info);
+        std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(
             result
         ))
     {

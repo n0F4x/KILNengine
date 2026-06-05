@@ -18,9 +18,8 @@ module examples.simple_scene.Context;
 import vulkan_hpp;
 
 import kiln.event.Timestamp;
-import kiln.gfx.renderer.command.QueueBase;
+import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueProvider;
-import kiln.gfx.renderer.command.TransferQueue;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
@@ -57,10 +56,12 @@ namespace demo {
 
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue
-auto select_staging_queue(const kiln::gfx::renderer::QueueBase& queue)
-    -> std::optional<uint32_t>
+auto select_staging_queue(
+    const kiln::gfx::renderer::Queue&,
+    const kiln::gfx::renderer::QueueType queue_type
+) -> std::optional<uint32_t>
 {
-    switch (queue.type())
+    switch (queue_type)
     {
         case kiln::gfx::renderer::QueueType::eGraphics:             return 0;
         case kiln::gfx::renderer::QueueType::eCompute:              return 1;
@@ -77,9 +78,7 @@ Context::Context(
           std::allocator_arg,
           memory_arena.pool_allocator(),
           render_device,
-          static_cast<kiln::gfx::renderer::TransferQueue&>(
-              *render_queue_provider.select_queue(select_staging_queue)
-          ),
+          render_queue_provider.select_queue(select_staging_queue)->as_transfer_queue(),
       }
 {
 }

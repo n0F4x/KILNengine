@@ -19,6 +19,7 @@ import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.PhysicalDeviceFilter;
+import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueFamilyInfo;
 import kiln.gfx.vulkan.QueueInfo;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
@@ -45,18 +46,20 @@ public:
     Device(Device&&, const allocator_type& allocator);
 
     explicit Device(
-        vk::raii::PhysicalDevice&&           physical_device,
-        vk::raii::Device&&                   logical_device,
-        vulkan::PhysicalDeviceCapabilities&& capabilities,
-        const QueueInfos&                    queue_infos
+        vk::raii::PhysicalDevice&&                  physical_device,
+        vk::raii::Device&&                          logical_device,
+        vulkan::PhysicalDeviceCapabilities&&        capabilities,
+        std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
+        const QueueInfos&                           queue_infos
     );
     explicit Device(
         std::allocator_arg_t,
-        const allocator_type&                allocator,
-        vk::raii::PhysicalDevice&&           physical_device,
-        vk::raii::Device&&                   logical_device,
-        vulkan::PhysicalDeviceCapabilities&& capabilities,
-        const QueueInfos&                    queue_infos
+        const allocator_type&                       allocator,
+        vk::raii::PhysicalDevice&&                  physical_device,
+        vk::raii::Device&&                          logical_device,
+        vulkan::PhysicalDeviceCapabilities&&        capabilities,
+        std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
+        const QueueInfos&                           queue_infos
     );
 
 
@@ -69,6 +72,9 @@ public:
     [[nodiscard]]
     auto capabilities() const noexcept -> const vulkan::PhysicalDeviceCapabilities&;
     [[nodiscard]]
+    auto queue_family(vulkan::QueueFamilyIndex family_index) const noexcept
+        -> const vulkan::QueueFamilyInfo&;
+    [[nodiscard]]
     auto graphics_queue_info() const noexcept
         -> util::OptionalRef<const vulkan::QueueInfo>;
     [[nodiscard]]
@@ -79,10 +85,11 @@ public:
         -> util::OptionalRef<const vulkan::QueueInfo>;
 
 private:
-    vk::raii::PhysicalDevice           m_physical_device;
-    vk::raii::Device                   m_logical_device;
-    vulkan::PhysicalDeviceCapabilities m_capabilities;
-    QueueInfos                         m_queue_infos;
+    vk::raii::PhysicalDevice                  m_physical_device;
+    vk::raii::Device                          m_logical_device;
+    vulkan::PhysicalDeviceCapabilities        m_capabilities;
+    std::pmr::vector<vulkan::QueueFamilyInfo> m_queue_family_infos;
+    QueueInfos                                m_queue_infos;
 };
 
 class Device::Builder : public app::ContextBuilderInterface {

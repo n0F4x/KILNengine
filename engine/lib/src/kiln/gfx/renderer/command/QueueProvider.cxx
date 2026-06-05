@@ -1,76 +1,99 @@
 module;
 
-#include <cstdint>
-#include <functional>
 #include <optional>
-#include <vector>
+#include <utility>
+
+#include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.command.QueueProvider;
 
 import kiln.gfx.vulkan.QueueInfo;
 import kiln.gfx.vulkan.result.check_result;
+import kiln.util.containers.OptionalRef;
+import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-QueueProvider::QueueProvider(Queues&& queues) : m_queues{ std::move(queues) } {}
-
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto QueueProvider::graphics_queue() -> util::OptionalRef<GraphicsQueue>
+// ReSharper disable once CppNotAllPathsReturnValue
+auto QueueIndices::at(const QueueType type) noexcept -> std::optional<uint32_t>&
 {
-    if (m_queues.graphics_queue_pack.has_value())
+    switch (type)
     {
-        return *m_queues.graphics_queue_pack;
+        using enum QueueType;
+        case eGraphics:             return graphics_queue_index;
+        case eCompute:              return compute_queue_index;
+        case eHostToDeviceTransfer: return host_to_device_transfer_queue_index;
     }
-    return std::nullopt;
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto QueueProvider::compute_queue() -> util::OptionalRef<ComputeQueue>
+// ReSharper disable once CppNotAllPathsReturnValue
+auto QueueIndices::at(const QueueType type) const noexcept
+    -> const std::optional<uint32_t>&
 {
-    if (m_queues.compute_queue_pack.has_value())
+    switch (type)
     {
-        return *m_queues.compute_queue_pack;
+        using enum QueueType;
+        case eGraphics:             return graphics_queue_index;
+        case eCompute:              return compute_queue_index;
+        case eHostToDeviceTransfer: return host_to_device_transfer_queue_index;
     }
-    return std::nullopt;
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto QueueProvider::host_to_device_transfer_queue() -> util::OptionalRef<TransferQueue>
+QueueProviderPrecondition::QueueProviderPrecondition(
+    const std::array<std::optional<Queue>, 3>& queues,
+    const QueueIndices&                        queue_indices
+)
 {
-    if (m_queues.host_to_device_transfer_queue_pack.has_value())
+    if (queue_indices.compute_queue_index.has_value())
     {
-        return *m_queues.host_to_device_transfer_queue_pack;
+        PRECOND(queues[*queue_indices.compute_queue_index].has_value());
+        PRECOND(
+            queues[*queue_indices.compute_queue_index]->flags()
+            & vk::QueueFlagBits::eCompute
+        );
     }
-    return std::nullopt;
+    if (queue_indices.graphics_queue_index.has_value())
+    {
+        PRECOND(queues[*queue_indices.graphics_queue_index].has_value());
+        PRECOND(
+            queues[*queue_indices.graphics_queue_index]->flags()
+            & vk::QueueFlagBits::eGraphics
+        );
+    }
+    if (queue_indices.host_to_device_transfer_queue_index.has_value())
+    {
+        PRECOND(queues[*queue_indices.host_to_device_transfer_queue_index].has_value());
+        PRECOND(
+            queues[*queue_indices.host_to_device_transfer_queue_index]->flags()
+            & vk::QueueFlagBits::eTransfer
+        );
+    }
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-auto QueueProvider::available_queues() -> std::vector<std::reference_wrapper<QueueBase>>
+QueueProvider::QueueProvider(
+    std::array<std::optional<Queue>, 3>&& queues,
+    const QueueIndices&                   queue_indices
+)
+    : QueueProviderPrecondition{ queues, queue_indices },
+      m_queues{ std::move(queues) },
+      m_queue_indices{ queue_indices }
 {
-    // TODO: use std::views::concat(optional_queues...);
-    std::vector<std::reference_wrapper<QueueBase>> result;
+}
 
-    uint32_t queue_count{};
-    if (m_queues.graphics_queue_pack.has_value())
-    {
-        ++queue_count;
-    }
-    if (m_queues.host_to_device_transfer_queue_pack.has_value())
-    {
-        ++queue_count;
-    }
-    result.reserve(queue_count);
+auto QueueProvider::graphics_queue() noexcept -> std::optional<GraphicsQueueRef>
+{
+    return graphics_queue_as<GraphicsQueueRef>();
+}
 
-    if (m_queues.graphics_queue_pack.has_value())
-    {
-        result.push_back(*m_queues.graphics_queue_pack);
-    }
-    if (m_queues.host_to_device_transfer_queue_pack.has_value())
-    {
-        result.push_back(*m_queues.host_to_device_transfer_queue_pack);
-    }
+auto QueueProvider::compute_queue() noexcept -> std::optional<ComputeQueueRef>
+{
+    return compute_queue_as<ComputeQueueRef>();
+}
 
-    return result;
+auto QueueProvider::host_to_device_transfer_queue() noexcept
+    -> std::optional<TransferQueueRef>
+{
+    return host_to_device_transfer_queue_as<TransferQueueRef>();
 }
 
 auto QueueProvider::Builder::create(
@@ -95,47 +118,84 @@ auto QueueProvider::Builder::create(
     return Builder{};
 }
 
+[[nodiscard]]
+auto find_queue_slot_index(
+    const std::array<std::optional<Queue>, 3>& queue_slots,
+    const vulkan::QueueInfo&                   queue_info
+) -> std::optional<uint32_t>
+{
+    for (uint32_t index{}; index < queue_slots.size(); ++index)
+    {
+        if (!queue_slots[index].has_value())
+        {
+            return std::nullopt;
+        }
+
+        if (const Queue& queue{ *queue_slots[index] };
+            queue.family_index() == queue_info.family_index
+            && queue.index() == queue_info.index)
+        {
+            return index;
+        }
+    }
+
+    return std::nullopt;
+}
+
+[[nodiscard]]
+auto next_empty_queue_slot_index(const std::array<std::optional<Queue>, 3>& queue_slots)
+    -> uint32_t
+{
+    for (uint32_t index{}; index < queue_slots.size(); ++index)
+    {
+        if (!queue_slots[index].has_value())
+        {
+            return index;
+        }
+    }
+    std::unreachable();
+}
+
 auto QueueProvider::Builder::build(const Device& device) -> QueueProvider
 {
-    const auto queue_pack_from{
-        [&device]<typename Queue_T>(std::in_place_type_t<Queue_T>, const QueueType type)
-            -> auto
+    std::array<std::optional<Queue>, 3> queue_slots{};
+    QueueIndices                        queue_indices;
+
+    const auto assign{
+        [&device, &queue_slots](
+            const util::OptionalRef<const vulkan::QueueInfo> queue_info,
+            std::optional<uint32_t>&                         queue_index
+        ) -> void
         {
-            return [&device, type](const vulkan::QueueInfo& info) -> Queue_T
+            if (queue_info.has_value())
             {
-                return Queue_T{
-                    type,
-                    info.family_index,
-                    info.flags,
-                    info.index,
-                    vulkan::check_result(device.logical_device().getQueue2(
-                        vk::DeviceQueueInfo2{
-                            .queueFamilyIndex = info.family_index.underlying(),
-                            .queueIndex       = info.index,
-                        }
-                    )),
+                std::optional<uint32_t> queue_slot_index{
+                    find_queue_slot_index(queue_slots, *queue_info)
                 };
-            };
-        }
+                if (!queue_slot_index.has_value())
+                {
+                    queue_slot_index = next_empty_queue_slot_index(queue_slots);
+                    queue_slots[*queue_slot_index].emplace(
+                        device,
+                        queue_info->family_index,
+                        device.queue_family(queue_info->family_index).flags(),
+                        queue_info->index
+                    );
+                }
+                queue_index = *queue_slot_index;
+            }
+        },
     };
 
-    Queues queues{
-        .graphics_queue_pack = device.graphics_queue_info().transform(
-            queue_pack_from(std::in_place_type<GraphicsQueue>, QueueType::eGraphics)
-        ),
-        .compute_queue_pack = device.compute_queue_info().transform(
-            queue_pack_from(std::in_place_type<ComputeQueue>, QueueType::eCompute)
-        ),
-        .host_to_device_transfer_queue_pack
-        = device.host_to_device_transfer_queue_info().transform(
-            queue_pack_from(
-                std::in_place_type<TransferQueue>,
-                QueueType::eHostToDeviceTransfer
-            )   //
-        ),
-    };
+    assign(device.compute_queue_info(), queue_indices.compute_queue_index);
+    assign(device.graphics_queue_info(), queue_indices.graphics_queue_index);
+    assign(
+        device.host_to_device_transfer_queue_info(),
+        queue_indices.host_to_device_transfer_queue_index
+    );
 
-    return QueueProvider{ std::move(queues) };
+
+    return QueueProvider{ std::move(queue_slots), queue_indices };
 }
 
 }   // namespace kiln::gfx::renderer
