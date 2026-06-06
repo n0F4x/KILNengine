@@ -39,9 +39,8 @@ public:
         [[nodiscard]]
         auto operator*() const -> reference
         {
-            PRECOND(m_first != nullptr && m_second != nullptr);
-            return m_index < m_first_size ? (*m_first)[m_index]
-                                          : (*m_second)[m_index - m_first_size];
+            return m_index < m_first.size() ? m_first[m_index]
+                                            : m_second[m_index - m_first.size()];
         }
 
         [[nodiscard]]
@@ -87,7 +86,7 @@ public:
         [[nodiscard]]
         auto operator+(const difference_type difference) const noexcept -> iterator
         {
-            return iterator{ m_first, m_second, m_first_size, m_index + difference };
+            return iterator{ m_first, m_second, m_index + difference };
         }
 
         [[nodiscard]]
@@ -115,7 +114,7 @@ public:
         auto operator-(const difference_type difference) const -> iterator
         {
             PRECOND(m_index >= difference);
-            return iterator{ m_first, m_second, m_first_size, m_index - difference };
+            return iterator{ m_first, m_second, m_index - difference };
         }
 
         auto operator-=(const difference_type difference) -> iterator&
@@ -135,22 +134,19 @@ public:
         friend class SplitSpanView;
 
         explicit iterator(
-            const std::span<T>* first,
-            const std::span<T>* second,
-            const std::size_t   first_size,
-            const std::size_t   index
+            const std::span<T> first,
+            const std::span<T> second,
+            const std::size_t  index
         ) noexcept
             : m_first{ first },
               m_second{ second },
-              m_first_size{ first_size },
               m_index{ index }
         {
         }
 
-        const std::span<T>* m_first{};
-        const std::span<T>* m_second{};
-        std::size_t         m_first_size{};
-        std::size_t         m_index{};
+        std::span<T> m_first{};
+        std::span<T> m_second{};
+        std::size_t  m_index{};
     };
 
     explicit SplitSpanView(std::span<T> first, std::span<T> second) noexcept
@@ -162,16 +158,15 @@ public:
     [[nodiscard]]
     auto begin() const noexcept -> iterator
     {
-        return iterator{ &m_first, &m_second, m_first.size(), 0uz };
+        return iterator{ m_first, m_second, 0uz };
     }
 
     [[nodiscard]]
     auto end() const noexcept -> iterator
     {
         return iterator{
-            &m_first,
-            &m_second,
-            m_first.size(),
+            m_first,
+            m_second,
             m_first.size() + m_second.size(),
         };
     }
@@ -519,7 +514,7 @@ auto FixedSPSCQueue<T>::pop_all(F&& callback) noexcept(
     }
     else
     {
-        const std::size_t     second_length{ count - first_length };
+        const std::size_t   second_length{ count - first_length };
         const SplitSpanView concatenated_spans{
             std::span{ std::addressof(at(head)),  first_length },
             std::span{  std::addressof(at(0uz)), second_length }
