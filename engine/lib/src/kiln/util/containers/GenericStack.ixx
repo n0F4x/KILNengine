@@ -67,8 +67,7 @@ public:
     using Any = Any_T;
 
     // required for interfacing with the standard
-    using allocator_type =   // NOLINT(*-identifier-naming)
-        std::pmr::polymorphic_allocator<>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
     BasicGenericStack() = default;
@@ -292,7 +291,10 @@ auto BasicGenericStack<Any_T>::resolve_dependencies()
 
             PRECOND(
                 contains<Dependency>(),
-                std::format("Item dependency of type `{}` not found", name_of<Dependency>())
+                std::format(
+                    "Item dependency of type `{}` not found",
+                    name_of<Dependency>()
+                )
             );
 
             return at<Dependency>();

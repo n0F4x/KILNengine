@@ -231,8 +231,7 @@ public:
     using InterfaceMixin = Traits::InterfaceMixin;
 
     // required for interfacing with the standard
-    using allocator_type =   // NOLINT(*-identifier-naming)
-        std::pmr::polymorphic_allocator<>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
 
     consteval static auto is_move_only() -> bool;
     consteval static auto size() -> std::size_t;
@@ -399,9 +398,10 @@ struct Operations<T, Traits_T> {
         create_impl(allocator, out, std::move(*static_cast<T*>(voidify(storage))));
     }
 
-    static auto
-        drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) noexcept
-        -> void
+    static auto drop(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           storage
+    ) noexcept -> void
     {
         allocator.destroy(static_cast<T*>(voidify(storage)));
     }
@@ -508,17 +508,20 @@ struct Operations<T, Traits_T> {
         create(allocator, out, *static_cast<const T*>(voidify(storage)));
     }
 
-    static auto
-        move(std::pmr::polymorphic_allocator<>&, Storage& out, Storage&& storage) noexcept
-        -> void
+    static auto move(
+        std::pmr::polymorphic_allocator<>&,
+        Storage&  out,
+        Storage&& storage
+    ) noexcept -> void
     {
         out.template emplace<void*>(voidify(storage));
         storage.template emplace<void*>(nullptr);
     }
 
-    static auto
-        drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) noexcept
-        -> void
+    static auto drop(
+        std::pmr::polymorphic_allocator<>& allocator,
+        Storage&                           storage
+    ) noexcept -> void
     {
         if (T* const ptr = static_cast<T*>(voidify(storage)); ptr != nullptr)
         {

@@ -16,8 +16,7 @@ namespace kiln::app {
 export class Contexts {
 public:
     // required for interfacing with the standard
-    using allocator_type =   // NOLINT(*-identifier-naming)
-        std::pmr::polymorphic_allocator<>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
     explicit Contexts(const allocator_type& allocator = std::pmr::get_default_resource());

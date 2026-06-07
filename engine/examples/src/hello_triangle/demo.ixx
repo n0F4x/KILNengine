@@ -12,11 +12,10 @@ import kiln;
 
 namespace demo {
 
-export class Context : public kiln::app::ContextBase  {
+export class Context : public kiln::app::ContextBase {
 public:
     // required for interfacing with the standard
-    using allocator_type =   // NOLINT(*-identifier-naming)
-        std::pmr::polymorphic_allocator<>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
 
     class Builder;
 
@@ -49,7 +48,7 @@ public:
     auto shut_down() -> void;
 
 private:
-    std::reference_wrapper<const kiln::gfx::renderer::Device>  m_render_device_ref;
+    std::reference_wrapper<const kiln::gfx::renderer::Device> m_render_device_ref;
     std::reference_wrapper<kiln::gfx::renderer::QueueProvider> m_render_queue_provider_ref;
     uint8_t                                                    m_number_of_frames{ 2 };
     uint8_t                                                    m_current_frame_index{};

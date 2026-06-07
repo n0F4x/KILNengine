@@ -17,7 +17,6 @@ namespace kiln::app {
 
 export class ErasedContextBuilder {
 public:
-    // NOLINTNEXTLINE(*-identifier-naming)
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
     template <typename ContextBuilder_T>

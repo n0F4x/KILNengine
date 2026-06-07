@@ -166,8 +166,8 @@ TEST_CASE("util::Any")
         const Any any{ std::in_place_type<Value>, value };
 
         [[maybe_unused]]
-        decltype(auto) result =
-            any_cast<Value>(std::move(any));   // NOLINT(*-move-const-arg)
+        decltype(auto) result
+            = any_cast<Value>(std::move(any));   // NOLINT(*-move-const-arg)
 
         STATIC_REQUIRE(std::is_same_v<decltype(result), const Value&&>);
         REQUIRE(result == value);
@@ -215,8 +215,8 @@ TEST_CASE("util::Any")
         const Any            any{ std::in_place_type<int>, original };
 
         [[maybe_unused]]
-        decltype(auto) result =
-            reinterpret_any_cast<float>(std::move(any));   // NOLINT(*-move-const-arg)
+        decltype(auto) result
+            = reinterpret_any_cast<float>(std::move(any));   // NOLINT(*-move-const-arg)
 
         STATIC_REQUIRE(std::is_same_v<decltype(result), const float&&>);
         REQUIRE(result == reinterpret_cast<const float&>(original));
@@ -264,8 +264,7 @@ TEST_CASE("util::Any")
         using BigObject = std::array<int, 16>;
 
         struct Container : BigObject {
-            using allocator_type =   // NOLINT(*-identifier-naming)
-                std::pmr::polymorphic_allocator<>;
+            using allocator_type = std::pmr::polymorphic_allocator<>;
 
             explicit Container(const allocator_type& allocator = {})
                 : BigObject{},

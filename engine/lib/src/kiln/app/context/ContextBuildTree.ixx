@@ -40,8 +40,7 @@ namespace kiln::app {
 export class ContextBuildTree {
 public:
     // required for interfacing with the standard
-    using allocator_type =   // NOLINT(*-identifier-naming)
-        std::pmr::polymorphic_allocator<>;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
     explicit ContextBuildTree(MemoryArena&& memory_arena, const Config& config);
