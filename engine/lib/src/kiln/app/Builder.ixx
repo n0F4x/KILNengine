@@ -9,43 +9,26 @@ module;
 export module kiln.app.Builder;
 
 import kiln.app.App;
-import kiln.app.memory.Arena;
-import kiln.app.memory.MemoryPluginInjection;
-import kiln.app.plugin.meta_plugin_c;
-import kiln.app.plugin.meta_plugin_injection_c;
-import kiln.app.plugin.plugin_c;
-import kiln.app.plugin.plugin_injection_c;
-import kiln.app.plugin.PluginTree;
+import kiln.app.config.Config;
+import kiln.app.config.ConfigBuilder;
+import kiln.app.context.context_builder_c;
+import kiln.app.context.context_c;
+import kiln.app.context.Contexts;
+import kiln.app.context.ContextBuildTree;
+import kiln.app.memory.MemoryArena;
+import kiln.app.memory.MemoryArenaBuilder;
+import kiln.util.containers.Indirect;
+import kiln.util.type_traits.const_like;
 
 namespace kiln::app {
 
 export class Builder {
 public:
-    Builder();
+    explicit Builder(const Config& config = Config{});
 
 
-    template <typename Self_T, decays_to_plugin_c Plugin_T>
-    auto insert_plugin(this Self_T&&, Plugin_T&& plugin) -> Self_T&&;
-
-    template <plugin_c Plugin_T, typename Self_T, typename... Args_T>
-        requires std::constructible_from<Plugin_T, Args_T&&...>
-    auto emplace_plugin(this Self_T&&, Args_T&&... args) -> Self_T&&;
-
-    template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
-    auto inject_plugin(this Self_T&&, PluginInjection_T&& plugin_injection) -> Self_T&&;
-
-
-    template <typename Self_T, decays_to_meta_plugin_c MetaPlugin_T>
-    auto insert_meta_plugin(this Self_T&&, MetaPlugin_T&& meta_plugin) -> Self_T&&;
-
-    template <meta_plugin_c MetaPlugin_T, typename Self_T, typename... Args_T>
-        requires std::constructible_from<MetaPlugin_T, Args_T&&...>
-    auto emplace_meta_plugin(this Self_T&&, Args_T&&... args) -> Self_T&&;
-
-    template <typename Self_T, decays_to_meta_plugin_injection_c MetaPluginInjection_T>
-    auto inject_meta_plugin(this Self_T&&, MetaPluginInjection_T&& meta_plugin_injection)
-        -> Self_T&&;
-
+    template <context_c Context_T, typename Self_T>
+    auto use_context(this Self_T&&) -> Self_T&&;
 
     template <typename Self_T, typename Bundle_T>
         requires std::invocable<Bundle_T&&, Builder&>
@@ -56,91 +39,22 @@ public:
     auto build() && -> App;
 
 private:
-    Arena m_app_arena;
-    Arena m_builder_arena;
-
-    PluginTree m_plugin_tree{ m_builder_arena.pool_allocator() };
+    MemoryArena      m_arena;
+    ContextBuildTree m_context_build_tree;
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
 
-template <typename Self_T, decays_to_plugin_c Plugin_T>
-auto Builder::insert_plugin(this Self_T&& self, Plugin_T&& plugin) -> Self_T&&
+Builder::Builder(const Config& config) : m_context_build_tree{ auto{ m_arena }, config }
 {
-    return std::forward<Self_T>(self)
-        .template emplace_plugin<std::remove_cvref_t<Plugin_T>>(
-            std::forward<Plugin_T>(plugin)
-        );
 }
 
-template <plugin_c Plugin_T, typename Self_T, typename... Args_T>
-    requires std::constructible_from<Plugin_T, Args_T&&...>
-auto Builder::emplace_plugin(this Self_T&& self, Args_T&&... args) -> Self_T&&
+template <context_c Context_T, typename Self_T>
+auto Builder::use_context(this Self_T&& self) -> Self_T&&
 {
-    return std::forward<Self_T>(self).inject_plugin(
-        [x_plugin =
-             Plugin_T(std::forward<Args_T>(args)...)] mutable -> std::decay_t<Plugin_T>
-        {
-            return std::move(x_plugin);   //
-        }
-    );
-}
-
-template <typename Self_T, decays_to_plugin_injection_c PluginInjection_T>
-auto Builder::inject_plugin(this Self_T&& self, PluginInjection_T&& plugin_injection)
-    -> Self_T&&
-{
-    std::pmr::monotonic_buffer_resource transient_memory_resource{
-        self.Builder::m_builder_arena.make_transient_resource()
-    };
-
-    self.Builder::m_plugin_tree.plug_in(
-        std::forward_like<PluginInjection_T>(plugin_injection), transient_memory_resource
-    );
-
-    return std::forward<Self_T>(self);
-}
-
-template <typename Self_T, decays_to_meta_plugin_c MetaPlugin_T>
-auto Builder::insert_meta_plugin(this Self_T&& self, MetaPlugin_T&& meta_plugin)
-    -> Self_T&&
-{
-    return std::forward<Self_T>(self)
-        .template emplace_meta_plugin<std::remove_cvref_t<MetaPlugin_T>>(
-            std::forward<MetaPlugin_T>(meta_plugin)
-        );
-}
-
-template <meta_plugin_c MetaPlugin_T, typename Self_T, typename... Args_T>
-    requires std::constructible_from<MetaPlugin_T, Args_T&&...>
-auto Builder::emplace_meta_plugin(this Self_T&& self, Args_T&&... args) -> Self_T&&
-{
-    return std::forward<Self_T>(self).inject_meta_plugin(
-        [x_meta_plugin = MetaPlugin_T(std::forward<Args_T>(args)...)] mutable
-            -> std::decay_t<MetaPlugin_T>
-        {
-            return std::move(x_meta_plugin);   //
-        }
-    );
-}
-
-template <typename Self_T, decays_to_meta_plugin_injection_c MetaPluginInjection_T>
-auto Builder::inject_meta_plugin(
-    this Self_T&&           self,
-    MetaPluginInjection_T&& meta_plugin_injection
-) -> Self_T&&
-{
-    std::pmr::monotonic_buffer_resource transient_memory_resource{
-        self.Builder::m_builder_arena.make_transient_resource()
-    };
-
-    self.Builder::m_plugin_tree.plug_in_meta(
-        std::forward_like<MetaPluginInjection_T>(meta_plugin_injection),
-        transient_memory_resource
-    );
-
+    self.Builder::m_context_build_tree.template register_context<Context_T>();
     return std::forward<Self_T>(self);
 }
 
@@ -152,21 +66,16 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
     return std::forward<Self_T>(self);
 }
 
-inline Builder::Builder()
+auto Builder::build() && -> App
 {
-    m_plugin_tree.plug_in_meta(MemoryPluginInjection{ m_app_arena, m_builder_arena });
-}
+    auto transient_memory_resource{ m_arena.make_transient_resource() };
 
-inline auto Builder::build() && -> App
-{
-    App result{ std::move(m_app_arena) };
+    Contexts contexts{ std::move(m_context_build_tree).build(transient_memory_resource) };
 
-    std::pmr::monotonic_buffer_resource transient_memory_resource{
-        result.context().at<Arena>().make_transient_resource()
+    return App{
+        std::move(m_arena),
+        std::move(contexts),
     };
-    std::move(m_plugin_tree).build_plugins(result, transient_memory_resource);
-
-    return result;
 }
 
 }   // namespace kiln::app

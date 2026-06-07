@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 4.3)
 
 project(engine VERSION 0.0.0)
 

@@ -3,7 +3,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         memory.cppm
-        Arena.ixx
-        MemoryPlugin.ixx
-        MemoryPluginInjection.ixx
+        MemoryArena.ixx
+        MemoryArenaBuilder.ixx
 )

@@ -52,12 +52,14 @@ struct ArgumentsOf<F> {
 
 template <unambiguous_implicit_functor_c F>
 struct ArgumentsOf<F> {
-    using type = typename ArgumentsOf<decltype(&std::remove_cvref_t<F>::operator())>::type;
+    using type =
+        typename ArgumentsOf<decltype(&std::remove_cvref_t<F>::operator())>::type;
 };
 
 template <unambiguous_static_functor_c F>
 struct ArgumentsOf<F> {
-    using type = typename ArgumentsOf<decltype(&std::remove_cvref_t<F>::operator())>::type;
+    using type =
+        typename ArgumentsOf<decltype(&std::remove_cvref_t<F>::operator())>::type;
 };
 
 }   // namespace internal

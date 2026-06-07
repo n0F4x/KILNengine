@@ -4,9 +4,9 @@
 
 Make sure you have the following programs installed on your machine
 
--   Clang (at least version 21)
+-   Clang (at least version 22)
 -   Ninja
--   CMake (at least version 4.1)
+-   CMake (at least version 4.3)
 -   [Conan](https://docs.conan.io/2/installation.html)
 
 ## Setup
@@ -22,7 +22,10 @@ arch=x86_64
 build_type=Debug
 compiler=clang
 compiler.cppstd=26
-compiler.version=21
+compiler.version=22
+compiler.runtime=dynamic
+compiler.runtime_type=Debug
+compiler.runtime_version=v145
 
 [conf]
 tools.build:compiler_executables={'c':'C:/Program Files/LLVM/bin/clang.exe','cpp':'C:/Program Files/LLVM/bin/clang++.exe'}
@@ -38,7 +41,7 @@ PATH+=(path)C:/Program Files/CMake/bin
 PATH+=(path)C:/Program Files/Ninja
 
 [platform_tool_requires]
-cmake/4.1
+cmake/4.3
 ```
 
 #### Example Conan profile for MSYS2 (Linux is very similar):
@@ -51,7 +54,7 @@ arch=x86_64
 build_type=Debug
 compiler=clang
 compiler.cppstd=26
-compiler.version=21
+compiler.version=22
 compiler.libcxx=libc++
 
 [conf]
@@ -66,12 +69,12 @@ user.kiln-engine:enable_examples=True
 PATH+=(path)C:/msys64/clang64/bin
 
 [platform_tool_requires]
-cmake/4.1
+cmake/4.3
 ```
 
 ### Install the dependencies
 
-Run `conan install . -b=missing --profile:host=<custom_profile> --profile:build=<custom_profile>`.
+Run `conan install . -b=missing --profile=<custom_profile>`.
 
 This will produce a _CMakeUserPresets.json_ file inside the working directory that can be used to build the project (with your IDE).
 
@@ -117,6 +120,6 @@ It is important that the library can also be consumed as a third-party package.
 
 Run `conan export .` to export the package to the local cache.
 
-Run `conan test kiln-engine/<version> -b=missing --profile:host=<custom_test_profile> --profile:build=<custom_test_profile>` to test the package in the local cache.
+Run `conan test kiln-engine/<version> -b=missing --profile=<custom_test_profile>` to test the package in the local cache.
 
 Make sure not to declare `user.kiln-engine:dev` as `True` in your Conan profile used for testing.

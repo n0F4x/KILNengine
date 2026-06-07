@@ -25,7 +25,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         "shared": False,
         "fPIC": True,
         # TODO: "visibility": "hidden",
-        "debug": True,
+        "debug": False,
     }
     implements = ["auto_shared_fpic"]
     exports_sources = (
@@ -61,7 +61,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
                 f"Supported compilers are: {supported_compilers}"
             )
 
-        minimum_supported_clang_version = 21
+        minimum_supported_clang_version = 22
         if (self.settings.compiler == "clang"
                 and self.settings.compiler.version < Version(minimum_supported_clang_version)):
             raise ConanInvalidConfiguration(
@@ -92,13 +92,20 @@ class DataDrivenGameEngineRecipe(ConanFile):
             )
 
     def build_requirements(self):
-        self.tool_requires("cmake/[>=4.1]")
+        self.tool_requires("cmake/[>=4.3]")
 
     def requirements(self):
-        self.requires("fmt/12.1.0")
+        self.requires("magic_enum/0.9.7", transitive_headers=True)
+        self.requires("fmt/12.1.0", transitive_headers=True)
+        self.requires("spdlog/1.17.0", transitive_headers=True)
+        self.requires("vulkan-headers/1.4.313.0", transitive_headers=True)
+        self.requires("vulkan-memory-allocator/3.3.0", transitive_headers=True)
+        self.requires("glm/1.0.1", transitive_headers=True)
+        self.requires("glfw/3.4", transitive_headers=True)
+        self.requires("fastgltf/0.9.0", transitive_headers=True)
 
         if self._enable_tests:
-            self.test_requires("catch2/3.12.0")
+            self.test_requires("catch2/3.14.0")
 
     def layout(self):
         cmake_layout(self)

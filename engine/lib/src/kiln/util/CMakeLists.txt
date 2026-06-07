@@ -1,4 +1,5 @@
 add_subdirectory(concepts)
+add_subdirectory(containers)
 add_subdirectory(type_traits)
 
 target_sources(${PROJECT_NAME} PRIVATE
@@ -11,6 +12,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         contract_macros.hpp
         lifetimebound.hpp
+        no_unique_address.hpp
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -18,14 +20,17 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         util.cppm
-        Any.ixx
+        any_of.ixx
+        Bool.ixx
         contracts.ixx
         Deleter.ixx
         Dummy.ixx
+        EnumMask.ixx
         for_each.ixx
-        Function.ixx
-        GenericStack.ixx
-        OptionalRef.ixx
+        FunctionWrapper.ixx
+        hash.ixx
+        Lazy.ixx
+        Overloaded.ixx
         reflection.ixx
         ScopeFail.ixx
         StringLiteral.ixx

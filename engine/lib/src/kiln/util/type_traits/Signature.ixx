@@ -151,8 +151,8 @@ struct Signature<Result_T(Args_T...) const&> {
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_lvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_lvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&;
 };
@@ -168,8 +168,8 @@ struct Signature<Result_T(Args_T...) const & noexcept> {
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_lvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_lvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&;
 };
@@ -185,8 +185,8 @@ struct Signature<Result_T(Args_T...) const&&> {
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_rvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_rvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&&;
 };
@@ -202,8 +202,8 @@ struct Signature<Result_T(Args_T...) const && noexcept> {
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_rvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_rvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&&;
 };
@@ -372,8 +372,8 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const&> {
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_lvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_lvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&;
 
@@ -392,8 +392,8 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const & noexcept> {
     constexpr static std::integral_constant<bool, false> has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_lvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_lvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&;
 
@@ -412,8 +412,8 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const&&> {
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_rvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_rvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&&;
 
@@ -432,8 +432,8 @@ struct Signature<Result_T (Class_T::*)(Args_T...) const && noexcept> {
     constexpr static std::integral_constant<bool, true>  has_rvalue_ref;
 
     template <typename T>
-    constexpr static bool mimics_qualifiers = std::is_const_v<std::remove_reference_t<T>>
-                                           && std::is_rvalue_reference_v<T>;
+    constexpr static bool mimics_qualifiers
+        = std::is_const_v<std::remove_reference_t<T>> && std::is_rvalue_reference_v<T>;
     template <naked_c T>
     using mimic_t = const T&&;
 

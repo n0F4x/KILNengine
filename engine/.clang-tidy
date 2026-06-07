@@ -31,6 +31,7 @@ misc-*,
 modernize-*,
 -modernize-use-auto,
 performance-*,
+-performance-enum-size,
 portability-*,
 -portability-avoid-pragma-once,
 readability-*,
@@ -60,7 +61,7 @@ CheckOptions:
   - { key: readability-identifier-naming.TypeTemplateParameterSuffix,         value: _T }
   - { key: readability-identifier-naming.TypeTemplateParameterIgnoredRegexp,  value: (T|U|F)s? }
   - { key: readability-identifier-naming.TypeAliasCase,                       value: CamelCase }
-  - { key: readability-identifier-naming.TypeAliasIgnoredRegexp,              value: (.*_t|type) }
+  - { key: readability-identifier-naming.TypeAliasIgnoredRegexp,              value: \b(([a-z]+(_[a-z]+)*_t)|(([a-z]+(_[a-z]+)*_)?type))\b }
   - { key: readability-identifier-naming.TypedefCase,                         value: CamelCase }
   - { key: readability-identifier-naming.UnionCase,                           value: CamelCase }
   - { key: readability-identifier-naming.ValueTemplateParameterCase,          value: lower_case }

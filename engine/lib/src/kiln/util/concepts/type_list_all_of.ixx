@@ -23,7 +23,7 @@ struct TypeListAllOf<TypeList_T<Ts...>, Predicate_T>
 }   // namespace internal
 
 export template <typename TypeList_T, template <typename> typename Predicate_T>
-concept type_list_all_of_c = type_list_c<TypeList_T>
-                          && internal::TypeListAllOf<TypeList_T, Predicate_T>::value;
+concept type_list_all_of_c
+    = type_list_c<TypeList_T> && internal::TypeListAllOf<TypeList_T, Predicate_T>::value;
 
 }   // namespace kiln::util

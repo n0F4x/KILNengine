@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         function.ixx
         function_pointer.ixx
         function_reference.ixx
+        is_noexcept.ixx
         lvalue_reference.ixx
         member_function_pointer.ixx
         naked.ixx

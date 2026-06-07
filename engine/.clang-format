@@ -30,7 +30,7 @@ AlignOperands: AlignAfterOperator
 AlignTrailingComments:
   Kind: Always
   OverEmptyLines: 1
-AllowAllArgumentsOnNextLine: true
+AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowBreakBeforeNoexceptSpecifier: Always
 AllowShortBlocksOnASingleLine: Empty
@@ -42,12 +42,13 @@ AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: All
 AllowShortLoopsOnASingleLine: false
-#AllowShortNamespacesOnASingleLine: false
+AllowShortNamespacesOnASingleLine: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: Yes
 AttributeMacros: [ ]
 BinPackArguments: false
+BinPackLongBracedList: false
 BinPackParameters: false
 BitFieldColonSpacing: Both
 BracedInitializerIndentWidth: 4
@@ -67,16 +68,27 @@ BraceWrapping:
   BeforeWhile: false
   IndentBraces: false
   SplitEmptyFunction: true
-  #  SplitEmptyRecord: true
+  SplitEmptyRecord: false
   SplitEmptyNamespace: true
-BreakAdjacentStringLiterals: false
+BreakAdjacentStringLiterals: true
 BreakAfterAttributes: Always
+#BreakAfterOpenBracketBracedList: true
+#BreakAfterOpenBracketFunction: true
+#BreakAfterOpenBracketIf: true
+#BreakAfterOpenBracketLoop: true
+#BreakAfterOpenBracketSwitch: true
 BreakAfterReturnType: Automatic
-BreakBeforeBinaryOperators: NonAssignment
+BreakBeforeBinaryOperators: All
 BreakBeforeBraces: Custom
+#BreakBeforeCloseBracketBracedList: true
+#BreakBeforeCloseBracketFunction: true
+#BreakBeforeCloseBracketIf: true
+#BreakBeforeCloseBracketLoop: true
+#BreakBeforeCloseBracketSwitch: true
 BreakBeforeConceptDeclarations: Always
+BreakBeforeTemplateCloser: false
 BreakBeforeTernaryOperators: true
-# BreakBinaryOperations: RespectPrecedence
+BreakBinaryOperations: RespectPrecedence
 BreakConstructorInitializers: BeforeColon
 BreakFunctionDefinitionParameters: false
 BreakInheritanceList: BeforeColon
@@ -92,7 +104,7 @@ DerivePointerAlignment: false
 DisableFormat: false
 EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: Always
-# EnumTrailingComma: Insert
+EnumTrailingComma: Insert
 FixNamespaceComments: true
 ForEachMacros: [ 'RANGES_FOR', 'FOREACH' ]
 IfMacros: [ 'IF' ]
@@ -138,8 +150,10 @@ IncludeCategories:
     Priority: 20
   - Regex: '^<ktx*\.h>'
     Priority: 21
-  - Regex: '^<entt/'
+  - Regex: '^<fastgltf/'
     Priority: 22
+  - Regex: '^<entt/'
+    Priority: 23
   - Regex: '^<.*\..*'
     Priority: 998
   - Regex: '^<.*'
@@ -174,24 +188,31 @@ LambdaBodyIndentation: Signature
 LineEnding: LF
 MacroBlockBegin: ''
 MacroBlockEnd: ''
+# MacrosSkippedByRemoveParentheses:
 MainIncludeChar: Quote
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: None
 NamespaceMacros: [ ]
+NumericLiteralCase:
+  ExponentLetter: Lower
+  HexDigit: Lower
+  Prefix: Lower
+  Suffix: Lower
+OneLineFormatOffRegex: ^(// disable clang-format$)
 PPIndentWidth: 2
 PackConstructorInitializers: CurrentLine
-PenaltyBreakAssignment: 50
-PenaltyBreakBeforeFirstCallParameter: 0
-#PenaltyBreakBeforeMemberAccess: 0
-PenaltyBreakComment: 0
-PenaltyBreakFirstLessLess: 0
-PenaltyBreakOpenParenthesis: 20
-PenaltyBreakScopeResolution: 200
-PenaltyBreakString: 50
+PenaltyBreakAssignment: 10
+PenaltyBreakBeforeFirstCallParameter: 20
+PenaltyBreakBeforeMemberAccess: 90
+PenaltyBreakComment: 90
+PenaltyBreakFirstLessLess: 50
+PenaltyBreakOpenParenthesis: 10
+PenaltyBreakScopeResolution: 600
+PenaltyBreakString: 70
 PenaltyBreakTemplateDeclaration: 0
-PenaltyExcessCharacter: 50
+PenaltyExcessCharacter: 80
 PenaltyIndentedWhitespace: 0
-PenaltyReturnTypeOnItsOwnLine: 100
+PenaltyReturnTypeOnItsOwnLine: 150
 PointerAlignment: Left
 QualifierAlignment: Custom
 QualifierOrder: [ 'inline', 'constexpr', 'static', 'volatile', 'const', 'type', 'restrict' ]
@@ -200,7 +221,7 @@ RawStringFormats:
 ReferenceAlignment: Pointer
 ReflowComments: Always
 RemoveBracesLLVM: false
-#RemoveEmptyLinesInUnwrappedLines: true
+RemoveEmptyLinesInUnwrappedLines: true
 RemoveParentheses: Leave
 RemoveSemicolon: false
 RequiresClausePosition: OwnLine
@@ -212,6 +233,7 @@ SortIncludes: CaseInsensitive
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
+SpaceAfterOperatorKeyword: false
 SpaceAfterTemplateKeyword: true
 SpaceAroundPointerQualifiers: Default
 SpaceBeforeAssignmentOperators: true
@@ -233,7 +255,7 @@ SpaceBeforeParensOptions:
 SpaceBeforeRangeBasedForLoopColon: true
 SpaceBeforeSquareBrackets: false
 SpacesBeforeTrailingComments: 3
-SpaceInEmptyBlock: false
+SpaceInEmptyBraces: Never
 SpacesInAngles: Never
 SpacesInContainerLiterals: false
 SpacesInLineCommentPrefix:
@@ -251,5 +273,5 @@ TypenameMacros: [ ]
 UseTab: Never
 #VariableTemplates: [ ]
 WhitespaceSensitiveMacros: [ ]
-#WrapNamespaceBodyWithEmptyLines: Always
+WrapNamespaceBodyWithEmptyLines: Always
 ---

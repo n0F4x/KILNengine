@@ -4,7 +4,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         event.cppm
         event_c.ixx
-        EventSystem.ixx
-        Plugin.ixx
-        SubscriberID.ixx
+        EventBuffer.ixx
+        EventRecorder.ixx
+        Timestamp.ixx
 )
