@@ -13,6 +13,7 @@ export module kiln.gfx.renderer.memory.Allocator;
 
 import vulkan_hpp;
 
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
@@ -26,7 +27,7 @@ import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
-export class Allocator {
+export class Allocator : public app::ContextBase {
 public:
     class Builder;
 

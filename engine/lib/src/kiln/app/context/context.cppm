@@ -2,6 +2,7 @@ export module kiln.app.context;
 
 export import kiln.app.context.context_builder_c;
 export import kiln.app.context.context_c;
+export import kiln.app.context.ContextBase;
 export import kiln.app.context.ContextBuilderInterface;
 export import kiln.app.context.ContextBuildTree;
 export import kiln.app.context.Contexts;

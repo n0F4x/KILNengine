@@ -11,6 +11,7 @@ export module kiln.gfx.vulkan.Instance;
 import vulkan_hpp;
 
 import kiln.app.config.ConfigBuilder;
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.util.StringLiteral;
 
@@ -22,7 +23,7 @@ export class InstanceBuilder;
 
 }   // namespace internal
 
-export class Instance {
+export class Instance : public app::ContextBase  {
 public:
     using Builder = internal::InstanceBuilder;
 

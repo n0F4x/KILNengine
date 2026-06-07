@@ -2,6 +2,7 @@ export module kiln.gfx.renderer.pipeline.PipelineContextBuilder;
 
 import vulkan_hpp;
 
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.renderer.device.DeviceBuilder;
 
@@ -37,7 +38,7 @@ public:
 
 namespace internal {
 
-export class PipelineContext {
+export class PipelineContext : public app::ContextBase {
 public:
     using Builder = PipelineContextBuilder;
 };

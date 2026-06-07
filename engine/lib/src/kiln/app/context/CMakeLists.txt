@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         context.cppm
         context_builder_c.ixx
         context_c.ixx
+        ContextBase.ixx
         ContextBuilderFailedError.ixx
         ContextBuilderInterface.ixx
         ContextBuildTree.ixx

@@ -12,7 +12,7 @@ import kiln;
 
 namespace demo {
 
-export class Context {
+export class Context : public kiln::app::ContextBase  {
 public:
     // required for interfacing with the standard
     using allocator_type =   // NOLINT(*-identifier-naming)

@@ -7,12 +7,15 @@ module;
 
 export module kiln.gfx.asset.gltf.Parser;
 
+import kiln.app.context.ContextBase;
+
 namespace kiln::gfx::asset::gltf {
 
-export class Parser {
+export class Parser : public app::ContextBase {
 public:
     [[nodiscard]]
-    auto load(const std::filesystem::path& filepath, bool generate_indices = false) -> std::optional<fastgltf::Asset>;
+    auto load(const std::filesystem::path& filepath, bool generate_indices = false)
+        -> std::optional<fastgltf::Asset>;
 
 private:
     fastgltf::Parser m_parser;

@@ -4,11 +4,12 @@ module;
 
 export module kiln.app.config.Config;
 
+import kiln.app.context.context_c;
+import kiln.app.context.ContextBase;
+import kiln.app.context.ContextBuilderInterface;
 import kiln.config.engine_name;
 import kiln.config.engine_version;
 import kiln.config.Version;
-import kiln.app.context.context_c;
-import kiln.app.context.ContextBuilderInterface;
 import kiln.util.StringLiteral;
 
 namespace kiln::app {
@@ -19,7 +20,7 @@ export class ConfigBuilder;
 
 }   // namespace internal
 
-export class Config {
+export class Config : public ContextBase {
 public:
     using Builder = internal::ConfigBuilder;
 

@@ -4,9 +4,9 @@ import kiln.app;
 import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
 
-struct GraphicsSystemIntegration {};
+struct GraphicsSystemIntegration : kiln::app::ContextBase {};
 
-struct WindowSystem {
+struct WindowSystem : kiln::app::ContextBase {
     struct Builder;
 
     GraphicsSystemIntegration* graphics_system{};
@@ -27,7 +27,7 @@ struct WindowSystem::Builder : kiln::app::ContextBuilderInterface {
     }
 };
 
-struct RenderSystem {
+struct RenderSystem : kiln::app::ContextBase {
     struct Builder;
 
     GraphicsSystemIntegration& graphics_system;
@@ -35,8 +35,9 @@ struct RenderSystem {
 };
 
 struct RenderSystem::Builder : kiln::app::ContextBuilderInterface {
-    static auto create(const kiln::util::OptionalRef<WindowSystem::Builder> window_builder)
-        -> Builder
+    static auto create(
+        const kiln::util::OptionalRef<WindowSystem::Builder> window_builder
+    ) -> Builder
     {
         if (window_builder.has_value())
         {

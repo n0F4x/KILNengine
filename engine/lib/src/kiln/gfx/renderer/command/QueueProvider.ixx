@@ -15,6 +15,7 @@ export module kiln.gfx.renderer.command.QueueProvider;
 
 import vulkan_hpp;
 
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.renderer.command.ComputeQueueRef;
 import kiln.gfx.renderer.command.GraphicsQueueRef;
@@ -48,7 +49,7 @@ public:
     );
 };
 
-export class QueueProvider : private QueueProviderPrecondition {
+export class QueueProvider : private QueueProviderPrecondition, public app::ContextBase {
 public:
     class Builder;
 
@@ -61,9 +62,11 @@ public:
 
 
     [[nodiscard]]
-    auto graphics_queue() noexcept [[kiln_lifetimebound]] -> std::optional<GraphicsQueueRef>;
+    auto graphics_queue() noexcept [[kiln_lifetimebound]]
+    -> std::optional<GraphicsQueueRef>;
     [[nodiscard]]
-    auto compute_queue() noexcept [[kiln_lifetimebound]] -> std::optional<ComputeQueueRef>;
+    auto compute_queue() noexcept [[kiln_lifetimebound]]
+    -> std::optional<ComputeQueueRef>;
     [[nodiscard]]
     auto host_to_device_transfer_queue() noexcept [[kiln_lifetimebound]]
     -> std::optional<TransferQueueRef>;

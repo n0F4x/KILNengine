@@ -1,5 +1,6 @@
 export module kiln.gfx.renderer.presentation.PresentationContextBuilder;
 
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.vulkan.InstanceBuilder;
@@ -28,7 +29,7 @@ public:
 
 namespace internal {
 
-export class PresentationContext {
+export class PresentationContext : public app::ContextBase {
 public:
     using Builder = PresentationContextBuilder;
 };

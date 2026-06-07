@@ -6,11 +6,12 @@ module;
 
 export module kiln.app.memory.MemoryArena;
 
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 
 namespace kiln::app {
 
-export class MemoryArena {
+export class MemoryArena : public ContextBase {
 public:
     class Builder;
 

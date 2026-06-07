@@ -8,6 +8,7 @@ export module examples.frustum_culling.Context;
 import kiln.app.App;
 import kiln.app.Builder;
 import kiln.app.config.Config;
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.app.memory.MemoryArena;
 import kiln.event.EventBuffer;
@@ -24,7 +25,6 @@ import kiln.gfx.renderer.presentation.RenderSurface;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.wsi.Context;
-import kiln.wsi.Engine;
 import kiln.wsi.event.Event;
 import kiln.wsi.WindowProxy;
 
@@ -34,7 +34,7 @@ import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 
-export class Context {
+export class Context : public kiln::app::ContextBase {
 public:
     class Builder;
 

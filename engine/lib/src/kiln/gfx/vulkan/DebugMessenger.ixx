@@ -2,6 +2,7 @@ export module kiln.gfx.vulkan.DebugMessenger;
 
 import vulkan_hpp;
 
+import kiln.app.context.ContextBase;
 import kiln.app.context.ContextBuilderInterface;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
@@ -10,7 +11,7 @@ namespace kiln::gfx::vulkan {
 
 class DebugMessengerBuilder;
 
-export class DebugMessenger : public app::ContextBuilderInterface {
+export class DebugMessenger : public app::ContextBase  {
 public:
     using Builder = DebugMessengerBuilder;
 
