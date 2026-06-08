@@ -4,9 +4,9 @@ module;
 
 export module kiln.app.config.Config;
 
-import kiln.app.context.context_c;
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.entry_c;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.config.engine_name;
 import kiln.config.engine_version;
 import kiln.config.Version;
@@ -20,7 +20,7 @@ export class ConfigBuilder;
 
 }   // namespace internal
 
-export class Config : public ContextBase {
+export class Config : public EntryBase {
 public:
     using Builder = internal::ConfigBuilder;
 
@@ -64,7 +64,7 @@ private:
 
 namespace internal {
 
-export class ConfigBuilder : public ContextBuilderInterface {
+export class ConfigBuilder : public EntryBuilderInterface {
 public:
     constexpr explicit ConfigBuilder(const Config& config = Config{}) : m_config{ config }
     {

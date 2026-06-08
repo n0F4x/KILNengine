@@ -6,12 +6,12 @@ module;
 
 export module kiln.app.memory.MemoryArena;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 
 namespace kiln::app {
 
-export class MemoryArena : public ContextBase {
+export class MemoryArena : public EntryBase {
 public:
     class Builder;
 
@@ -45,7 +45,7 @@ private:
     };
 };
 
-class MemoryArena::Builder : public ContextBuilderInterface {
+class MemoryArena::Builder : public EntryBuilderInterface {
 public:
     explicit Builder() = default;
 

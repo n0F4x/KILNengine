@@ -2,11 +2,11 @@ module;
 
 #include <stdexcept>
 
-export module kiln.app.context.ContextBuilderFailedError;
+export module kiln.app.registry.EntryBuilderFailedError;
 
 namespace kiln::app {
 
-export class ContextBuilderFailedError : public std::runtime_error {
+export class EntryBuilderFailedError : public std::runtime_error {
 public:
     using runtime_error::runtime_error;
 };

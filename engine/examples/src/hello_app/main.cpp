@@ -4,15 +4,15 @@ import kiln.app;
 import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
 
-struct GraphicsSystemIntegration : kiln::app::ContextBase {};
+struct GraphicsSystemIntegration : kiln::app::EntryBase {};
 
-struct WindowSystem : kiln::app::ContextBase {
+struct WindowSystem : kiln::app::EntryBase {
     struct Builder;
 
     GraphicsSystemIntegration* graphics_system{};
 };
 
-struct WindowSystem::Builder : kiln::app::ContextBuilderInterface {
+struct WindowSystem::Builder : kiln::app::EntryBuilderInterface {
     bool graphics_support_requested = false;
 
     auto build(
@@ -27,14 +27,14 @@ struct WindowSystem::Builder : kiln::app::ContextBuilderInterface {
     }
 };
 
-struct RenderSystem : kiln::app::ContextBase {
+struct RenderSystem : kiln::app::EntryBase {
     struct Builder;
 
     GraphicsSystemIntegration& graphics_system;
     WindowSystem*              window_system{};
 };
 
-struct RenderSystem::Builder : kiln::app::ContextBuilderInterface {
+struct RenderSystem::Builder : kiln::app::EntryBuilderInterface {
     static auto create(
         const kiln::util::OptionalRef<WindowSystem::Builder> window_builder
     ) -> Builder
@@ -62,20 +62,20 @@ struct RenderSystem::Builder : kiln::app::ContextBuilderInterface {
 auto main() -> int
 {
     /*
-     * GraphicsSystemIntegration context gets implicitly injected
+     * GraphicsSystemIntegration gets implicitly injected
      *  as the RenderSystem unconditionally depends on it
      */
     kiln::app::App app =      //
         kiln::app::create()   //
-            .use_context<RenderSystem>()
-            .use_context<WindowSystem>()
+            .register_entry<RenderSystem>()
+            .register_entry<WindowSystem>()
             .build();
 
     /*
      * RenderSystem is never headless when the WindowSystem is present
      */
     std::puts(
-        app.contexts().at<RenderSystem>().window_system == nullptr
+        app.registry().at<RenderSystem>().window_system == nullptr
             ? "Renderer is headless"
             : "Renderer is not headless"
     );

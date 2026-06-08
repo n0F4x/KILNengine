@@ -13,13 +13,13 @@ auto main() -> int
 {
     kiln::app::App app =   //
         kiln::app::create("Hello triangle!")
-            .use_context<kiln::gfx::vulkan::DebugMessenger>()
-            .use_context<demo::Context>()
+            .register_entry<kiln::gfx::vulkan::DebugMessenger>()
+            .register_entry<demo::Context>()
             .build();
 
     std::println(
         "Created renderer using {}",
-        app.contexts().at<kiln::gfx::renderer::Device>().name()
+        app.registry().at<kiln::gfx::renderer::Device>().name()
     );
 
     run(app);
@@ -29,8 +29,8 @@ auto run(kiln::app::App& app) -> void
 {
     using namespace std::chrono_literals;
 
-    const kiln::wsi::Context& wsi_context{ app.contexts().at<kiln::wsi::Context>() };
-    demo::Context&            demo_context{ app.contexts().at<demo::Context>() };
+    const kiln::wsi::Context& wsi_context{ app.registry().at<kiln::wsi::Context>() };
+    demo::Context&            demo_context{ app.registry().at<demo::Context>() };
     std::atomic_bool          running{ true };
     std::atomic_bool          window_resized{ false };
     std::atomic               window_resolution{ demo_context.window().framebuffer_size() };

@@ -12,14 +12,14 @@ Bundle::Bundle(const CreateInfo& create_info) : m_headless{ create_info.headless
 
 auto Bundle::operator()(app::Builder& builder) const -> void
 {
-    builder.use_context<Device>();
-    builder.use_context<QueueProvider>();
-    builder.use_context<Allocator>();
+    builder.register_entry<Device>();
+    builder.register_entry<QueueProvider>();
+    builder.register_entry<Allocator>();
     if (!m_headless)
     {
-        builder.use_context<PresentationContext>();
+        builder.register_entry<PresentationContext>();
     }
-    builder.use_context<PipelineContext>();
+    builder.register_entry<PipelineContext>();
 }
 
 }   // namespace kiln::gfx::renderer

@@ -94,11 +94,11 @@ auto main(const int argc, const char* const argv[]) -> int
 
     kiln::app::App app =                    //
         kiln::app::create("Simple scene")   //
-            .use_context<kiln::gfx::vulkan::DebugMessenger>()
-            .use_context<demo::Context>()
+            .register_entry<kiln::gfx::vulkan::DebugMessenger>()
+            .register_entry<demo::Context>()
             .build();
 
-    app.contexts().at<demo::Context>().run(
+    app.registry().at<demo::Context>().run(
         app,
         model_path_from(args),
         should_limit_fps(args),

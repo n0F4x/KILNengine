@@ -4,8 +4,8 @@ module;
 
 export module kiln.wsi.Context;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.util.type_traits.const_like;
 import kiln.wsi.error.handle_glfw_error;
 
@@ -17,7 +17,7 @@ export class ContextBuilder;
 
 }   // namespace internal
 
-export class Context : public app::ContextBase  {
+export class Context : public app::EntryBase  {
 public:
     using Builder = internal::ContextBuilder;
 
@@ -36,7 +36,7 @@ private:
 
 namespace internal {
 
-export class ContextBuilder : public app::ContextBuilderInterface {
+export class ContextBuilder : public app::EntryBuilderInterface {
 public:
     template <typename Self_T>
     [[nodiscard]]

@@ -10,17 +10,17 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-module kiln.app.context.ContextBuildTree;
+module kiln.app.registry.RegistryBuilder;
 
 import kiln.app.config.ConfigBuilder;
-import kiln.app.context.ErasedContextBuilder;
+import kiln.app.registry.ErasedEntryBuilder;
 import kiln.app.memory.MemoryArenaBuilder;
 import kiln.util.contracts;
 
 namespace kiln::app {
 
-ContextBuildTree::ContextBuildTree(MemoryArena&& memory_arena, const Config& config)
-    : m_contexts{ memory_arena.pool_allocator() },
+RegistryBuilder::RegistryBuilder(MemoryArena&& memory_arena, const Config& config)
+    : m_registry{ memory_arena.pool_allocator() },
       m_builders{ memory_arena.pool_allocator() },
       m_builder_hashes{ memory_arena.pool_allocator() },
       m_builder_dependencies{ memory_arena.pool_allocator() },
@@ -29,18 +29,18 @@ ContextBuildTree::ContextBuildTree(MemoryArena&& memory_arena, const Config& con
       m_injection_dependencies{ memory_arena.pool_allocator() },
       m_contained_hashes{ memory_arena.pool_allocator() }
 {
-    unsafe_register_context_builder(MemoryArenaBuilder{ std::move(memory_arena) });
-    unsafe_register_context_builder(ConfigBuilder{ config });
+    unsafe_register_entry_builder(MemoryArenaBuilder{ std::move(memory_arena) });
+    unsafe_register_entry_builder(ConfigBuilder{ config });
 }
 
-auto ContextBuildTree::get_allocator() const noexcept -> allocator_type
+auto RegistryBuilder::get_allocator() const noexcept -> allocator_type
 {
-    return m_contexts.get_allocator();
+    return m_registry.get_allocator();
 }
 
-auto ContextBuildTree::build(
+auto RegistryBuilder::build(
     std::pmr::memory_resource& transient_memory_resource
-) && -> Contexts
+) && -> Registry
 {
     for (Injector injector{ *this }; ErasedInjection& injection : m_injections)
     {
@@ -59,26 +59,26 @@ auto ContextBuildTree::build(
     PRECOND(!check_for_cyclic_configuration_dependencies());
     fix_build_order(transient_memory_resource);
 
-    for (ErasedContextBuilder& builder : m_builders)
+    for (ErasedEntryBuilder& builder : m_builders)
     {
-        std::move(builder).configure_and_build(m_contexts);
+        std::move(builder).configure_and_build(m_registry);
     }
 
-    return std::move(m_contexts);
+    return std::move(m_registry);
 }
 
-ContextBuildTree::Injector::Injector(ContextBuildTree& context_build_tree)
-    : m_build_tree{ context_build_tree }
+RegistryBuilder::Injector::Injector(RegistryBuilder& registry_builder)
+    : m_registry_builder{ registry_builder }
 {
 }
 
-auto ContextBuildTree::DependencyChainNode::contains(const uint64_t hash) const noexcept
+auto RegistryBuilder::DependencyChainNode::contains(const uint64_t hash) const noexcept
     -> bool
 {
     return this->hash == hash || (previous != nullptr && previous->contains(hash));
 }
 
-auto ContextBuildTree::DependencyChainNode::format(
+auto RegistryBuilder::DependencyChainNode::format(
     const std::pmr::string::allocator_type& allocator
 ) const -> std::pmr::string
 {
@@ -87,7 +87,7 @@ auto ContextBuildTree::DependencyChainNode::format(
     return result;
 }
 
-auto ContextBuildTree::DependencyChainNode::format(
+auto RegistryBuilder::DependencyChainNode::format(
     std::pmr::string& out,
     const std::size_t capacity
 ) const -> void
@@ -108,7 +108,7 @@ auto ContextBuildTree::DependencyChainNode::format(
     out.append(std::format("{}", name));
 }
 
-ContextBuildTree::DependencyDescriptor::DependencyDescriptor(
+RegistryBuilder::DependencyDescriptor::DependencyDescriptor(
     const DependencyDescriptor& other,
     const allocator_type&       allocator
 )
@@ -121,7 +121,7 @@ ContextBuildTree::DependencyDescriptor::DependencyDescriptor(
 {
 }
 
-ContextBuildTree::DependencyDescriptor::DependencyDescriptor(
+RegistryBuilder::DependencyDescriptor::DependencyDescriptor(
     DependencyDescriptor&& other,
     const allocator_type&  allocator
 )
@@ -134,7 +134,7 @@ ContextBuildTree::DependencyDescriptor::DependencyDescriptor(
 {
 }
 
-ContextBuildTree::DependencyDescriptor::DependencyDescriptor(
+RegistryBuilder::DependencyDescriptor::DependencyDescriptor(
     std::allocator_arg_t,
     const allocator_type& allocator,
     const uint64_t        hash,
@@ -151,18 +151,18 @@ ContextBuildTree::DependencyDescriptor::DependencyDescriptor(
 {
 }
 
-auto ContextBuildTree::DependencyDescriptor::get_allocator() const noexcept
+auto RegistryBuilder::DependencyDescriptor::get_allocator() const noexcept
     -> allocator_type
 {
     return m_all_missing_and_resolved_dependency_hashes.get_allocator();
 }
 
-auto ContextBuildTree::DependencyDescriptor::hash() const noexcept -> uint64_t
+auto RegistryBuilder::DependencyDescriptor::hash() const noexcept -> uint64_t
 {
     return m_hash;
 }
 
-auto ContextBuildTree::DependencyDescriptor::misses_dependency(
+auto RegistryBuilder::DependencyDescriptor::misses_dependency(
     const uint64_t hash
 ) const noexcept -> bool
 {
@@ -176,7 +176,7 @@ auto ContextBuildTree::DependencyDescriptor::misses_dependency(
     );
 }
 
-auto ContextBuildTree::DependencyDescriptor::resolved_dependencies() const noexcept
+auto RegistryBuilder::DependencyDescriptor::resolved_dependencies() const noexcept
     -> std::span<const uint64_t>
 {
     return std::views::drop(
@@ -185,7 +185,7 @@ auto ContextBuildTree::DependencyDescriptor::resolved_dependencies() const noexc
     );
 }
 
-auto ContextBuildTree::DependencyDescriptor::resolve_missing_dependency(
+auto RegistryBuilder::DependencyDescriptor::resolve_missing_dependency(
     const uint64_t hash
 ) -> void
 {
@@ -206,14 +206,14 @@ auto ContextBuildTree::DependencyDescriptor::resolve_missing_dependency(
     --m_number_of_missing_dependencies;
 }
 
-auto ContextBuildTree::context_builder(const uint64_t hash) const
-    -> const ErasedContextBuilder&
+auto RegistryBuilder::entry_builder(const uint64_t hash) const
+    -> const ErasedEntryBuilder&
 {
-    return *find_context_builder(hash);
+    return *find_entry_builder(hash);
 }
 
-auto ContextBuildTree::find_context_builder(const uint64_t hash)
-    -> util::OptionalRef<ErasedContextBuilder>
+auto RegistryBuilder::find_entry_builder(const uint64_t hash)
+    -> util::OptionalRef<ErasedEntryBuilder>
 {
     const auto builder_hash_iter{ std::ranges::find(m_builder_hashes, hash) };
     if (builder_hash_iter == m_builder_hashes.cend() || *builder_hash_iter != hash)
@@ -227,8 +227,8 @@ auto ContextBuildTree::find_context_builder(const uint64_t hash)
     );
 }
 
-auto ContextBuildTree::find_context_builder(const uint64_t hash) const
-    -> util::OptionalRef<const ErasedContextBuilder>
+auto RegistryBuilder::find_entry_builder(const uint64_t hash) const
+    -> util::OptionalRef<const ErasedEntryBuilder>
 {
     const auto builder_hash_iter{ std::ranges::find(m_builder_hashes, hash) };
     if (builder_hash_iter == m_builder_hashes.cend() || *builder_hash_iter != hash)
@@ -242,7 +242,7 @@ auto ContextBuildTree::find_context_builder(const uint64_t hash) const
     );
 }
 
-auto ContextBuildTree::fix_order_of_builders(
+auto RegistryBuilder::fix_order_of_builders(
     const uint64_t                  latest_hash,
     const std::span<const uint64_t> resolved_builder_dependencies,
     std::pmr::memory_resource&      transient_memory_resource
@@ -339,7 +339,7 @@ auto ContextBuildTree::fix_order_of_builders(
     }
 }
 
-auto ContextBuildTree::mark_builder_as_resolved(const uint64_t hash) -> void
+auto RegistryBuilder::mark_builder_as_resolved(const uint64_t hash) -> void
 {
     for (DependencyDescriptor& descriptor : m_builder_dependencies)
     {
@@ -347,7 +347,7 @@ auto ContextBuildTree::mark_builder_as_resolved(const uint64_t hash) -> void
     }
 }
 
-auto ContextBuildTree::fix_order_of_injections(
+auto RegistryBuilder::fix_order_of_injections(
     const uint64_t                  latest_hash,
     const std::span<const uint64_t> resolved_injection_dependencies,
     std::pmr::memory_resource&      transient_memory_resource
@@ -444,7 +444,7 @@ auto ContextBuildTree::fix_order_of_injections(
     }
 }
 
-auto ContextBuildTree::mark_injection_as_resolved(const uint64_t hash) -> void
+auto RegistryBuilder::mark_injection_as_resolved(const uint64_t hash) -> void
 {
     for (DependencyDescriptor& descriptor : m_injection_dependencies)
     {
@@ -452,19 +452,19 @@ auto ContextBuildTree::mark_injection_as_resolved(const uint64_t hash) -> void
     }
 }
 
-auto ContextBuildTree::check_for_configuration_dependencies() const -> bool
+auto RegistryBuilder::check_for_configuration_dependencies() const -> bool
 {
     return std::ranges::any_of(
         m_builders,
-        [this](const ErasedContextBuilder& builder) -> bool
+        [this](const ErasedEntryBuilder& builder) -> bool
         {
             return check_for_configuration_dependencies(builder);   //
         }
     );
 }
 
-auto ContextBuildTree::check_for_configuration_dependencies(
-    const ErasedContextBuilder& erased_builder
+auto RegistryBuilder::check_for_configuration_dependencies(
+    const ErasedEntryBuilder& erased_builder
 ) const -> bool
 {
     return std::ranges::any_of(
@@ -487,19 +487,19 @@ auto ContextBuildTree::check_for_configuration_dependencies(
     );
 }
 
-auto ContextBuildTree::check_for_cyclic_configuration_dependencies() const -> bool
+auto RegistryBuilder::check_for_cyclic_configuration_dependencies() const -> bool
 {
     return std::ranges::any_of(
         m_builders,
-        [this](const ErasedContextBuilder& builder) -> bool
+        [this](const ErasedEntryBuilder& builder) -> bool
         {
             return check_for_cyclic_configuration_dependencies(builder);   //
         }
     );
 }
 
-auto ContextBuildTree::check_for_cyclic_configuration_dependencies(
-    const ErasedContextBuilder& erased_builder
+auto RegistryBuilder::check_for_cyclic_configuration_dependencies(
+    const ErasedEntryBuilder& erased_builder
 ) const -> bool
 {
     const DependencyChainNode builder_name_chain_node{
@@ -513,7 +513,7 @@ auto ContextBuildTree::check_for_cyclic_configuration_dependencies(
             return check_for_cyclic_configuration_dependency(
                 erased_builder.hash(),
                 erased_builder.name(),
-                context_builder(configuration_dependency_hash).name(),
+                entry_builder(configuration_dependency_hash).name(),
                 configuration_dependency_hash,
                 builder_name_chain_node
             );
@@ -521,7 +521,7 @@ auto ContextBuildTree::check_for_cyclic_configuration_dependencies(
     );
 }
 
-auto ContextBuildTree::check_for_cyclic_configuration_dependency(
+auto RegistryBuilder::check_for_cyclic_configuration_dependency(
     const uint64_t             hash,
     const std::string_view     original_builder_name,
     const std::string_view     original_dependency_name,
@@ -546,8 +546,8 @@ auto ContextBuildTree::check_for_cyclic_configuration_dependency(
         return true;
     }
 
-    const util::OptionalRef<const ErasedContextBuilder> dependency_builder{
-        find_context_builder(dependency_hash)
+    const util::OptionalRef<const ErasedEntryBuilder> dependency_builder{
+        find_entry_builder(dependency_hash)
     };
     if (!dependency_builder.has_value())
     {
@@ -574,7 +574,7 @@ auto ContextBuildTree::check_for_cyclic_configuration_dependency(
     );
 }
 
-auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
+auto RegistryBuilder::collect_all_resolved_build_dependency_hashes(
     const uint64_t                                   hash,
     const std::pmr::polymorphic_allocator<uint64_t>& allocator
 ) -> std::pmr::deque<uint64_t>
@@ -584,19 +584,19 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
         allocator,
     };
 
-    collect_all_resolved_build_dependency_hashes(context_builder(hash), result);
+    collect_all_resolved_build_dependency_hashes(entry_builder(hash), result);
 
     return result;
 }
 
-auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
-    const ErasedContextBuilder& builder,
+auto RegistryBuilder::collect_all_resolved_build_dependency_hashes(
+    const ErasedEntryBuilder& builder,
     std::pmr::deque<uint64_t>&  out
 ) -> void
 {
     for (const uint64_t dependency_hash : dependency_hashes(*builder))
     {
-        if (const util::OptionalRef dependency{ find_context_builder(dependency_hash) };
+        if (const util::OptionalRef dependency{ find_entry_builder(dependency_hash) };
             dependency.has_value() && !std::ranges::binary_search(out, dependency_hash))
         {
             out.insert(std::ranges::upper_bound(out, dependency_hash), dependency_hash);
@@ -605,7 +605,7 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
     }
 }
 
-auto ContextBuildTree::fix_build_order(
+auto RegistryBuilder::fix_build_order(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {

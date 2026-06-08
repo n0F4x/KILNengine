@@ -12,7 +12,7 @@ import kiln;
 
 namespace demo {
 
-export class Context : public kiln::app::ContextBase {
+export class Context : public kiln::app::EntryBase {
 public:
     // required for interfacing with the standard
     using allocator_type = std::pmr::polymorphic_allocator<>;
@@ -65,7 +65,7 @@ private:
     std::pmr::vector<vk::raii::Fence>     m_render_finished_fences;
 };
 
-class Context::Builder : public kiln::app::ContextBuilderInterface {
+class Context::Builder : public kiln::app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(

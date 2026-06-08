@@ -13,8 +13,8 @@ export module kiln.gfx.renderer.memory.Allocator;
 
 import vulkan_hpp;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocation;
@@ -27,7 +27,7 @@ import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
-export class Allocator : public app::ContextBase {
+export class Allocator : public app::EntryBase {
 public:
     class Builder;
 
@@ -101,7 +101,7 @@ private:
     std::unique_ptr<VmaAllocator_T, decltype(&vmaDestroyAllocator)> m_handle;
 };
 
-class Allocator::Builder : public app::ContextBuilderInterface {
+class Allocator::Builder : public app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(

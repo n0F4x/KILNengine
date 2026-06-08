@@ -12,8 +12,8 @@ export module kiln.gfx.renderer.device.Device;
 
 import vulkan_hpp;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.app.memory.MemoryArena;
 import kiln.app.memory.MemoryArenaBuilder;
 import kiln.gfx.renderer.device.QueueType;
@@ -37,7 +37,7 @@ struct QueueInfos {
     std::optional<vulkan::QueueInfo> host_to_device_transfer_queue_info;
 };
 
-export class Device : public app::ContextBase {
+export class Device : public app::EntryBase {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
     class Builder;
@@ -93,7 +93,7 @@ private:
     QueueInfos                                m_queue_infos;
 };
 
-class Device::Builder : public app::ContextBuilderInterface {
+class Device::Builder : public app::EntryBuilderInterface {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 

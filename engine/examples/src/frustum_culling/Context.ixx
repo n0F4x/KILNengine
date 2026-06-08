@@ -8,8 +8,8 @@ export module examples.frustum_culling.Context;
 import kiln.app.App;
 import kiln.app.Builder;
 import kiln.app.config.Config;
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.app.memory.MemoryArena;
 import kiln.event.EventBuffer;
 import kiln.event.EventRecorder;
@@ -34,7 +34,7 @@ import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 
-export class Context : public kiln::app::ContextBase {
+export class Context : public kiln::app::EntryBase {
 public:
     class Builder;
 
@@ -100,7 +100,7 @@ private:
     ) -> void;
 };
 
-class Context::Builder : public kiln::app::ContextBuilderInterface {
+class Context::Builder : public kiln::app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(

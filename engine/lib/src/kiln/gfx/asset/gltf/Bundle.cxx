@@ -6,7 +6,7 @@ namespace kiln::gfx::asset::gltf {
 
 auto Bundle::operator()(app::Builder& builder) -> void
 {
-    builder.use_context<Parser>();
+    builder.register_entry<Parser>();
 }
 
 }   // namespace kiln::gfx::asset::gltf

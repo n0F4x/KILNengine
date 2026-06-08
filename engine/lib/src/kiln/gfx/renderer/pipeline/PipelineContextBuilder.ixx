@@ -2,8 +2,8 @@ export module kiln.gfx.renderer.pipeline.PipelineContextBuilder;
 
 import vulkan_hpp;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.gfx.renderer.device.DeviceBuilder;
 
 namespace kiln::gfx::renderer {
@@ -14,7 +14,7 @@ export class PipelineContext;
 
 }   // namespace internal
 
-export class PipelineContextBuilder : public app::ContextBuilderInterface {
+export class PipelineContextBuilder : public app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(DeviceBuilder& device_builder) -> PipelineContextBuilder
@@ -38,7 +38,7 @@ public:
 
 namespace internal {
 
-export class PipelineContext : public app::ContextBase {
+export class PipelineContext : public app::EntryBase {
 public:
     using Builder = PipelineContextBuilder;
 };

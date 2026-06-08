@@ -11,8 +11,8 @@ export module kiln.gfx.vulkan.Instance;
 import vulkan_hpp;
 
 import kiln.app.config.ConfigBuilder;
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.util.StringLiteral;
 
 namespace kiln::gfx::vulkan {
@@ -23,7 +23,7 @@ export class InstanceBuilder;
 
 }   // namespace internal
 
-export class Instance : public app::ContextBase  {
+export class Instance : public app::EntryBase  {
 public:
     using Builder = internal::InstanceBuilder;
 
@@ -55,7 +55,7 @@ struct InstanceBuilderPrecondition {
 };
 
 export class InstanceBuilder : InstanceBuilderPrecondition,
-                               public app::ContextBuilderInterface   //
+                               public app::EntryBuilderInterface   //
 {
 public:
     struct CreateInfo {

@@ -1,7 +1,7 @@
 export module kiln.gfx.renderer.presentation.PresentationContextBuilder;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.wsi.ContextBuilder;
@@ -14,7 +14,7 @@ export class PresentationContext;
 
 }   // namespace internal
 
-export class PresentationContextBuilder : public app::ContextBuilderInterface {
+export class PresentationContextBuilder : public app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(
@@ -29,7 +29,7 @@ public:
 
 namespace internal {
 
-export class PresentationContext : public app::ContextBase {
+export class PresentationContext : public app::EntryBase {
 public:
     using Builder = PresentationContextBuilder;
 };

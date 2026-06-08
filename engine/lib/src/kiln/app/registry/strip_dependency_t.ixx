@@ -2,7 +2,7 @@ module;
 
 #include <type_traits>
 
-export module kiln.app.context.strip_dependency_t;
+export module kiln.app.registry.strip_dependency_t;
 
 import kiln.util.concepts.specialization_of;
 import kiln.util.containers.OptionalRef;

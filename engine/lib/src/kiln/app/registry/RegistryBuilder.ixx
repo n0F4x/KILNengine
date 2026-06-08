@@ -13,14 +13,14 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module kiln.app.context.ContextBuildTree;
+export module kiln.app.registry.RegistryBuilder;
 
 import kiln.app.config.Config;
-import kiln.app.context.context_builder_c;
-import kiln.app.context.context_c;
-import kiln.app.context.Contexts;
-import kiln.app.context.ErasedContextBuilder;
-import kiln.app.context.strip_dependency_t;
+import kiln.app.registry.entry_builder_c;
+import kiln.app.registry.entry_c;
+import kiln.app.registry.Registry;
+import kiln.app.registry.ErasedEntryBuilder;
+import kiln.app.registry.strip_dependency_t;
 import kiln.app.memory.MemoryArena;
 import kiln.util.any_of;
 import kiln.util.contracts;
@@ -37,32 +37,32 @@ import kiln.util.TypeList;
 
 namespace kiln::app {
 
-export class ContextBuildTree {
+export class RegistryBuilder {
 public:
     // required for interfacing with the standard
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
-    explicit ContextBuildTree(MemoryArena&& memory_arena, const Config& config);
+    explicit RegistryBuilder(MemoryArena&& memory_arena, const Config& config);
 
 
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
 
 
-    template <context_c Context_T>
-    auto register_context(
+    template <entry_c Entry_T>
+    auto register_entry(
         std::pmr::memory_resource& transient_memory_resource
         = *std::pmr::get_default_resource()
     ) -> void;
 
     [[nodiscard]]
-    auto build(std::pmr::memory_resource& transient_memory_resource) && -> Contexts;
+    auto build(std::pmr::memory_resource& transient_memory_resource) && -> Registry;
 
 private:
     class Injector {
     public:
-        explicit Injector(ContextBuildTree& context_build_tree);
+        explicit Injector(RegistryBuilder& registry_builder);
 
         template <typename Builder_T>
         auto insert_builder(
@@ -78,7 +78,7 @@ private:
         auto find_builder() -> util::OptionalRef<Builder_T>;
 
     private:
-        ContextBuildTree& m_build_tree;
+        RegistryBuilder& m_registry_builder;
     };
 
     using ErasedInjection
@@ -133,8 +133,8 @@ private:
         std::uint32_t              m_number_of_missing_dependencies;
     };
 
-    Contexts                               m_contexts;
-    std::pmr::vector<ErasedContextBuilder> m_builders;
+    Registry                               m_registry;
+    std::pmr::vector<ErasedEntryBuilder>   m_builders;
     std::pmr::vector<uint64_t>             m_builder_hashes;
     std::pmr::vector<DependencyDescriptor> m_builder_dependencies;
     std::pmr::vector<ErasedInjection>      m_injections;
@@ -144,28 +144,28 @@ private:
 
 
     [[nodiscard]]
-    auto contains(uint64_t context_hash) const noexcept -> bool;
+    auto contains(uint64_t entry_hash) const noexcept -> bool;
     [[nodiscard]]
-    auto context_builder(uint64_t hash) const -> const ErasedContextBuilder&;
+    auto entry_builder(uint64_t hash) const -> const ErasedEntryBuilder&;
     [[nodiscard]]
-    auto find_context_builder(uint64_t hash) -> util::OptionalRef<ErasedContextBuilder>;
+    auto find_entry_builder(uint64_t hash) -> util::OptionalRef<ErasedEntryBuilder>;
     [[nodiscard]]
-    auto find_context_builder(uint64_t hash) const
-        -> util::OptionalRef<const ErasedContextBuilder>;
+    auto find_entry_builder(uint64_t hash) const
+        -> util::OptionalRef<const ErasedEntryBuilder>;
 
-    template <typename ContextBuilder_T>
-    auto unsafe_register_context_builder(
-        ContextBuilder_T&&         context_builder,
+    template <typename EntryBuilder_T>
+    auto unsafe_register_entry_builder(
+        EntryBuilder_T&&           entry_builder,
         std::pmr::memory_resource& transient_memory_resource
         = *std::pmr::get_default_resource()
     ) -> void;
 
-    template <typename Context_T>
+    template <typename Entry_T>
     [[nodiscard]]
     auto check_for_cyclic_dependency(
         std::pmr::memory_resource& transient_memory_resource
     ) const -> bool;
-    template <typename Context_T>
+    template <typename Entry_T>
     [[nodiscard]]
     auto check_for_cyclic_dependency(
         const DependencyChainNode&  dependency_chain,
@@ -195,8 +195,8 @@ private:
     ) const -> bool;
 
 
-    template <typename Context_T, typename... Args_T>
-    auto emplace_context(Args_T&&... args) -> void;
+    template <typename Entry_T, typename... Args_T>
+    auto emplace_entry(Args_T&&... args) -> void;
 
 
     template <typename Builder_T>
@@ -268,13 +268,13 @@ private:
     auto check_for_configuration_dependencies() const -> bool;
     [[nodiscard]]
     auto check_for_configuration_dependencies(
-        const ErasedContextBuilder& erased_builder
+        const ErasedEntryBuilder& erased_builder
     ) const -> bool;
     [[nodiscard]]
     auto check_for_cyclic_configuration_dependencies() const -> bool;
     [[nodiscard]]
     auto check_for_cyclic_configuration_dependencies(
-        const ErasedContextBuilder& erased_builder
+        const ErasedEntryBuilder& erased_builder
     ) const -> bool;
     [[nodiscard]]
     auto check_for_cyclic_configuration_dependency(
@@ -290,8 +290,8 @@ private:
         const std::pmr::polymorphic_allocator<uint64_t>& allocator
     ) -> std::pmr::deque<uint64_t>;
     auto collect_all_resolved_build_dependency_hashes(
-        const ErasedContextBuilder& builder,
-        std::pmr::deque<uint64_t>&  out
+        const ErasedEntryBuilder&  builder,
+        std::pmr::deque<uint64_t>& out
     ) -> void;
     auto fix_build_order(std::pmr::memory_resource& transient_memory_resource) -> void;
 };
@@ -300,18 +300,18 @@ private:
 
 namespace kiln::app {
 
-template <typename Context_T>
+template <typename Entry_T>
 [[nodiscard]]
-consteval auto hash_context() noexcept -> uint64_t
+consteval auto hash_entry() noexcept -> uint64_t
 {
-    return util::hash_u64<Context_T>();
+    return util::hash_u64<Entry_T>();
 }
 
 template <typename Builder_T>
 [[nodiscard]]
 consteval auto hash_builder() noexcept -> uint64_t
 {
-    return hash_context<util::result_of_t<decltype(&Builder_T::build)>>();
+    return hash_entry<util::result_of_t<decltype(&Builder_T::build)>>();
 }
 
 template <typename Injection_T>
@@ -323,21 +323,21 @@ consteval auto hash_injection() noexcept -> uint64_t
 
 template <typename Builder_T>
 [[nodiscard]]
-consteval auto context_name_of_builder() -> std::string_view
+consteval auto entry_name_of_builder() -> std::string_view
 {
     return util::name_of<util::result_of_t<decltype(&Builder_T::build)>>();
 }
 
 template <typename Injection_T>
 [[nodiscard]]
-consteval auto context_name_of_injection() -> std::string_view
+consteval auto entry_name_of_injection() -> std::string_view
 {
-    return context_name_of_builder<util::result_of_t<Injection_T>>();
+    return entry_name_of_builder<util::result_of_t<Injection_T>>();
 }
 
 template <typename T>
 struct RepresentsBuilderDependency {
-    constexpr static bool value{ context_builder_c<strip_dependency_t<T>> };
+    constexpr static bool value{ entry_builder_c<strip_dependency_t<T>> };
 };
 
 export template <typename T, typename Builder_T>
@@ -352,79 +352,78 @@ template <typename T>
 concept represents_optional_dependency_c
     = requires { requires util::specialization_of_c<T, util::OptionalRef>; };
 
-template <context_c Context_T>
-auto ContextBuildTree::register_context(
-    std::pmr::memory_resource& transient_memory_resource
-) -> void
+template <entry_c Entry_T>
+auto RegistryBuilder::register_entry(std::pmr::memory_resource& transient_memory_resource)
+    -> void
 {
-    constexpr static uint64_t hash{ hash_context<Context_T>() };
+    constexpr static uint64_t hash{ hash_entry<Entry_T>() };
 
     if (contains(hash))
     {
         return;
     }
 
-    if constexpr (requires { typename Context_T::Builder; })
+    if constexpr (requires { typename Entry_T::Builder; })
     {
-        static_assert(context_builder_c<typename Context_T::Builder>);
+        static_assert(entry_builder_c<typename Entry_T::Builder>);
         static_assert(
-            std::is_same_v<util::result_of_t<decltype(&Context_T::Builder::build)>, Context_T>
+            std::is_same_v<util::result_of_t<decltype(&Entry_T::Builder::build)>, Entry_T>
         );
 
-        PRECOND(!check_for_cyclic_dependency<Context_T>(transient_memory_resource));
+        PRECOND(!check_for_cyclic_dependency<Entry_T>(transient_memory_resource));
 
-        register_builder<typename Context_T::Builder>(transient_memory_resource);
+        register_builder<typename Entry_T::Builder>(transient_memory_resource);
     }
     else
     {
-        emplace_context<Context_T>();
+        emplace_entry<Entry_T>();
     }
 
     m_contained_hashes.insert(std::ranges::upper_bound(m_contained_hashes, hash), hash);
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::Injector::insert_builder(
+auto RegistryBuilder::Injector::insert_builder(
     Builder_T&&                builder,
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    m_build_tree.emplace_builder<std::remove_cvref_t<Builder_T>>(
+    m_registry_builder.emplace_builder<std::remove_cvref_t<Builder_T>>(
         transient_memory_resource,
         std::forward<Builder_T>(builder)
     );
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::Injector::builder_at() -> Builder_T&
+auto RegistryBuilder::Injector::builder_at() -> Builder_T&
 {
     return *find_builder<Builder_T>();
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::Injector::find_builder() -> util::OptionalRef<Builder_T>
+auto RegistryBuilder::Injector::find_builder() -> util::OptionalRef<Builder_T>
 {
-    return m_build_tree.find_context_builder(hash_builder<Builder_T>())
+    return m_registry_builder.find_entry_builder(hash_builder<Builder_T>())
         .transform(
-            [](ErasedContextBuilder& erased_context_builder) -> Builder_T&
+            [](ErasedEntryBuilder& erased_entry_builder) -> Builder_T&
             {
-                return static_cast<Builder_T&>(*erased_context_builder);   //
+                return static_cast<Builder_T&>(*erased_entry_builder);   //
             }
         );
 }
 
-auto ContextBuildTree::contains(const uint64_t context_hash) const noexcept -> bool
+auto RegistryBuilder::contains(const uint64_t entry_hash) const noexcept -> bool
 {
-    return std::ranges::binary_search(m_contained_hashes, context_hash);
+    return std::ranges::binary_search(m_contained_hashes, entry_hash);
 }
 
-template <typename ContextBuilder_T>
-auto ContextBuildTree::unsafe_register_context_builder(
-    ContextBuilder_T&&         context_builder,
+template <typename EntryBuilder_T>
+auto RegistryBuilder::unsafe_register_entry_builder(
+    EntryBuilder_T&&         entry_builder,
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    using StrippedBuilder = std::remove_cvref_t<ContextBuilder_T>;
+    using StrippedBuilder = std::remove_cvref_t<EntryBuilder_T>;
 
     constexpr static uint64_t hash{ hash_builder<StrippedBuilder>() };
 
@@ -438,35 +437,35 @@ auto ContextBuildTree::unsafe_register_context_builder(
     resolve_build_dependencies<StrippedBuilder>(transient_memory_resource);
     emplace_builder<StrippedBuilder>(
         transient_memory_resource,
-        std::forward<ContextBuilder_T>(context_builder)
+        std::forward<EntryBuilder_T>(entry_builder)
     );
 
     m_contained_hashes.insert(std::ranges::upper_bound(m_contained_hashes, hash), hash);
 }
 
-template <typename Context_T>
-auto ContextBuildTree::check_for_cyclic_dependency(
+template <typename Entry_T>
+auto RegistryBuilder::check_for_cyclic_dependency(
     std::pmr::memory_resource& transient_memory_resource
 ) const -> bool
 {
-    if constexpr (requires { typename Context_T::Builder; })
+    if constexpr (requires { typename Entry_T::Builder; })
     {
-        static_assert(context_builder_c<typename Context_T::Builder>);
+        static_assert(entry_builder_c<typename Entry_T::Builder>);
         static_assert(
-            std::is_same_v<util::result_of_t<decltype(&Context_T::Builder::build)>, Context_T>
+            std::is_same_v<util::result_of_t<decltype(&Entry_T::Builder::build)>, Entry_T>
         );
 
-        constexpr static uint64_t hash{ hash_context<Context_T>() };
+        constexpr static uint64_t hash{ hash_entry<Entry_T>() };
 
         std::pmr::vector<uint64_t> hash_cache{ &transient_memory_resource };
         hash_cache.push_back(hash);
 
         const DependencyChainNode dependency_chain_node{
             .hash{ hash },
-            .name{ util::name_of<Context_T>() },
+            .name{ util::name_of<Entry_T>() },
         };
 
-        return check_for_cyclic_dependency_via_builder<typename Context_T::Builder>(
+        return check_for_cyclic_dependency_via_builder<typename Entry_T::Builder>(
             dependency_chain_node,
             hash_cache,
             transient_memory_resource
@@ -476,22 +475,22 @@ auto ContextBuildTree::check_for_cyclic_dependency(
     return false;
 }
 
-template <typename Context_T>
-auto ContextBuildTree::check_for_cyclic_dependency(
+template <typename Entry_T>
+auto RegistryBuilder::check_for_cyclic_dependency(
     const DependencyChainNode&  dependency_chain,
     std::pmr::vector<uint64_t>& hash_cache,
     std::pmr::memory_resource&  transient_memory_resource
 ) const -> bool
 {
-    constexpr static uint64_t         hash{ hash_context<Context_T>() };
-    constexpr static std::string_view name{ util::name_of<Context_T>() };
+    constexpr static uint64_t         hash{ hash_entry<Entry_T>() };
+    constexpr static std::string_view name{ util::name_of<Entry_T>() };
 
     if (dependency_chain.contains(hash))
     {
         PRECOND(
             false,
             std::format(
-                "Cyclic dependency detected - context of type `{}` depends on itself "   //
+                "Cyclic dependency detected - entry of type `{}` depends on itself "   //
                 "({} -> {})",
                 name,
                 dependency_chain.format(&transient_memory_resource),
@@ -507,11 +506,11 @@ auto ContextBuildTree::check_for_cyclic_dependency(
     }
     hash_cache.insert(std::ranges::upper_bound(hash_cache, hash), hash);
 
-    if constexpr (requires { typename Context_T::Builder; })
+    if constexpr (requires { typename Entry_T::Builder; })
     {
-        static_assert(context_builder_c<typename Context_T::Builder>);
+        static_assert(entry_builder_c<typename Entry_T::Builder>);
         static_assert(
-            std::is_same_v<util::result_of_t<decltype(&Context_T::Builder::build)>, Context_T>
+            std::is_same_v<util::result_of_t<decltype(&Entry_T::Builder::build)>, Entry_T>
         );
 
         const DependencyChainNode dependency_chain_node{
@@ -520,7 +519,7 @@ auto ContextBuildTree::check_for_cyclic_dependency(
             .name     = name,
         };
 
-        return check_for_cyclic_dependency_via_builder<typename Context_T::Builder>(
+        return check_for_cyclic_dependency_via_builder<typename Entry_T::Builder>(
             dependency_chain_node,
             hash_cache,
             transient_memory_resource
@@ -531,7 +530,7 @@ auto ContextBuildTree::check_for_cyclic_dependency(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::check_for_cyclic_dependency_via_builder(
+auto RegistryBuilder::check_for_cyclic_dependency_via_builder(
     const DependencyChainNode&  dependency_chain,
     std::pmr::vector<uint64_t>& hash_cache,
     std::pmr::memory_resource&  transient_memory_resource
@@ -550,7 +549,7 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_builder(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::check_for_cyclic_dependency_via_create(
+auto RegistryBuilder::check_for_cyclic_dependency_via_create(
     const DependencyChainNode&  dependency_chain,
     std::pmr::vector<uint64_t>& hash_cache,
     std::pmr::memory_resource&  transient_memory_resource
@@ -564,10 +563,10 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_create(
             util::arguments_of_t<decltype(Builder_T::create)>{},
             [&]<typename Dependency_T> -> bool
             {
-                using DependencyContext
+                using DependencyEntry
                     = util::result_of_t<decltype(&strip_dependency_t<Dependency_T>::build)>;
 
-                return check_for_cyclic_dependency<DependencyContext>(
+                return check_for_cyclic_dependency<DependencyEntry>(
                     dependency_chain,
                     hash_cache,
                     transient_memory_resource
@@ -580,7 +579,7 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_create(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::check_for_cyclic_dependency_via_build(
+auto RegistryBuilder::check_for_cyclic_dependency_via_build(
     const DependencyChainNode&  dependency_chain,
     std::pmr::vector<uint64_t>& hash_cache,
     std::pmr::memory_resource&  transient_memory_resource
@@ -590,9 +589,9 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_build(
         util::arguments_of_t<decltype(&Builder_T::build)>{},
         [&]<typename Dependency_T> -> bool
         {
-            using DependencyContext = strip_dependency_t<Dependency_T>;
+            using DependencyEntry = strip_dependency_t<Dependency_T>;
 
-            return check_for_cyclic_dependency<DependencyContext>(
+            return check_for_cyclic_dependency<DependencyEntry>(
                 dependency_chain,
                 hash_cache,
                 transient_memory_resource
@@ -601,14 +600,14 @@ auto ContextBuildTree::check_for_cyclic_dependency_via_build(
     );
 }
 
-template <typename Context_T, typename... Args_T>
-auto ContextBuildTree::emplace_context(Args_T&&... args) -> void
+template <typename Entry_T, typename... Args_T>
+auto RegistryBuilder::emplace_entry(Args_T&&... args) -> void
 {
-    m_contexts.emplace<Context_T>(std::forward<Args_T>(args)...);
+    m_registry.emplace<Entry_T>(std::forward<Args_T>(args)...);
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::register_builder(
+auto RegistryBuilder::register_builder(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
@@ -627,7 +626,7 @@ auto ContextBuildTree::register_builder(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::resolve_build_dependencies(
+auto RegistryBuilder::resolve_build_dependencies(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
@@ -642,7 +641,7 @@ auto ContextBuildTree::resolve_build_dependencies(
                  * dependency. Cyclic dependencies must be checked before calling this
                  * function.
                  */
-                register_context<strip_dependency_t<Dependency_T>>(
+                register_entry<strip_dependency_t<Dependency_T>>(
                     transient_memory_resource
                 );
             }
@@ -651,7 +650,7 @@ auto ContextBuildTree::resolve_build_dependencies(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_missing_build_dependency_hashes(
+auto RegistryBuilder::collect_all_missing_build_dependency_hashes(
     std::pmr::deque<uint64_t>& out
 ) -> void
 {
@@ -662,7 +661,7 @@ auto ContextBuildTree::collect_all_missing_build_dependency_hashes(
             using StrippedDependency = strip_dependency_t<Dependency_T>;
 
             constexpr static uint64_t dependency_hash{
-                hash_context<StrippedDependency>()
+                hash_entry<StrippedDependency>()
             };
 
             if (const auto iter{ std::ranges::lower_bound(out, dependency_hash) };
@@ -682,7 +681,7 @@ auto ContextBuildTree::collect_all_missing_build_dependency_hashes(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_missing_and_resolved_build_dependency_hashes(
+auto RegistryBuilder::collect_all_missing_and_resolved_build_dependency_hashes(
     const std::pmr::polymorphic_allocator<uint64_t>& allocator
 ) -> std::pair<std::pmr::deque<uint64_t>, uint32_t>
 {
@@ -698,7 +697,7 @@ auto ContextBuildTree::collect_all_missing_and_resolved_build_dependency_hashes(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
+auto RegistryBuilder::collect_all_resolved_build_dependency_hashes(
     const std::pmr::polymorphic_allocator<uint64_t>& allocator
 ) -> std::pmr::deque<uint64_t>
 {
@@ -713,7 +712,7 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
+auto RegistryBuilder::collect_all_resolved_build_dependency_hashes(
     std::pmr::deque<uint64_t>& out
 ) -> void
 {
@@ -726,7 +725,7 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
             using StrippedDependency = strip_dependency_t<Dependency_T>;
 
             constexpr static uint64_t dependency_hash{
-                hash_context<StrippedDependency>()
+                hash_entry<StrippedDependency>()
             };
 
             if (const auto iter{
@@ -754,7 +753,7 @@ auto ContextBuildTree::collect_all_resolved_build_dependency_hashes(
 }
 
 template <typename Builder_T, typename... Args_T>
-auto ContextBuildTree::emplace_builder(
+auto RegistryBuilder::emplace_builder(
     std::pmr::memory_resource& transient_memory_resource,
     Args_T&&... args
 ) -> void
@@ -780,7 +779,7 @@ auto ContextBuildTree::emplace_builder(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::register_injection(
+auto RegistryBuilder::register_injection(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
@@ -789,7 +788,7 @@ auto ContextBuildTree::register_injection(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::resolve_injection_dependencies(
+auto RegistryBuilder::resolve_injection_dependencies(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
@@ -804,7 +803,7 @@ auto ContextBuildTree::resolve_injection_dependencies(
                  * dependency. Cyclic dependencies must be checked before calling this
                  * function.
                  */
-                register_context<
+                register_entry<
                     util::result_of_t<decltype(&strip_dependency_t<Dependency_T>::build)>>(
                     transient_memory_resource
                 );
@@ -815,7 +814,7 @@ auto ContextBuildTree::resolve_injection_dependencies(
 
 template <typename... Dependencies_T>
 [[nodiscard]]
-auto ContextBuildTree::collect_creation_dependencies(
+auto RegistryBuilder::collect_creation_dependencies(
     util::TypeList<Dependencies_T...>,
     Injector& injector
 ) -> std::tuple<Dependencies_T...>
@@ -836,7 +835,7 @@ auto ContextBuildTree::collect_creation_dependencies(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::emplace_injection(
+auto RegistryBuilder::emplace_injection(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
@@ -876,7 +875,7 @@ auto ContextBuildTree::emplace_injection(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_missing_injection_dependency_hashes(
+auto RegistryBuilder::collect_all_missing_injection_dependency_hashes(
     const std::pmr::polymorphic_allocator<uint64_t>& allocator
 ) -> std::pair<std::pmr::deque<uint64_t>, uint32_t>
 {
@@ -915,7 +914,7 @@ auto ContextBuildTree::collect_all_missing_injection_dependency_hashes(
 }
 
 template <typename Builder_T>
-auto ContextBuildTree::collect_all_resolved_injection_dependency_hashes(
+auto RegistryBuilder::collect_all_resolved_injection_dependency_hashes(
     const std::pmr::polymorphic_allocator<uint64_t>& allocator
 ) -> std::pmr::deque<uint64_t>
 {

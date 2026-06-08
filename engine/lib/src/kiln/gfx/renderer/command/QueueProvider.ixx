@@ -15,8 +15,8 @@ export module kiln.gfx.renderer.command.QueueProvider;
 
 import vulkan_hpp;
 
-import kiln.app.context.ContextBase;
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBase;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.gfx.renderer.command.ComputeQueueRef;
 import kiln.gfx.renderer.command.GraphicsQueueRef;
 import kiln.gfx.renderer.command.TransferQueueRef;
@@ -49,7 +49,7 @@ public:
     );
 };
 
-export class QueueProvider : private QueueProviderPrecondition, public app::ContextBase {
+export class QueueProvider : private QueueProviderPrecondition, public app::EntryBase {
 public:
     class Builder;
 
@@ -100,7 +100,7 @@ private:
     auto queue_as(std::optional<uint32_t> index) -> std::optional<QueueRef_T>;
 };
 
-class QueueProvider::Builder : public app::ContextBuilderInterface {
+class QueueProvider::Builder : public app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto create(

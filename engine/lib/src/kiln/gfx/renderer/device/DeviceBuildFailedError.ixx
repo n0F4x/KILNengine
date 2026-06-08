@@ -1,12 +1,12 @@
 export module kiln.gfx.renderer.device.DeviceBuildFailedError;
 
-import kiln.app.context.ContextBuilderFailedError;
+import kiln.app.registry.EntryBuilderFailedError;
 
 namespace kiln::gfx::renderer {
 
-export class DeviceBuildFailedError : public app::ContextBuilderFailedError {
+export class DeviceBuildFailedError : public app::EntryBuilderFailedError {
 public:
-    using ContextBuilderFailedError::ContextBuilderFailedError;
+    using EntryBuilderFailedError::EntryBuilderFailedError;
 };
 
 }   // namespace kiln::gfx::renderer

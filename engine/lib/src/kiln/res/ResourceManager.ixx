@@ -7,7 +7,7 @@ module;
 
 export module kiln.res.ResourceManager;
 
-import kiln.app.context.ContextBuilderInterface;
+import kiln.app.registry.EntryBuilderInterface;
 import kiln.app.memory.MemoryArena;
 import kiln.res.resource_c;
 import kiln.res.ResourceID;
@@ -59,7 +59,7 @@ private:
 
 namespace internal {
 
-export class ResourceManagerBuilder : public app::ContextBuilderInterface {
+export class ResourceManagerBuilder : public app::EntryBuilderInterface {
 public:
     [[nodiscard]]
     static auto build(app::MemoryArena& memory_arena) -> ResourceManager

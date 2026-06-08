@@ -239,12 +239,12 @@ auto Context::run_main_worker(
     const uint32_t               grid_size
 ) -> void
 {
-    const auto& config{ app.contexts().at<kiln::app::Config>() };
-    const auto& vulkan_instance{ app.contexts().at<kiln::gfx::vulkan::Instance>() };
-    const auto& render_device{ app.contexts().at<kiln::gfx::renderer::Device>() };
-    auto&       queue_provider{ app.contexts().at<kiln::gfx::renderer::QueueProvider>() };
-    auto&       render_allocator{ app.contexts().at<kiln::gfx::renderer::Allocator>() };
-    auto&       gltf_parser{ app.contexts().at<kiln::gfx::asset::gltf::Parser>() };
+    const auto& config{ app.registry().at<kiln::app::Config>() };
+    const auto& vulkan_instance{ app.registry().at<kiln::gfx::vulkan::Instance>() };
+    const auto& render_device{ app.registry().at<kiln::gfx::renderer::Device>() };
+    auto&       queue_provider{ app.registry().at<kiln::gfx::renderer::QueueProvider>() };
+    auto&       render_allocator{ app.registry().at<kiln::gfx::renderer::Allocator>() };
+    auto&       gltf_parser{ app.registry().at<kiln::gfx::asset::gltf::Parser>() };
 
     const auto  scene_load_start_time{ std::chrono::steady_clock::now() };
     const Scene scene{

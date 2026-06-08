@@ -7,8 +7,8 @@ namespace kiln::gfx::vulkan {
 
 auto Bundle::operator()(app::Builder& builder) -> void
 {
-    builder.use_context<Instance>();
-    builder.use_context<DebugMessenger>();
+    builder.register_entry<Instance>();
+    builder.register_entry<DebugMessenger>();
 }
 
 }   // namespace kiln::gfx::vulkan

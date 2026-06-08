@@ -5,31 +5,31 @@ module;
 #include <span>
 #include <vector>
 
-module kiln.app.context.ContextBuilderInterface;
+module kiln.app.registry.EntryBuilderInterface;
 
 namespace kiln::app {
 
-auto configuration_dependency_hash_set(const ContextBuilderInterface& builder) noexcept
+auto configuration_dependency_hash_set(const EntryBuilderInterface& builder) noexcept
     -> std::span<const uint64_t>
 {
     return builder.m_configuration_dependency_hash_set;
 }
 
-auto dependency_hashes(const ContextBuilderInterface& builder) noexcept
+auto dependency_hashes(const EntryBuilderInterface& builder) noexcept
     -> std::span<const uint64_t>
 {
     return builder.m_dependency_hashes;
 }
 
 auto set_resolved_dependency_hashes(
-    ContextBuilderInterface&        builder,
+    EntryBuilderInterface&        builder,
     const std::span<const uint64_t> resolved_dependency_hashes
 ) -> void
 {
     builder.m_dependency_hashes.append_range(resolved_dependency_hashes);
 }
 
-auto ContextBuilderInterface::insert_configuration_dependency_hash(
+auto EntryBuilderInterface::insert_configuration_dependency_hash(
     const uint64_t dependency_hash
 ) -> void
 {
