@@ -15,6 +15,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         ContextBuilderInterface.ixx
         ContextBuildTree.ixx
         Contexts.ixx
+        ErasedContext.ixx
         ErasedContextBuilder.ixx
         strip_dependency_t.ixx
 )

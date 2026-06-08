@@ -8,10 +8,20 @@ import kiln.util.containers.Any;
 
 namespace kiln::util {
 
+export using util::default_any_size;
+export using util::default_any_alignment;
+export using util::DefaultAnyPolicy;
+export using util::DefaultAnyInterfaceMixin;
+export using util::DefaultAnyExtraVTable;
+
 export template <
-    std::size_t size_T      = 3 * sizeof(void*),
-    std::size_t alignment_T = sizeof(void*)>
-using BasicCopyableAny = BasicAny<DefaultAnyTraits<false, size_T, alignment_T>>;
+    std::size_t size_T                                  = default_any_size(),
+    std::size_t alignment_T                             = default_any_alignment(),
+    template <typename> typename Policy_T               = DefaultAnyPolicy,
+    template <typename Any_T> typename InterfaceMixin_T = DefaultAnyInterfaceMixin,
+    template <typename Any_T> typename ExtraVTable_T    = DefaultAnyExtraVTable>
+using BasicCopyableAny = BasicAny<
+    DefaultAnyTraits<false, size_T, alignment_T, Policy_T, InterfaceMixin_T, ExtraVTable_T>>;
 
 export using CopyableAny = BasicCopyableAny<>;
 
