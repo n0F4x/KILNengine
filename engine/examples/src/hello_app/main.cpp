@@ -2,7 +2,6 @@
 
 import kiln.app;
 import kiln.util.containers.OptionalRef;
-import kiln.util.contracts;
 
 struct GraphicsSystemIntegration : kiln::app::EntryBase {};
 
@@ -83,11 +82,10 @@ auto main() -> int
      * GraphicsSystemIntegration gets implicitly injected
      *  as the RenderSystem unconditionally depends on it
      */
-    kiln::app::App app =      //
-        kiln::app::create()   //
-            .register_entry<RenderSystem>()
-            .register_entry<WindowSystem>()
-            .build();
+    kiln::app::App app = kiln::app::create()
+                             .register_entry<RenderSystem>()
+                             .register_entry<WindowSystem>()
+                             .build();
 
     /*
      * RenderSystem is never headless when the WindowSystem is present

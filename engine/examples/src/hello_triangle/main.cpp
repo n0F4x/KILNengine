@@ -11,11 +11,10 @@ auto run(kiln::app::App& app) -> void;
 
 auto main() -> int
 {
-    kiln::app::App app =   //
-        kiln::app::create("Hello triangle!")
-            .register_entry<kiln::gfx::vulkan::DebugMessenger>()
-            .register_entry<demo::Context>()
-            .build();
+    kiln::app::App app = kiln::app::create("Hello triangle!")
+                             .register_entry<kiln::gfx::vulkan::DebugMessenger>()
+                             .register_entry<demo::Context>()
+                             .build();
 
     std::println(
         "Created renderer using {}",
@@ -33,7 +32,7 @@ auto run(kiln::app::App& app) -> void
     demo::Context&            demo_context{ app.registry().at<demo::Context>() };
     std::atomic_bool          running{ true };
     std::atomic_bool          window_resized{ false };
-    std::atomic               window_resolution{ demo_context.window().framebuffer_size() };
+    std::atomic window_resolution{ demo_context.window().framebuffer_size() };
 
     std::jthread render_thread{
         [&demo_context, &running, &window_resized, &window_resolution] mutable -> void

@@ -92,11 +92,10 @@ auto main(const int argc, const char* const argv[]) -> int
 {
     const std::vector<std::string_view> args{ argv, argv + argc };
 
-    kiln::app::App app =                    //
-        kiln::app::create("Simple scene")   //
-            .register_entry<kiln::gfx::vulkan::DebugMessenger>()
-            .register_entry<demo::Context>()
-            .build();
+    kiln::app::App app = kiln::app::create("Simple scene")
+                             .register_entry<kiln::gfx::vulkan::DebugMessenger>()
+                             .register_entry<demo::Context>()
+                             .build();
 
     app.registry().at<demo::Context>().run(
         app,
