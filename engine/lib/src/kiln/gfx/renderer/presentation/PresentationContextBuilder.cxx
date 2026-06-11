@@ -6,6 +6,7 @@ module kiln.gfx.renderer.presentation.PresentationContextBuilder;
 
 import vulkan_hpp;
 
+import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.renderer.presentation.PresentationContextBuilderFailedError;
 import kiln.util.Lazy;
 import kiln.util.StringLiteral;
@@ -14,13 +15,13 @@ import kiln.wsi.vulkan_instance_extensions;
 namespace kiln::gfx::renderer {
 
 auto PresentationContextBuilder::create(
-    const wsi::ContextBuilder& wsi_context_builder,
-    vulkan::InstanceBuilder&   instance_builder,
-    DeviceBuilder&             device_builder
+    const wsi::Context&      wsi_context,
+    vulkan::InstanceBuilder& instance_builder,
+    DeviceBuilder&           device_builder
 ) -> PresentationContextBuilder
 {
     for (const char* extension_name :
-         wsi::vulkan_instance_extensions(wsi_context_builder.context())
+         wsi::vulkan_instance_extensions(wsi_context)
              .value_or(
                  util::Lazy{
                      [] -> std::span<const char* const>
@@ -44,9 +45,9 @@ auto PresentationContextBuilder::create(
     return PresentationContextBuilder{};
 }
 
-auto PresentationContextBuilder::build() -> internal::PresentationContext
+auto PresentationContextBuilder::build() -> PresentationContext
 {
-    return internal::PresentationContext{};
+    return PresentationContext{};
 }
 
 }   // namespace kiln::gfx::renderer

@@ -1,5 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
-        EntryBuilderInterface.cxx
+        DependencyChainNode.cxx
+        EntryBuilderContainer.cxx
+        EntryInjectionContainer.cxx
         RegistryBuilder.cxx
 )
 
@@ -8,14 +10,25 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         registry.cppm
-        entry_builder_c.ixx
+        BuildableEntry.ixx
+        BuildableEntryBase.ixx
+        ConfigurationEntry.ixx
+        CyclicDependencyDetected.ixx
+        DependencyChainNode.ixx
         entry_c.ixx
+        entry_builder_c.ixx
         EntryBase.ixx
+        EntryBuildDirector.ixx
+        EntryBuilderBase.ixx
+        EntryBuilderContainer.ixx
         EntryBuilderFailedError.ixx
-        EntryBuilderInterface.ixx
+        EntryInjectionContainer.ixx
         ErasedEntry.ixx
         ErasedEntryBuilder.ixx
+        ErasedEntryInjection.ixx
         Registry.ixx
         RegistryBuilder.ixx
+        represents_entry_dependency_c.ixx
+        RepresentsEntryDependencyConcept.ixx
         strip_dependency_t.ixx
 )

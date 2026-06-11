@@ -10,7 +10,9 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-GraphicsQueueRefPrecondition::GraphicsQueueRefPrecondition(const Queue& queue)
+GraphicsQueueRefPrecondition::GraphicsQueueRefPrecondition(
+    [[maybe_unused]] const Queue& queue
+)
 {
     PRECOND(queue.flags() & vk::QueueFlagBits::eGraphics);
 }

@@ -4,7 +4,6 @@ export import kiln.wsi.error;
 export import kiln.wsi.event;
 
 export import kiln.wsi.Context;
-export import kiln.wsi.ContextBuilder;
 export import kiln.wsi.Engine;
 export import kiln.wsi.EventConsumerQueueInterface;
 export import kiln.wsi.FullScreenWindowSettings;

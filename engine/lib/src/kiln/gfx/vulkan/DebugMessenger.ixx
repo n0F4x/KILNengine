@@ -2,33 +2,22 @@ export module kiln.gfx.vulkan.DebugMessenger;
 
 import vulkan_hpp;
 
-import kiln.app.registry.EntryBase;
-import kiln.app.registry.EntryBuilderInterface;
-import kiln.gfx.vulkan.Instance;
-import kiln.gfx.vulkan.InstanceBuilder;
+import kiln.app.registry.BuildableEntry;
+import kiln.app.registry.EntryBuildDirector;
 
 namespace kiln::gfx::vulkan {
 
-class DebugMessengerBuilder;
+export class DebugMessenger;
 
-export class DebugMessenger : public app::EntryBase  {
+auto describe_build(app::EntryBuildDirector<DebugMessenger>& build_director) -> void;
+
+class DebugMessenger
+    : public app::BuildableEntry<DebugMessenger, describe_build> {
 public:
-    using Builder = DebugMessengerBuilder;
-
-
     explicit DebugMessenger(vk::raii::DebugUtilsMessengerEXT&& debug_messenger);
 
 private:
     vk::raii::DebugUtilsMessengerEXT m_debug_messenger;
-};
-
-class DebugMessengerBuilder : public app::EntryBuilderInterface {
-public:
-    [[nodiscard]]
-    static auto create(InstanceBuilder& instance_builder) -> DebugMessengerBuilder;
-
-    [[nodiscard]]
-    static auto build(const Instance& instance) -> DebugMessenger;
 };
 
 }   // namespace kiln::gfx::vulkan

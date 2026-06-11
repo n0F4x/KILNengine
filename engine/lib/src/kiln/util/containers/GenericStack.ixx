@@ -104,6 +104,8 @@ public:
 
     template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
     auto insert(Item_T&& item) -> Item_T&;
+    template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
+    auto try_insert(Item_T&& item) -> std::pair<Item_T&, bool>;
     template <basic_generic_stack_item_c<Any_T> Item_T, typename... Args_T>
         requires(std::is_constructible_v<Item_T, Args_T && ...>)
     auto emplace(Args_T&&... args) -> Item_T&;
@@ -234,6 +236,14 @@ template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
 auto BasicGenericStack<Any_T>::insert(Item_T&& item) -> Item_T&
 {
     return emplace<std::decay_t<Item_T>>(std::forward<Item_T>(item));
+}
+
+template <move_only_any_c Any_T>
+    requires(Any_T::size() == 0)
+template <decays_to_basic_generic_stack_item_c<Any_T> Item_T>
+auto BasicGenericStack<Any_T>::try_insert(Item_T&& item) -> std::pair<Item_T&, bool>
+{
+    return try_emplace<std::decay_t<Item_T>>(std::forward<Item_T>(item));
 }
 
 template <move_only_any_c Any_T>

@@ -1,6 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Allocation.cxx
         Allocator.cxx
+        AllocatorBuilder.cxx
         Buffer.cxx
         Image.cxx
 )

@@ -1,6 +1,5 @@
 module;
 
-#include <memory_resource>
 #include <utility>
 
 export module kiln.app.App;
@@ -20,8 +19,8 @@ public:
     auto registry(this Self_T&&) noexcept -> util::forward_like_t<Registry, Self_T>;
 
 private:
-    MemoryArena m_arena;
-    Registry    m_registry;
+    MemoryArena  m_arena;
+    Registry m_registry;
 };
 
 }   // namespace kiln::app
@@ -29,13 +28,14 @@ private:
 namespace kiln::app {
 
 inline App::App(MemoryArena&& memory_arena, Registry&& registry)
-    : m_arena{ std::move(memory_arena) },
+    : m_arena{ memory_arena },
       m_registry{ std::move(registry) }
 {
 }
 
 template <typename Self_T>
-auto App::registry(this Self_T&& self) noexcept -> util::forward_like_t<Registry, Self_T>
+auto App::registry(this Self_T&& self) noexcept
+    -> util::forward_like_t<Registry, Self_T>
 {
     return std::forward_like<Self_T>(self.App::m_registry);
 }

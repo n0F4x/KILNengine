@@ -10,7 +10,8 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-TransferQueueRefPrecondition::TransferQueueRefPrecondition(const Queue& queue)
+TransferQueueRefPrecondition::TransferQueueRefPrecondition(
+    [[maybe_unused]] const Queue& queue)
 {
     PRECOND(queue.flags() & vk::QueueFlagBits::eTransfer);
 }

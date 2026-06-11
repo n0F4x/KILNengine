@@ -1,3 +1,4 @@
+add_subdirectory(app)
 add_subdirectory(gfx)
 add_subdirectory(util)
 

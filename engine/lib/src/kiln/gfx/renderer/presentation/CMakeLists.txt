@@ -1,4 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
+        PresentationContext.cxx
         PresentationContextBuilder.cxx
         RenderSurface.cxx
         Swapchain.cxx

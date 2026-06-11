@@ -1,5 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
         Device.cxx
+        DeviceBuilder.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC

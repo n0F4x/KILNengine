@@ -13,25 +13,24 @@ export module kiln.gfx.renderer.memory.Allocator;
 
 import vulkan_hpp;
 
-import kiln.app.registry.EntryBase;
-import kiln.app.registry.EntryBuilderInterface;
+import kiln.app.registry.BuildableEntry;
+import kiln.app.registry.EntryBuildDirector;
 import kiln.gfx.renderer.device.Device;
-import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.gfx.vulkan.Instance;
-import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
-export class Allocator : public app::EntryBase {
+export class Allocator;
+
+auto describe_build(app::EntryBuildDirector<Allocator>& build_director) -> void;
+
+class Allocator : public app::BuildableEntry<Allocator, describe_build> {
 public:
-    class Builder;
-
-
     Allocator(
         const vulkan::Instance& instance,
         [[kiln_lifetimebound]]
@@ -99,19 +98,6 @@ public:
 private:
     std::reference_wrapper<const Device>                            m_device;
     std::unique_ptr<VmaAllocator_T, decltype(&vmaDestroyAllocator)> m_handle;
-};
-
-class Allocator::Builder : public app::EntryBuilderInterface {
-public:
-    [[nodiscard]]
-    static auto create(
-        vulkan::InstanceBuilder& instance_builder,
-        DeviceBuilder&           device_builder
-    ) -> Builder;
-
-    [[nodiscard]]
-    static auto build(const vulkan::Instance& instance, const Device& device)
-        -> Allocator;
 };
 
 }   // namespace kiln::gfx::renderer

@@ -15,7 +15,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         wsi.cppm
         Context.ixx
-        ContextBuilder.ixx
         CursorMode.ixx
         Engine.ixx
         EventConsumerQueueInterface.ixx

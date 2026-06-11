@@ -10,6 +10,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         QueueRef.cxx
         QueueRefBase.cxx
         QueueProvider.cxx
+        QueueProviderBuilder.cxx
         TransferCommandBuffer.cxx
         TransferQueueRef.cxx
 )

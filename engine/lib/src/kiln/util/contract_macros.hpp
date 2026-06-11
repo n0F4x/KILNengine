@@ -3,13 +3,20 @@
 #ifdef KILN_DEBUG
   #include <source_location>
 
-  #define PRECOND(condition, ...)                                                \
+  #define PRECOND_AS(condition, Exception_T, ...)                                \
       ((void)((!!(condition))                                                    \
-              || (::kiln::util::print_precondition_message_and_break(            \
+              || (::kiln::util::propagate_precondition_violation<Exception_T>(   \
                       #condition,                                                \
                       std::source_location::current() __VA_OPT__(, ) __VA_ARGS__ \
                   ),                                                             \
                   false)))
+
+  #define PRECOND(condition, ...)                                        \
+      PRECOND_AS(                                                        \
+          condition,                                                     \
+          ::kiln::util::PreconditionViolation __VA_OPT__(, ) __VA_ARGS__ \
+      )
 #else
-  #define PRECOND(condition, ...) ((void)0)   // NOLINT(*-macro-usage)
+  #define PRECOND_AS(condition, Exception_T, ...) ((void)0)   // NOLINT(*-macro-usage)
+  #define PRECOND(condition, ...)                 ((void)0)   // NOLINT(*-macro-usage)
 #endif

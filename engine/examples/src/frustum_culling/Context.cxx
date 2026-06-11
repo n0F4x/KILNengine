@@ -17,11 +17,17 @@ module examples.frustum_culling.Context;
 
 import vulkan_hpp;
 
+import kiln.app.memory.MemoryArena;
+import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.EntryBuildDirector;
 import kiln.event.Timestamp;
+import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
+import kiln.gfx.renderer.pipeline.PipelineContext;
+import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.result.check_result;
@@ -29,6 +35,7 @@ import kiln.util.containers.MoveOnlyFunction;
 import kiln.util.contracts;
 import kiln.util.Lazy;
 import kiln.util.ScopeFail;
+import kiln.wsi.Context;
 import kiln.wsi.CursorMode;
 import kiln.wsi.Engine;
 import kiln.wsi.event.Event;
@@ -54,6 +61,67 @@ import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 
+class ContextBuilder : public kiln::app::EntryBuilderBase {
+public:
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    static auto create(
+        kiln::gfx::vulkan::InstanceBuilder& instance_builder,
+        kiln::gfx::renderer::DeviceBuilder& device_builder
+    ) -> ContextBuilder
+    {
+        instance_builder.target_api_version(vk::ApiVersion14);
+        device_builder.enable_features(
+            vk::PhysicalDeviceFeatures{
+                .multiDrawIndirect         = vk::True,
+                .drawIndirectFirstInstance = vk::True,
+                .shaderInt64               = vk::True,
+            }
+        );
+        device_builder.enable_features(
+            vk::PhysicalDeviceVulkan12Features{
+                .drawIndirectCount    = vk::True,
+                .storagePushConstant8 = vk::True,
+                .shaderInt8           = vk::True,
+                .scalarBlockLayout    = vk::True,
+                .bufferDeviceAddress  = vk::True,
+            }
+        );
+        device_builder.enable_features(
+            vk::PhysicalDeviceVulkan13Features{ .maintenance4 = vk::True }
+        );
+        device_builder.enable_features(
+            vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
+        );
+        device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+
+        return ContextBuilder{};
+    }
+
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    static auto build(
+        const kiln::app::Config&,
+        kiln::app::MemoryArena& memory_arena,
+        const kiln::gfx::vulkan::Instance&,
+        const kiln::wsi::Context&,
+        const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
+        kiln::gfx::renderer::Allocator&,
+        const kiln::gfx::renderer::PipelineContext&,
+        const kiln::gfx::renderer::PresentationContext&,
+        kiln::gfx::asset::gltf::Parser&
+    ) -> Context
+    {
+        return Context{
+            std::allocator_arg,
+            memory_arena.pool_allocator(),
+            render_device,
+            gpu_queue_provider,
+        };
+    }
+};
+
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue
 auto select_staging_queue(
@@ -69,14 +137,42 @@ auto select_staging_queue(
     }
 }
 
+auto describe_builder(kiln::app::EntryBuildDirector<Context>& build_director) -> void
+{
+    build_director.use_builder<ContextBuilder>();
+}
+
+Context::Context(Context&& other, const allocator_type& allocator)
+    : m_wsi_event_buffer{ std::move(other.m_wsi_event_buffer), allocator },
+      m_wsi_event_recorder{ std::move(other.m_wsi_event_recorder), allocator },
+      m_staging_stream{ std::move(other.m_staging_stream), allocator }
+{
+}
+
 Context::Context(
-    kiln::app::MemoryArena&             memory_arena,
     const kiln::gfx::renderer::Device&  render_device,
     kiln::gfx::renderer::QueueProvider& render_queue_provider
 )
-    : m_staging_stream{
+    : Context{
           std::allocator_arg,
-          memory_arena.pool_allocator(),
+          std::pmr::get_default_resource(),
+          render_device,
+          render_queue_provider,
+      }
+{
+}
+
+Context::Context(
+    std::allocator_arg_t,
+    const allocator_type&               allocator,
+    const kiln::gfx::renderer::Device&  render_device,
+    kiln::gfx::renderer::QueueProvider& render_queue_provider
+)
+    : m_wsi_event_buffer{ std::allocator_arg, allocator },
+      m_wsi_event_recorder{ std::allocator_arg, allocator },
+      m_staging_stream{
+          std::allocator_arg,
+          allocator,
           render_device,
           render_queue_provider.select_queue(select_staging_queue)->as_transfer_queue(),
       }
@@ -136,6 +232,11 @@ auto Context::run_main_thread_loop(
             std::move (*task)(main_thread);
         }
     }
+}
+
+auto Context::get_allocator() const noexcept -> allocator_type
+{
+    return m_wsi_event_buffer.get_allocator();
 }
 
 auto Context::run(
@@ -459,59 +560,6 @@ auto Context::run_render_loop(
             std::this_thread::sleep_for(target_frame_duration - frame_duration);
         }
     }
-}
-
-auto Context::Builder::create(
-    kiln::gfx::vulkan::InstanceBuilder& instance_builder,
-    kiln::gfx::renderer::DeviceBuilder& device_builder
-) -> Builder
-{
-    instance_builder.target_api_version(vk::ApiVersion14);
-    device_builder.enable_features(
-        vk::PhysicalDeviceFeatures{
-            .multiDrawIndirect         = vk::True,
-            .drawIndirectFirstInstance = vk::True,
-            .shaderInt64               = vk::True,
-        }
-    );
-    device_builder.enable_features(
-        vk::PhysicalDeviceVulkan12Features{
-            .drawIndirectCount    = vk::True,
-            .storagePushConstant8 = vk::True,
-            .shaderInt8           = vk::True,
-            .scalarBlockLayout    = vk::True,
-            .bufferDeviceAddress  = vk::True,
-        }
-    );
-    device_builder.enable_features(
-        vk::PhysicalDeviceVulkan13Features{ .maintenance4 = vk::True }
-    );
-    device_builder.enable_features(
-        vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
-    );
-    device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
-
-    return Builder{};
-}
-
-auto Context::Builder::build(
-    const kiln::app::Config&,
-    kiln::app::MemoryArena& memory_arena,
-    const kiln::gfx::vulkan::Instance&,
-    const kiln::wsi::Context&,
-    const kiln::gfx::renderer::Device&  render_device,
-    kiln::gfx::renderer::QueueProvider& gpu_queue_provider,
-    kiln::gfx::renderer::Allocator&,
-    const kiln::gfx::renderer::PipelineContext&,
-    const kiln::gfx::renderer::PresentationContext&,
-    kiln::gfx::asset::gltf::Parser&
-) -> Context
-{
-    return Context{
-        memory_arena,
-        render_device,
-        gpu_queue_provider,
-    };
 }
 
 }   // namespace demo

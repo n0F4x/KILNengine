@@ -15,6 +15,49 @@ import kiln;
 
 namespace demo {
 
+class ContextBuilder : public kiln::app::EntryBuilderBase {
+public:
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    static auto create(
+        kiln::gfx::renderer::DeviceBuilder& device_builder,
+        const kiln::gfx::renderer::PresentationContextBuilder&,
+        const kiln::gfx::renderer::PipelineContextBuilder&
+    ) -> ContextBuilder
+    {
+        device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+
+        return ContextBuilder{};
+    }
+
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    static auto build(
+        kiln::app::MemoryArena&             memory_arena,
+        const kiln::app::Config&            config,
+        const kiln::gfx::vulkan::Instance&  vulkan_instance,
+        const kiln::wsi::Context&           wsi_context,
+        const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::QueueProvider& render_queue_provider
+    ) -> Context
+    {
+        return Context{
+            std::allocator_arg,
+            memory_arena.pool_allocator(),   //
+            config,
+            vulkan_instance,
+            wsi_context,
+            render_device,
+            render_queue_provider,
+        };
+    }
+};
+
+auto describe_build(kiln::app::EntryBuildDirector<Context>& build_director) -> void
+{
+    build_director.use_builder<ContextBuilder>();
+}
+
 [[nodiscard]]
 auto create_window(const kiln::app::Config& config, const kiln::wsi::Context& wsi_context)
     -> kiln::wsi::Window
@@ -144,6 +187,25 @@ Context::Context(Context&& other, const allocator_type& allocator)
       m_render_finished_semaphores{ std::move(other.m_render_finished_semaphores),
                                     allocator },
       m_render_finished_fences{ std::move(other.m_render_finished_fences), allocator }
+{
+}
+
+Context::Context(
+    const kiln::app::Config&            config,
+    const kiln::gfx::vulkan::Instance&  vulkan_instance,
+    const kiln::wsi::Context&           wsi_context,
+    const kiln::gfx::renderer::Device&  render_device,
+    kiln::gfx::renderer::QueueProvider& render_queue_provider
+)
+    : Context{
+          std::allocator_arg,
+          std::pmr::get_default_resource(),
+          config,
+          vulkan_instance,
+          wsi_context,
+          render_device,
+          render_queue_provider,
+      }
 {
 }
 
@@ -357,37 +419,6 @@ auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> vo
 auto Context::shut_down() -> void
 {
     m_render_device_ref.get().logical_device().waitIdle();
-}
-
-auto Context::Builder::create(
-    kiln::gfx::renderer::DeviceBuilder& device_builder,
-    const kiln::gfx::renderer::PresentationContextBuilder&,
-    const kiln::gfx::renderer::PipelineContextBuilder&
-) -> Builder
-{
-    device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
-
-    return Builder{};
-}
-
-auto Context::Builder::build(
-    kiln::app::MemoryArena&             memory_arena,
-    const kiln::app::Config&            config,
-    const kiln::gfx::vulkan::Instance&  vulkan_instance,
-    const kiln::wsi::Context&           wsi_context,
-    const kiln::gfx::renderer::Device&  render_device,
-    kiln::gfx::renderer::QueueProvider& render_queue_provider
-) -> Context
-{
-    return Context{
-        std::allocator_arg,
-        memory_arena.pool_allocator(),   //
-        config,
-        vulkan_instance,
-        wsi_context,
-        render_device,
-        render_queue_provider,
-    };
 }
 
 }   // namespace demo

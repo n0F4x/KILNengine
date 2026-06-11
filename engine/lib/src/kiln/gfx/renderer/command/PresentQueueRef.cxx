@@ -14,7 +14,9 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-PresentQueueRefPrecondition::PresentQueueRefPrecondition(const Queue& queue)
+PresentQueueRefPrecondition::PresentQueueRefPrecondition(
+    [[maybe_unused]] const Queue& queue
+)
 {
     PRECOND(queue.supports_presentation());
 }

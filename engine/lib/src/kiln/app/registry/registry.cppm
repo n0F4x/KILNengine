@@ -1,11 +1,23 @@
 export module kiln.app.registry;
 
+export import kiln.app.registry.BuildableEntry;
+export import kiln.app.registry.BuildableEntryBase;
+export import kiln.app.registry.ConfigurationEntry;
+export import kiln.app.registry.CyclicDependencyDetected;
+export import kiln.app.registry.DependencyChainNode;
 export import kiln.app.registry.entry_builder_c;
 export import kiln.app.registry.entry_c;
 export import kiln.app.registry.EntryBase;
-export import kiln.app.registry.EntryBuilderInterface;
-export import kiln.app.registry.RegistryBuilder;
-export import kiln.app.registry.Registry;
+export import kiln.app.registry.EntryBuildDirector;
+export import kiln.app.registry.EntryBuilderBase;
+export import kiln.app.registry.EntryBuilderContainer;
+export import kiln.app.registry.EntryBuilderFailedError;
+export import kiln.app.registry.EntryInjectionContainer;
 export import kiln.app.registry.ErasedEntry;
 export import kiln.app.registry.ErasedEntryBuilder;
+export import kiln.app.registry.ErasedEntryInjection;
+export import kiln.app.registry.Registry;
+export import kiln.app.registry.RegistryBuilder;
+export import kiln.app.registry.represents_entry_dependency_c;
+export import kiln.app.registry.RepresentsEntryDependencyConcept;
 export import kiln.app.registry.strip_dependency_t;

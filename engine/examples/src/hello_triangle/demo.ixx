@@ -12,16 +12,26 @@ import kiln;
 
 namespace demo {
 
-export class Context : public kiln::app::EntryBase {
+export class Context;
+
+auto describe_build(kiln::app::EntryBuildDirector<Context>& build_director) -> void;
+
+export class Context : public kiln::app::BuildableEntry<Context, describe_build> {
 public:
     // required for interfacing with the standard
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
-    class Builder;
-
 
     Context(Context&&, const allocator_type& allocator);
-    Context(
+
+    explicit Context(
+        const kiln::app::Config&            config,
+        const kiln::gfx::vulkan::Instance&  vulkan_instance,
+        const kiln::wsi::Context&           wsi_context,
+        const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::QueueProvider& render_queue_provider
+    );
+    explicit Context(
         std::allocator_arg_t,
         const allocator_type&               allocator,
         const kiln::app::Config&            config,
@@ -30,6 +40,7 @@ public:
         const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::QueueProvider& render_queue_provider
     );
+
 
     // required for interfacing with the standard
     [[nodiscard]]
@@ -63,26 +74,6 @@ private:
     std::pmr::vector<vk::raii::Semaphore> m_image_acquired_semaphores;
     std::pmr::vector<vk::raii::Semaphore> m_render_finished_semaphores;
     std::pmr::vector<vk::raii::Fence>     m_render_finished_fences;
-};
-
-class Context::Builder : public kiln::app::EntryBuilderInterface {
-public:
-    [[nodiscard]]
-    static auto create(
-        kiln::gfx::renderer::DeviceBuilder& device_builder,
-        const kiln::gfx::renderer::PresentationContextBuilder& presentation_context_builder,
-        const kiln::gfx::renderer::PipelineContextBuilder&
-    ) -> Builder;
-
-    [[nodiscard]]
-    static auto build(
-        kiln::app::MemoryArena&             memory_arena,
-        const kiln::app::Config&            config,
-        const kiln::gfx::vulkan::Instance&  vulkan_instance,
-        const kiln::wsi::Context&           wsi_context,
-        const kiln::gfx::renderer::Device&  render_device,
-        kiln::gfx::renderer::QueueProvider& render_queue_provider
-    ) -> Context;
 };
 
 }   // namespace demo

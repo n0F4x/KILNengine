@@ -2,16 +2,14 @@ module;
 
 #include <memory>
 #include <memory_resource>
-#include <utility>
 
 export module kiln.app.memory.MemoryArena;
 
-import kiln.app.registry.EntryBase;
-import kiln.app.registry.EntryBuilderInterface;
+import kiln.app.registry.ConfigurationEntry;
 
 namespace kiln::app {
 
-export class MemoryArena : public EntryBase {
+export class MemoryArena : public ConfigurationEntry {
 public:
     class Builder;
 
@@ -43,32 +41,6 @@ private:
             m_monotonic_resource.get()
         )
     };
-};
-
-class MemoryArena::Builder : public EntryBuilderInterface {
-public:
-    explicit Builder() = default;
-
-    explicit Builder(MemoryArena&& memory_arena) noexcept
-        : m_arena{ std::move(memory_arena) }
-    {
-    }
-
-    [[nodiscard]]
-    // ReSharper disable once CppMemberFunctionMayBeConst
-    auto arena() noexcept -> MemoryArena&
-    {
-        return m_arena;
-    }
-
-    [[nodiscard]]
-    auto build() && -> MemoryArena
-    {
-        return std::move(m_arena);
-    }
-
-private:
-    MemoryArena m_arena;
 };
 
 }   // namespace kiln::app

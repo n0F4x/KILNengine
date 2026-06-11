@@ -1,6 +1,8 @@
 target_sources(${PROJECT_NAME} PRIVATE
         ComputePipelineBuilder.cxx
         GraphicsPipelineBuilder.cxx
+        PipelineContext.cxx
+        PipelineContextBuilder.cxx
         RenderPass.cxx
 )
 

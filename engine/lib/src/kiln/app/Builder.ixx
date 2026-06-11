@@ -1,8 +1,6 @@
 module;
 
 #include <concepts>
-#include <functional>
-#include <memory>
 #include <memory_resource>
 #include <utility>
 
@@ -10,15 +8,10 @@ export module kiln.app.Builder;
 
 import kiln.app.App;
 import kiln.app.config.Config;
-import kiln.app.config.ConfigBuilder;
 import kiln.app.memory.MemoryArena;
-import kiln.app.memory.MemoryArenaBuilder;
-import kiln.app.registry.entry_builder_c;
 import kiln.app.registry.entry_c;
 import kiln.app.registry.Registry;
 import kiln.app.registry.RegistryBuilder;
-import kiln.util.containers.Indirect;
-import kiln.util.type_traits.const_like;
 
 namespace kiln::app {
 
@@ -39,7 +32,7 @@ public:
     auto build() && -> App;
 
 private:
-    MemoryArena     m_arena;
+    MemoryArena         m_arena;
     RegistryBuilder m_registry_builder;
 };
 
@@ -47,7 +40,15 @@ private:
 
 namespace kiln::app {
 
-Builder::Builder(const Config& config) : m_registry_builder{ auto{ m_arena }, config } {}
+Builder::Builder(const Config& config)
+    : m_registry_builder{
+          std::allocator_arg,
+          m_arena.pool_allocator(),
+          auto{ m_arena },
+          config,
+      }
+{
+}
 
 template <entry_c Entry_T, typename Self_T>
 auto Builder::register_entry(this Self_T&& self) -> Self_T&&
@@ -66,14 +67,15 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
 
 auto Builder::build() && -> App
 {
-    auto transient_memory_resource{ m_arena.make_transient_resource() };
-
-    Registry registry{ std::move(m_registry_builder).build(transient_memory_resource) };
-
-    return App{
-        std::move(m_arena),
-        std::move(registry),
+    std::pmr::monotonic_buffer_resource transient_memory_resource{
+        m_arena.make_transient_resource()
     };
+
+    Registry registry{
+        std::move(m_registry_builder).build(transient_memory_resource)
+    };
+
+    return App{ std::move(m_arena), std::move(registry) };
 }
 
 }   // namespace kiln::app

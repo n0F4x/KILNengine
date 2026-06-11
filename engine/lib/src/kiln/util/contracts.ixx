@@ -1,5 +1,6 @@
 module;
 
+#include <concepts>
 #include <format>
 #include <source_location>
 #include <stdexcept>
@@ -41,13 +42,16 @@ private:
     }
 };
 
-export constexpr auto print_precondition_message_and_break(
+export template <typename Exception_T = PreconditionViolation>
+    requires std::same_as<Exception_T, PreconditionViolation>
+          || std::derived_from<Exception_T, PreconditionViolation>
+constexpr auto propagate_precondition_violation(
     const std::string_view      condition_as_string,
     const std::source_location& location,
     const std::string_view      message = ""
 ) -> void
 {
-    const PreconditionViolation precondition_violation{
+    const Exception_T precondition_violation{
         location,
         condition_as_string,
         message,

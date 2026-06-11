@@ -2,47 +2,53 @@ module;
 
 #include <filesystem>
 #include <functional>
+#include <memory_resource>
 
 export module examples.frustum_culling.Context;
 
 import kiln.app.App;
-import kiln.app.Builder;
 import kiln.app.config.Config;
-import kiln.app.registry.EntryBase;
-import kiln.app.registry.EntryBuilderInterface;
-import kiln.app.memory.MemoryArena;
+import kiln.app.registry.BuildableEntry;
+import kiln.app.registry.EntryBuildDirector;
 import kiln.event.EventBuffer;
 import kiln.event.EventRecorder;
-import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.stream.StagingStream;
-import kiln.gfx.renderer.device.DeviceBuilder;
-import kiln.gfx.renderer.pipeline.PipelineContext;
-import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.renderer.presentation.RenderSurface;
-import kiln.gfx.vulkan.Instance;
-import kiln.gfx.vulkan.InstanceBuilder;
-import kiln.wsi.Context;
 import kiln.wsi.event.Event;
 import kiln.wsi.WindowProxy;
 
-import examples.frustum_culling.FixedSPSCQueue;
 import examples.frustum_culling.workflow.Renderer;
 import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 
-export class Context : public kiln::app::EntryBase {
+export class Context;
+
+auto describe_builder(kiln::app::EntryBuildDirector<Context>& build_director) -> void;
+
+export class Context : public kiln::app::BuildableEntry<Context, describe_builder> {
 public:
-    class Builder;
+    using allocator_type = std::pmr::polymorphic_allocator<>;
+
+
+    Context(Context&&, const allocator_type&);
 
     explicit Context(
-        kiln::app::MemoryArena&             memory_arena,
         const kiln::gfx::renderer::Device&  render_device,
         kiln::gfx::renderer::QueueProvider& render_queue_provider
     );
+    explicit Context(
+        std::allocator_arg_t,
+        const allocator_type&               allocator,
+        const kiln::gfx::renderer::Device&  render_device,
+        kiln::gfx::renderer::QueueProvider& render_queue_provider
+    );
+
+    [[nodiscard]]
+    auto get_allocator() const noexcept -> allocator_type;
 
     auto run(
         kiln::app::App&              app,
@@ -98,29 +104,6 @@ private:
         const std::atomic_bool& running,
         MainThread&             main_thread
     ) -> void;
-};
-
-class Context::Builder : public kiln::app::EntryBuilderInterface {
-public:
-    [[nodiscard]]
-    static auto create(
-        kiln::gfx::vulkan::InstanceBuilder& instance_builder,
-        kiln::gfx::renderer::DeviceBuilder& device_builder
-    ) -> Builder;
-
-    [[nodiscard]]
-    static auto build(
-        const kiln::app::Config&                        config,
-        kiln::app::MemoryArena&                         memory_arena,
-        const kiln::gfx::vulkan::Instance&              vulkan_instance,
-        const kiln::wsi::Context&                       wsi_context,
-        const kiln::gfx::renderer::Device&              render_device,
-        kiln::gfx::renderer::QueueProvider&             gpu_queue_provider,
-        kiln::gfx::renderer::Allocator&                 gpu_allocator,
-        const kiln::gfx::renderer::PipelineContext&     pipeline_context,
-        const kiln::gfx::renderer::PresentationContext& presentation_context,
-        kiln::gfx::asset::gltf::Parser&                 gltf_parser
-    ) -> Context;
 };
 
 }   // namespace demo

@@ -6,13 +6,21 @@ import kiln.util.contracts;
 
 struct GraphicsSystemIntegration : kiln::app::EntryBase {};
 
-struct WindowSystem : kiln::app::EntryBase {
+template <typename Entry_T>
+struct BuildDescriber {
+    constexpr static auto operator()(
+        kiln::app::EntryBuildDirector<Entry_T>& build_director
+    ) -> void;
+};
+
+struct WindowSystem
+    : kiln::app::BuildableEntry<WindowSystem, BuildDescriber<WindowSystem>{}> {
     struct Builder;
 
     GraphicsSystemIntegration* graphics_system{};
 };
 
-struct WindowSystem::Builder : kiln::app::EntryBuilderInterface {
+struct WindowSystem::Builder : kiln::app::EntryBuilderBase {
     bool graphics_support_requested = false;
 
     auto build(
@@ -27,14 +35,16 @@ struct WindowSystem::Builder : kiln::app::EntryBuilderInterface {
     }
 };
 
-struct RenderSystem : kiln::app::EntryBase {
+struct RenderSystem
+    : kiln::app::BuildableEntry<RenderSystem, BuildDescriber<RenderSystem>{}>   //
+{
     struct Builder;
 
     GraphicsSystemIntegration& graphics_system;
     WindowSystem*              window_system{};
 };
 
-struct RenderSystem::Builder : kiln::app::EntryBuilderInterface {
+struct RenderSystem::Builder : kiln::app::EntryBuilderBase {
     static auto create(
         const kiln::util::OptionalRef<WindowSystem::Builder> window_builder
     ) -> Builder
@@ -58,6 +68,14 @@ struct RenderSystem::Builder : kiln::app::EntryBuilderInterface {
         };
     }
 };
+
+template <typename Entry_T>
+constexpr auto BuildDescriber<Entry_T>::operator()(
+    kiln::app::EntryBuildDirector<Entry_T>& build_director
+) -> void
+{
+    build_director.template use_builder<typename Entry_T::Builder>();
+}
 
 auto main() -> int
 {

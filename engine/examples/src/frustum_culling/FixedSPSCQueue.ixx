@@ -189,7 +189,7 @@ static_assert(std::ranges::common_range<SplitSpanView<int>>);
 
 class SPSCQueuePrecondition {
 public:
-    explicit SPSCQueuePrecondition(const std::size_t capacity)
+    explicit SPSCQueuePrecondition([[maybe_unused]] const std::size_t capacity)
     {
         PRECOND(std::has_single_bit(capacity), "capacity must be a power of 2");
     }

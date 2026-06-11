@@ -8,6 +8,7 @@ target_sources(${PROJECT_NAME} PRIVATE
         DebugMessenger.cxx
         global_definitions.cpp
         Instance.cxx
+        InstanceBuilder.cxx
         PhysicalDeviceCapabilities.cxx
         PhysicalDeviceFilter.cxx
         QueueFamilyInfo.cxx

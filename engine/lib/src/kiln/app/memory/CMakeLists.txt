@@ -4,5 +4,4 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         memory.cppm
         MemoryArena.ixx
-        MemoryArenaBuilder.ixx
 )

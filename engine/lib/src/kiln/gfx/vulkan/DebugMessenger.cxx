@@ -11,7 +11,10 @@ module;
 
 module kiln.gfx.vulkan.DebugMessenger;
 
+import kiln.app.registry.EntryBuilderBase;
 import kiln.config.engine_name;
+import kiln.gfx.vulkan.Instance;
+import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.result.check_result;
 
 namespace kiln::gfx::vulkan {
@@ -100,37 +103,48 @@ VKAPI_ATTR auto VKAPI_CALL default_debug_messenger_callback(
     return vk::False;
 }
 
+class DebugMessengerBuilder : public app::EntryBuilderBase {
+public:
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    static auto create(InstanceBuilder& instance_builder) -> DebugMessengerBuilder
+    {
+        instance_builder.enable_layer("VK_LAYER_KHRONOS_validation");
+        instance_builder.enable_extension(vk::EXTDebugUtilsExtensionName);
+
+        return DebugMessengerBuilder{};
+    }
+
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    static auto build(const Instance& instance) -> DebugMessenger
+    {
+        constexpr static vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info{
+            .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+                             | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
+            .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
+                         | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+                         | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+                         | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
+            .pfnUserCallback = default_debug_messenger_callback,
+        };
+
+        return DebugMessenger{
+            check_result(
+                instance.get().createDebugUtilsMessengerEXT(debug_messenger_create_info)
+            ),
+        };
+    }
+};
+
+auto describe_build(app::EntryBuildDirector<DebugMessenger>& build_director) -> void
+{
+    build_director.use_builder<DebugMessengerBuilder>();
+}
+
 DebugMessenger::DebugMessenger(vk::raii::DebugUtilsMessengerEXT&& debug_messenger)
     : m_debug_messenger{ std::move(debug_messenger) }
 {
-}
-
-auto DebugMessengerBuilder::create(InstanceBuilder& instance_builder)
-    -> DebugMessengerBuilder
-{
-    instance_builder.enable_layer("VK_LAYER_KHRONOS_validation");
-    instance_builder.enable_extension(vk::EXTDebugUtilsExtensionName);
-
-    return DebugMessengerBuilder{};
-}
-
-auto DebugMessengerBuilder::build(const Instance& instance) -> DebugMessenger
-{
-    constexpr static vk::DebugUtilsMessengerCreateInfoEXT debug_messenger_create_info{
-        .messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
-                         | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
-        .messageType = vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding
-                     | vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-                     | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
-                     | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation,
-        .pfnUserCallback = default_debug_messenger_callback,
-    };
-
-    return DebugMessenger{
-        check_result(
-            instance.get().createDebugUtilsMessengerEXT(debug_messenger_create_info)
-        )   //
-    };
 }
 
 }   // namespace kiln::gfx::vulkan

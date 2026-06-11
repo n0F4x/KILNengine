@@ -15,18 +15,15 @@ export module kiln.gfx.renderer.command.QueueProvider;
 
 import vulkan_hpp;
 
-import kiln.app.registry.EntryBase;
-import kiln.app.registry.EntryBuilderInterface;
+import kiln.app.registry.BuildableEntry;
+import kiln.app.registry.EntryBuildDirector;
 import kiln.gfx.renderer.command.ComputeQueueRef;
 import kiln.gfx.renderer.command.GraphicsQueueRef;
 import kiln.gfx.renderer.command.TransferQueueRef;
 import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueRef;
 import kiln.gfx.renderer.command.QueueRefBase;
-import kiln.gfx.renderer.device.Device;
-import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.device.QueueType;
-import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
@@ -49,10 +46,13 @@ public:
     );
 };
 
-export class QueueProvider : private QueueProviderPrecondition, public app::EntryBase {
-public:
-    class Builder;
+export class QueueProvider;
 
+auto describe_build(app::EntryBuildDirector<QueueProvider>& build_director) -> void;
+
+class QueueProvider : private QueueProviderPrecondition,
+                      public app::BuildableEntry<QueueProvider, describe_build> {
+public:
     using QueueIndices = QueueIndices;
 
     explicit QueueProvider(
@@ -98,18 +98,6 @@ private:
     template <std::derived_from<QueueRefBase> QueueRef_T>
     [[nodiscard]]
     auto queue_as(std::optional<uint32_t> index) -> std::optional<QueueRef_T>;
-};
-
-class QueueProvider::Builder : public app::EntryBuilderInterface {
-public:
-    [[nodiscard]]
-    static auto create(
-        vulkan::InstanceBuilder& instance_builder,
-        DeviceBuilder&           device_builder
-    ) -> Builder;
-
-    [[nodiscard]]
-    static auto build(const Device& device) -> QueueProvider;
 };
 
 }   // namespace kiln::gfx::renderer
