@@ -3,7 +3,6 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
-#include <functional>
 #include <memory_resource>
 #include <optional>
 #include <utility>
@@ -33,7 +32,7 @@ namespace kiln::app {
 
 export class EntryBuilderContainer;
 
-export using ErasedEntryBuilder
+using ErasedEntryBuilder
     = util::MoveOnlyFunction<auto(EntryBuilderContainer&, Registry&) &&->void, 0>;
 
 export class EntryBuilderContainer {
@@ -71,12 +70,10 @@ public:
         requires std::constructible_from<Builder_T, Args_T&&...>
     auto emplace_back(Args_T&&... args) -> void;
 
-    auto sort(std::pmr::memory_resource& transient_memory_resource) -> void;
-
-    template <
-        typename Self_T,
-        std::invocable<util::forward_like_t<ErasedEntryBuilder, Self_T>> F>
-    auto for_each(this Self_T&&, F&& func) -> F;
+    auto build(
+        Registry&                  registry,
+        std::pmr::memory_resource& transient_memory_resource
+    ) && -> void;
 
 private:
     std::pmr::vector<ErasedEntryBuilder>         m_builders;
@@ -88,19 +85,32 @@ private:
     [[nodiscard]]
     auto try_index_of_builder(uint64_t hash) const noexcept -> std::optional<std::size_t>;
 
-    auto bubble_up_entry_dependencies_of(
-        uint64_t                   hash,
+    auto sort(std::pmr::memory_resource& transient_memory_resource) -> void;
+
+    auto sort_based_on_builder_dependencies(
         std::pmr::memory_resource& transient_memory_resource
     ) -> void;
-    auto push_down_builder_dependencies_of(
-        uint64_t                   hash,
+    auto sort_based_on_entry_dependencies(
         std::pmr::memory_resource& transient_memory_resource
     ) -> void;
 
-    auto collect_entry_dependencies_of(uint64_t hash, std::pmr::vector<uint64_t>& result
+    auto collect_dependent_builder_hashes(
+        std::pmr::vector<std::pmr::vector<uint64_t>>& out
     ) const -> void;
-    auto collect_builder_dependencies_of(uint64_t hash, std::pmr::vector<uint64_t>& result
+    auto collect_dependent_builder_hashes_of(
+        uint64_t                    hash,
+        std::pmr::vector<uint64_t>& out
     ) const -> void;
+    auto collect_dependent_entry_hashes(
+        std::pmr::vector<std::pmr::vector<uint64_t>>& out
+    ) const -> void;
+    auto collect_dependent_entry_hashes_of(
+        uint64_t                    hash,
+        std::pmr::vector<uint64_t>& out
+    ) const -> void;
+
+    auto push_down_builder_dependencies_of(std::size_t index) -> void;
+    auto bubble_up_entry_dependencies_of(std::size_t index) -> void;
 };
 
 }   // namespace kiln::app
@@ -258,17 +268,6 @@ auto EntryBuilderContainer::emplace_back(Args_T&&... args) -> void
             }
         }
     );
-}
-
-template <typename Self_T, std::invocable<util::forward_like_t<ErasedEntryBuilder, Self_T>> F>
-auto EntryBuilderContainer::for_each(this Self_T&& self, F&& func) -> F
-{
-    for (auto&& builder : self.m_builders)
-    {
-        std::invoke(func, std::forward_like<Self_T>(builder));
-    }
-
-    return std::forward<F>(func);
 }
 
 }   // namespace kiln::app

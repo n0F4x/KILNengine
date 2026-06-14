@@ -4,6 +4,8 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <ranges>
+#include <span>
+#include <vector>
 
 module kiln.app.registry.EntryBuilderContainer;
 
@@ -15,8 +17,10 @@ EntryBuilderContainer::EntryBuilderContainer(
 )
     : m_builders{ std::move(other.m_builders), allocator },
       m_entry_hashes{ std::move(other.m_entry_hashes), allocator },
-      m_builder_dependency_hashes{ std::move(other.m_builder_dependency_hashes),
-                                   allocator },
+      m_builder_dependency_hashes{
+          std::move(other.m_builder_dependency_hashes),
+          allocator,
+      },
       m_entry_dependency_hashes{ std::move(other.m_entry_dependency_hashes), allocator }
 {
 }
@@ -37,19 +41,22 @@ auto EntryBuilderContainer::get_allocator() const noexcept -> allocator_type
 auto EntryBuilderContainer::sort(std::pmr::memory_resource& transient_memory_resource)
     -> void
 {
-    const std::pmr::vector<uint64_t> hashes{
-        std::from_range,
-        m_entry_hashes,
-        &transient_memory_resource,
-    };
+    sort_based_on_entry_dependencies(transient_memory_resource);
+    sort_based_on_builder_dependencies(transient_memory_resource);
+}
 
-    for (const uint64_t hash : hashes)
+auto EntryBuilderContainer::build(
+    Registry&                  registry,
+    std::pmr::memory_resource& transient_memory_resource
+) && -> void
+{
+    sort(transient_memory_resource);
+
+    // TODO: check for cyclic dependencies
+
+    for (ErasedEntryBuilder& builder : m_builders)
     {
-        bubble_up_entry_dependencies_of(hash, transient_memory_resource);
-    }
-    for (const uint64_t hash : hashes)
-    {
-        push_down_builder_dependencies_of(hash, transient_memory_resource);
+        std::move(builder)(*this, registry);
     }
 }
 
@@ -64,96 +71,186 @@ auto EntryBuilderContainer::try_index_of_builder(const uint64_t hash) const noex
     return static_cast<std::size_t>(std::distance(m_entry_hashes.begin(), hash_iter));
 }
 
-auto EntryBuilderContainer::bubble_up_entry_dependencies_of(
-    const uint64_t             hash,
+auto EntryBuilderContainer::sort_based_on_builder_dependencies(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    std::pmr::vector<uint64_t> all_dependencies{ &transient_memory_resource };
-    collect_entry_dependencies_of(hash, all_dependencies);
-
-    auto hash_iter{ std::ranges::find(m_entry_hashes, hash) };
-    auto builder_iter{
-        std::next(
-            m_builders.begin(),
-            std::distance(m_entry_hashes.begin(), hash_iter)   //
-        ),
+    std::pmr::vector<std::pmr::vector<uint64_t>> dependent_hashes_collection{
+        &transient_memory_resource
     };
-    auto dependencies_iter{
-        std::next(
-            m_entry_dependency_hashes.begin(),
-            std::distance(m_entry_hashes.begin(), hash_iter)   //
-        ),
-    };
+    dependent_hashes_collection.reserve(m_builders.size());
+    collect_dependent_builder_hashes(dependent_hashes_collection);
 
-    for (const uint64_t dependency_hash : all_dependencies)
+    bool                   done_sorting{};
+    std::pmr::vector<bool> done_sorting_based_on_builder(
+        m_builders.size(),
+        false,
+        &transient_memory_resource
+    );
+    while (!done_sorting)
     {
-        const auto dependency_hash_iter{
-            std::ranges::find(std::next(hash_iter), m_entry_hashes.end(), dependency_hash),
-        };
-        if (dependency_hash_iter == m_entry_hashes.cend())
+        done_sorting = true;
+        for (auto&& [index, hash, dependent_hashes] : std::views::zip(
+                 std::views::iota(0uz),
+                 m_entry_hashes,
+                 dependent_hashes_collection
+             ))
         {
-            continue;
+            if (done_sorting_based_on_builder[index])
+            {
+                continue;
+            }
+
+            if (dependent_hashes.empty())
+            {
+                for (auto& dependent_dependency_hashes : dependent_hashes_collection)
+                {
+                    std::erase(dependent_dependency_hashes, hash);
+                }
+
+                /*
+                 * Pushing down invalidates iterators
+                 */
+                push_down_builder_dependencies_of(index);
+            }
+            else
+            {
+                done_sorting = false;
+            }
         }
-
-        const auto dependency_builder_iter{
-            std::next(
-                m_builders.begin(),
-                std::distance(m_entry_hashes.begin(), dependency_hash_iter)   //
-            ),
-        };
-        const auto dependency_dependencies_iter{
-            std::next(
-                m_entry_dependency_hashes.begin(),
-                std::distance(m_entry_hashes.begin(), dependency_hash_iter)   //
-            ),
-        };
-
-        builder_iter = std::ranges::rotate(
-                           builder_iter,
-                           dependency_builder_iter,
-                           std::next(dependency_builder_iter)
-        )
-                           .begin();
-        hash_iter = std::ranges::rotate(
-                        hash_iter,
-                        dependency_hash_iter,
-                        std::next(dependency_hash_iter)
-        )
-                        .begin();
-        dependencies_iter = std::ranges::rotate(
-                                dependencies_iter,
-                                dependency_dependencies_iter,
-                                std::next(dependency_dependencies_iter)
-        )
-                                .begin();
     }
 }
 
-auto EntryBuilderContainer::push_down_builder_dependencies_of(
-    const uint64_t             hash,
+auto EntryBuilderContainer::sort_based_on_entry_dependencies(
     std::pmr::memory_resource& transient_memory_resource
 ) -> void
 {
-    std::pmr::vector<uint64_t> all_dependencies{ &transient_memory_resource };
-    collect_builder_dependencies_of(hash, all_dependencies);
-
-    auto hash_iter{ std::ranges::find(m_entry_hashes, hash) };
-    auto builder_iter{
-        std::next(
-            m_builders.begin(),
-            std::distance(m_entry_hashes.begin(), hash_iter)   //
-        ),
+    std::pmr::vector<std::pmr::vector<uint64_t>> dependent_hashes_collection{
+        &transient_memory_resource
     };
-    auto dependencies_iter{
-        std::next(
-            m_entry_dependency_hashes.begin(),
-            std::distance(m_entry_hashes.begin(), hash_iter)   //
-        ),
-    };
+    dependent_hashes_collection.reserve(m_builders.size());
+    collect_dependent_entry_hashes(dependent_hashes_collection);
 
-    for (const uint64_t dependency_hash : all_dependencies)
+    bool                   done_sorting{};
+    std::pmr::vector<bool> done_sorting_based_on_builder(
+        m_builders.size(),
+        false,
+        &transient_memory_resource
+    );
+    while (!done_sorting)
     {
+        done_sorting = true;
+        for (auto&& [index, hash, dependent_hashes] : std::views::zip(
+                 std::views::iota(0uz),
+                 m_entry_hashes,
+                 dependent_hashes_collection
+             ))
+        {
+            if (done_sorting_based_on_builder[index])
+            {
+                continue;
+            }
+
+            if (dependent_hashes.empty())
+            {
+                for (auto& dependent_dependency_hashes : dependent_hashes_collection)
+                {
+                    std::erase(dependent_dependency_hashes, hash);
+                }
+
+                /*
+                 * Pushing down invalidates iterators
+                 */
+                bubble_up_entry_dependencies_of(index);
+            }
+            else
+            {
+                done_sorting = false;
+            }
+        }
+    }
+}
+
+auto EntryBuilderContainer::collect_dependent_builder_hashes(
+    std::pmr::vector<std::pmr::vector<uint64_t>>& out
+) const -> void
+{
+    for (const uint64_t hash : m_entry_hashes)
+    {
+        auto& dependent_builder_hashes{ out.emplace_back() };
+        collect_dependent_builder_hashes_of(hash, dependent_builder_hashes);
+    }
+}
+
+auto EntryBuilderContainer::collect_dependent_builder_hashes_of(
+    const uint64_t              hash,
+    std::pmr::vector<uint64_t>& out
+) const -> void
+{
+    for (const auto& [dependent_hash, builder_dependency_hashes] :
+         std::views::zip(m_entry_hashes, m_builder_dependency_hashes))
+    {
+        if (std::ranges::contains(builder_dependency_hashes, hash))
+        {
+            out.push_back(dependent_hash);
+        }
+    }
+}
+
+auto EntryBuilderContainer::collect_dependent_entry_hashes(
+    std::pmr::vector<std::pmr::vector<uint64_t>>& out
+) const -> void
+{
+    for (const uint64_t hash : m_entry_hashes)
+    {
+        auto& dependent_entry_hashes{ out.emplace_back() };
+        collect_dependent_entry_hashes_of(hash, dependent_entry_hashes);
+    }
+}
+
+auto EntryBuilderContainer::collect_dependent_entry_hashes_of(
+    const uint64_t              hash,
+    std::pmr::vector<uint64_t>& out
+) const -> void
+{
+    for (const auto& [dependent_hash, entry_dependency_hashes] :
+         std::views::zip(m_entry_hashes, m_entry_dependency_hashes))
+    {
+        if (std::ranges::contains(entry_dependency_hashes, hash))
+        {
+            out.push_back(dependent_hash);
+        }
+    }
+}
+
+auto EntryBuilderContainer::push_down_builder_dependencies_of(const std::size_t index)
+    -> void
+{
+    const auto zipped_containers{
+        std::views::zip(
+            m_builders,
+            m_entry_hashes,
+            m_builder_dependency_hashes,
+            m_entry_dependency_hashes
+        ),
+    };
+
+    auto iter{
+        std::next(
+            zipped_containers.begin(),
+            static_cast<std::iter_difference_t<decltype(zipped_containers.begin())>>(index)
+        ),
+    };
+
+    for (const std::span dependency_hashes{ m_builder_dependency_hashes[index] };
+         const uint64_t  dependency_hash : dependency_hashes)
+    {
+        const auto hash_iter{
+            std::next(
+                m_entry_hashes.begin(),
+                std::distance(zipped_containers.begin(), iter)
+            ),
+        };
         const auto dependency_hash_iter{
             std::ranges::find(m_entry_hashes.begin(), hash_iter, dependency_hash),
         };
@@ -162,92 +259,71 @@ auto EntryBuilderContainer::push_down_builder_dependencies_of(
             continue;
         }
 
-        const auto dependency_builder_iter{
+        const auto dependency_iter{
             std::next(
-                m_builders.begin(),
-                std::distance(m_entry_hashes.begin(), dependency_hash_iter)   //
-            ),
-        };
-        const auto dependency_dependencies_iter{
-            std::next(
-                m_entry_dependency_hashes.begin(),
-                std::distance(m_entry_hashes.begin(), dependency_hash_iter)   //
+                zipped_containers.begin(),
+                std::distance(m_entry_hashes.begin(), dependency_hash_iter)
             ),
         };
 
-        builder_iter = std::prev(
+        iter = std::prev(
             std::ranges::rotate(
-                dependency_builder_iter,
-                std::next(dependency_builder_iter),
-                std::next(builder_iter)
-            )
-                .begin()
-        );
-        hash_iter = std::prev(
-            std::ranges::rotate(
-                dependency_hash_iter,
-                std::next(dependency_hash_iter),
-                std::next(hash_iter)
-            )
-                .begin()
-        );
-        dependencies_iter = std::prev(
-            std::ranges::rotate(
-                dependency_dependencies_iter,
-                std::next(dependency_dependencies_iter),
-                std::next(dependencies_iter)
+                dependency_iter,
+                std::next(dependency_iter),
+                std::next(iter)
             )
                 .begin()
         );
     }
 }
 
-auto EntryBuilderContainer::collect_entry_dependencies_of(
-    const uint64_t              hash,
-    std::pmr::vector<uint64_t>& result
-) const -> void
+auto EntryBuilderContainer::bubble_up_entry_dependencies_of(const std::size_t index)
+    -> void
 {
-    [this, &result](this const auto& self, const std::size_t builder_index) -> void
-    {
-        for (const uint64_t dependency_hash : m_entry_dependency_hashes[builder_index])
-        {
-            if (const std::optional<std::size_t> dependency_index{
-                    try_index_of_builder(dependency_hash) };
-                dependency_index.has_value())
-            {
-                if (const auto iter{ std::ranges::lower_bound(result, dependency_hash) };
-                    iter != result.cend())
-                {
-                    result.insert(iter, dependency_hash);
-                    self(*dependency_index);
-                }
-            }
-        }
-    }(*try_index_of_builder(hash));
-}
+    const auto zipped_containers{
+        std::views::zip(
+            m_builders,
+            m_entry_hashes,
+            m_builder_dependency_hashes,
+            m_entry_dependency_hashes
+        ),
+    };
 
-auto EntryBuilderContainer::collect_builder_dependencies_of(
-    const uint64_t              hash,
-    std::pmr::vector<uint64_t>& result
-) const -> void
-{
-    [this, &result](this const auto& self, const std::size_t builder_index) -> void
+    auto iter{
+        std::next(
+            zipped_containers.begin(),
+            static_cast<std::iter_difference_t<decltype(zipped_containers.begin())>>(index)
+        ),
+    };
+
+    for (const std::span dependency_hashes{ m_entry_dependency_hashes[index] };
+         const uint64_t  dependency_hash : dependency_hashes)
     {
-        for (const uint64_t dependency_hash : m_builder_dependency_hashes[builder_index])
+        const auto dependency_hash_iter{
+            std::ranges::find(
+                std::next(
+                    m_entry_hashes.begin(),
+                    std::distance(zipped_containers.begin(), std::next(iter))
+                ),
+                m_entry_hashes.end(),
+                dependency_hash
+            ),
+        };
+        if (dependency_hash_iter == m_entry_hashes.cend())
         {
-            if (const std::optional<std::size_t> dependency_index{
-                    try_index_of_builder(dependency_hash) };
-                dependency_index.has_value())
-            {
-                if (const auto iter{ std::ranges::lower_bound(result, dependency_hash) };
-                    iter != result.cend())
-                {
-                    result.insert(iter, dependency_hash);
-                    self(*dependency_index);
-                }
-            }
+            continue;
         }
-    }(*try_index_of_builder(hash));
+
+        const auto dependency_iter{
+            std::next(
+                zipped_containers.begin(),
+                std::distance(m_entry_hashes.begin(), dependency_hash_iter)
+            ),
+        };
+
+        iter = std::ranges::rotate(iter, dependency_iter, std::next(dependency_iter))
+                   .begin();
+    }
 }
 
 }   // namespace kiln::app

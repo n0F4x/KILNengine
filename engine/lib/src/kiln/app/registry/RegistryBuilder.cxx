@@ -43,14 +43,7 @@ auto kiln::app::RegistryBuilder::build(
             }
         );
 
-    m_builders.sort(transient_memory_resource);
-    std::move(m_builders)
-        .for_each(
-            [this](ErasedEntryBuilder&& builder) -> void
-            {
-                std::move(builder)(m_builders, m_registry);   //
-            }
-        );
+    std::move(m_builders).build(m_registry, transient_memory_resource);
 
     return std::move(m_registry);
 }
