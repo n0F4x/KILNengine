@@ -324,9 +324,11 @@ auto EntryBuildDirector<Entry_T>::resolve_build_dependencies() const -> void
             {
                 using StrippedDependency = std::remove_cvref_t<Dependency_T>;
 
-                static_assert(std::derived_from<StrippedDependency, EntryBase>);
-
-                build_entry<StrippedDependency>();
+                // TODO: resolve builder dependencies as well
+                if constexpr (std::derived_from<StrippedDependency, EntryBase>)
+                {
+                    build_entry<StrippedDependency>();
+                }
             }
         }
     );
@@ -581,13 +583,21 @@ auto EntryBuildDirector<Entry_T>::check_for_cyclic_dependency_via_build(
         {
             using StrippedDependency = strip_dependency_t<Dependency_T>;
 
-            static_assert(std::derived_from<StrippedDependency, EntryBase>);
+            if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+            {
+                // TODO
+                return false;
+            }
+            else
+            {
+                static_assert(std::derived_from<StrippedDependency, EntryBase>);
 
-            return check_for_cyclic_dependency_via_entry<StrippedDependency>(
-                dependency_chain,
-                hash_cache,
-                transient_memory_resource
-            );
+                return check_for_cyclic_dependency_via_entry<StrippedDependency>(
+                    dependency_chain,
+                    hash_cache,
+                    transient_memory_resource
+                );
+            }
         }
     );
 }

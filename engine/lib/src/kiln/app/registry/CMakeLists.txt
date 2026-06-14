@@ -24,7 +24,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         EntryBuilderFailedError.ixx
         EntryInjectionContainer.ixx
         ErasedEntry.ixx
-        ErasedEntryBuilder.ixx
         ErasedEntryInjection.ixx
         Registry.ixx
         RegistryBuilder.ixx

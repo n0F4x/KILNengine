@@ -4,8 +4,10 @@
 
 import kiln.app.registry.BuildableEntry;
 import kiln.app.registry.CyclicDependencyDetected;
+import kiln.app.registry.EntryBase;
 import kiln.app.registry.EntryBuildDirector;
 import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.Registry;
 import kiln.app.registry.RegistryBuilder;
 import kiln.util.containers.OptionalRef;
 import kiln.util.reflection;
@@ -18,7 +20,10 @@ const std::string type_name{ util::name_of<RegistryBuilder>() };
 
 template <typename Entry_T>
 struct BuildDescriber {
-    constexpr static auto operator()(EntryBuildDirector<Entry_T>& build_director) -> void;
+    constexpr static auto operator()(EntryBuildDirector<Entry_T>& build_director) -> void
+    {
+        build_director.template use_builder<typename Entry_T::Builder>();
+    }
 };
 
 struct SelfBuildDependentEntry
@@ -91,14 +96,6 @@ struct OptionalSelfCreateDependentEntry
         }
     };
 };
-
-template <typename Entry_T>
-constexpr auto BuildDescriber<Entry_T>::operator()(
-    EntryBuildDirector<Entry_T>& build_director
-) -> void
-{
-    build_director.template use_builder<typename Entry_T::Builder>();
-}
 
 struct SimpleCyclicBuildEntryA;
 struct SimpleCyclicBuildEntryB;
@@ -178,6 +175,59 @@ struct SimpleCyclicCreateEntryB::Builder : EntryBuilderBase {
     {
         return SimpleCyclicCreateEntryB{};
     }
+};
+
+struct SimpleEntryDependencyA : EntryBase {};
+
+struct SimpleEntryDependencyB
+    : BuildableEntry<SimpleEntryDependencyB, BuildDescriber<SimpleEntryDependencyB>{}> {
+    constexpr explicit SimpleEntryDependencyB(SimpleEntryDependencyA&) noexcept {}
+
+    struct Builder : EntryBuilderBase {
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr static auto build(SimpleEntryDependencyA& a) noexcept
+            -> SimpleEntryDependencyB
+        {
+            return SimpleEntryDependencyB{ a };
+        }
+    };
+};
+
+struct SimpleEntryBuilderDependencyA
+    : BuildableEntry<
+          SimpleEntryBuilderDependencyA,
+          BuildDescriber<SimpleEntryBuilderDependencyA>{}> {
+    struct Builder : EntryBuilderBase {
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr static auto build() noexcept -> SimpleEntryBuilderDependencyA
+        {
+            return SimpleEntryBuilderDependencyA{};
+        }
+    };
+};
+
+struct SimpleEntryBuilderDependencyB
+    : BuildableEntry<
+          SimpleEntryBuilderDependencyB,
+          BuildDescriber<SimpleEntryBuilderDependencyB>{}> {
+    constexpr explicit SimpleEntryBuilderDependencyB(
+        const SimpleEntryBuilderDependencyA::Builder&
+    ) noexcept
+    {
+    }
+
+    struct Builder : EntryBuilderBase {
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr static auto build(
+            const SimpleEntryBuilderDependencyA::Builder& a_builder
+        ) noexcept -> SimpleEntryBuilderDependencyB
+        {
+            return SimpleEntryBuilderDependencyB{ a_builder };
+        }
+    };
 };
 
 }   // namespace
@@ -273,6 +323,99 @@ TEST_CASE(type_name)
         }
     }
 #endif
+
+    SECTION("simple entry -> entry dependency")
+    {
+        SECTION("base")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleEntryDependencyA>(
+                transient_memory_resource
+            );
+            registry_builder.register_entry<SimpleEntryDependencyB>(
+                transient_memory_resource
+            );
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleEntryDependencyA>());
+            REQUIRE(registry.contains<SimpleEntryDependencyB>());
+        }
+        SECTION("reordered")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleEntryDependencyB>(
+                transient_memory_resource
+            );
+            registry_builder.register_entry<SimpleEntryDependencyA>(
+                transient_memory_resource
+            );
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleEntryDependencyA>());
+            REQUIRE(registry.contains<SimpleEntryDependencyB>());
+        }
+        SECTION("automatically registered")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleEntryDependencyB>(
+                transient_memory_resource
+            );
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleEntryDependencyA>());
+            REQUIRE(registry.contains<SimpleEntryDependencyB>());
+        }
+    }
+
+    SECTION("simple entry -> builder dependency")
+    {
+        SECTION("base")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleEntryBuilderDependencyA>(
+                transient_memory_resource
+            );
+            registry_builder.register_entry<SimpleEntryBuilderDependencyB>(
+                transient_memory_resource
+            );
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
+            REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+        }
+        SECTION("reordered")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleEntryBuilderDependencyB>(
+                transient_memory_resource
+            );
+            registry_builder.register_entry<SimpleEntryBuilderDependencyA>(
+                transient_memory_resource
+            );
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
+            REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+        }
+        // TODO: enable section
+        // SECTION("automatically registered")
+        // {
+        //     RegistryBuilder registry_builder;
+        //     registry_builder.register_entry<SimpleEntryBuilderDependencyB>(
+        //         transient_memory_resource
+        //     );
+        //     Registry registry
+        //         = std::move(registry_builder).build(transient_memory_resource);
+        //
+        //     REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
+        //     REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+        // }
+    }
 }
 
 }   // namespace kiln::app

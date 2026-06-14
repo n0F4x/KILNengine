@@ -5,6 +5,7 @@ module;
 
 module kiln.app.registry.RegistryBuilder;
 
+import kiln.app.registry.EntryBuilderContainer;
 import kiln.app.registry.ErasedEntryInjection;
 
 kiln::app::RegistryBuilder::RegistryBuilder(
@@ -47,7 +48,7 @@ auto kiln::app::RegistryBuilder::build(
         .for_each(
             [this](ErasedEntryBuilder&& builder) -> void
             {
-                std::move(builder)(m_registry);   //
+                std::move(builder)(m_builders, m_registry);   //
             }
         );
 

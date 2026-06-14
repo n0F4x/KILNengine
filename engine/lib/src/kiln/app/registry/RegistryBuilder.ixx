@@ -12,7 +12,6 @@ import kiln.app.registry.EntryBuildDirector;
 import kiln.app.registry.EntryBuilderContainer;
 import kiln.app.registry.EntryInjectionContainer;
 import kiln.app.registry.ErasedEntry;
-import kiln.app.registry.ErasedEntryBuilder;
 import kiln.app.registry.ErasedEntryInjection;
 import kiln.app.registry.Registry;
 

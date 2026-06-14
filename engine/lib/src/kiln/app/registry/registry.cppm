@@ -14,7 +14,6 @@ export import kiln.app.registry.EntryBuilderContainer;
 export import kiln.app.registry.EntryBuilderFailedError;
 export import kiln.app.registry.EntryInjectionContainer;
 export import kiln.app.registry.ErasedEntry;
-export import kiln.app.registry.ErasedEntryBuilder;
 export import kiln.app.registry.ErasedEntryInjection;
 export import kiln.app.registry.Registry;
 export import kiln.app.registry.RegistryBuilder;

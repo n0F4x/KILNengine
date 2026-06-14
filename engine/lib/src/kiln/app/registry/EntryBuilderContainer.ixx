@@ -14,10 +14,12 @@ module;
 export module kiln.app.registry.EntryBuilderContainer;
 
 import kiln.app.registry.EntryBase;
-import kiln.app.registry.ErasedEntryBuilder;
+import kiln.app.registry.EntryBuilderBase;
 import kiln.app.registry.strip_dependency_t;
+import kiln.app.registry.Registry;
+import kiln.util.concepts.specialization_of;
 import kiln.util.containers.OptionalRef;
-import kiln.util.containers.Any;
+import kiln.util.containers.MoveOnlyFunction;
 import kiln.util.contracts;
 import kiln.util.for_each;
 import kiln.util.reflection;
@@ -25,8 +27,14 @@ import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.const_like;
 import kiln.util.type_traits.forward_like;
 import kiln.util.type_traits.result_of;
+import kiln.util.TypeList;
 
 namespace kiln::app {
+
+export class EntryBuilderContainer;
+
+export using ErasedEntryBuilder
+    = util::MoveOnlyFunction<auto(EntryBuilderContainer&, Registry&) &&->void, 0>;
 
 export class EntryBuilderContainer {
 public:
@@ -73,22 +81,94 @@ public:
 private:
     std::pmr::vector<ErasedEntryBuilder>         m_builders;
     std::pmr::vector<uint64_t>                   m_entry_hashes;
-    std::pmr::vector<std::pmr::vector<uint64_t>> m_dependency_entry_hashes;
+    std::pmr::vector<std::pmr::vector<uint64_t>> m_builder_dependency_hashes;
+    std::pmr::vector<std::pmr::vector<uint64_t>> m_entry_dependency_hashes;
 
 
-    auto bubble_up_dependencies_of(
+    [[nodiscard]]
+    auto try_index_of_builder(uint64_t hash) const noexcept -> std::optional<std::size_t>;
+
+    auto bubble_up_entry_dependencies_of(
+        uint64_t                   hash,
+        std::pmr::memory_resource& transient_memory_resource
+    ) -> void;
+    auto push_down_builder_dependencies_of(
         uint64_t                   hash,
         std::pmr::memory_resource& transient_memory_resource
     ) -> void;
 
-    auto try_index_of_builder(uint64_t hash) -> std::optional<std::size_t>;
-    auto collect_dependencies_of(uint64_t hash, std::pmr::vector<uint64_t>& result)
-        -> void;
+    auto collect_entry_dependencies_of(uint64_t hash, std::pmr::vector<uint64_t>& result
+    ) const -> void;
+    auto collect_builder_dependencies_of(uint64_t hash, std::pmr::vector<uint64_t>& result
+    ) const -> void;
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
+
+template <typename Dependency_T>
+// ReSharper disable once CppNotAllPathsReturnValue
+auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry) -> Dependency_T
+{
+    using StrippedDependency = strip_dependency_t<Dependency_T>;
+
+    if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+    {
+        if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
+        {
+            return builders.find<StrippedDependency>();
+        }
+        else
+        {
+            return builders.at<StrippedDependency>();
+        }
+    }
+    else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
+    {
+        if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
+        {
+            return registry.find<StrippedDependency>();
+        }
+        else
+        {
+            return registry.at<StrippedDependency>();
+        }
+    }
+    else
+    {
+        static_assert(false, "invalid dependency");
+    }
+}
+
+template <typename Builder_T>
+struct ErasedEntryBuilderLambda {
+    Builder_T builder;
+
+    auto operator()(EntryBuilderContainer& builders, Registry& registry) && -> void
+    {
+        [this,
+         &builders,
+         &registry]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> void
+        {
+            registry.insert(
+                std::move(builder)
+                    .build(fetch_dependency<Dependencies_T>(builders, registry)...)
+            );
+        }(util::arguments_of_t<decltype(&Builder_T::build)>{});
+    }
+};
+
+template <typename Builder_T, typename... Args_T>
+    requires std::constructible_from<Builder_T, Args_T&&...>
+[[nodiscard]]
+auto make_erased_entry_builder_lambda(Args_T&&... args)
+    -> ErasedEntryBuilderLambda<Builder_T>
+{
+    return ErasedEntryBuilderLambda<Builder_T>{
+        .builder{ std::forward<Args_T>(args)... },
+    };
+}
 
 template <typename Builder_T>
 auto EntryBuilderContainer::contains() const noexcept -> bool
@@ -145,18 +225,37 @@ auto EntryBuilderContainer::emplace_back(Args_T&&... args) -> void
         util::hash_u64<util::result_of_t<decltype(&Builder_T::build)>>()
     );
 
-    std::pmr::vector<uint64_t>& dependency_entry_hashes
-        = m_dependency_entry_hashes.emplace_back();
-    dependency_entry_hashes.reserve(
+    std::pmr::vector<uint64_t>& builder_dependency_hashes
+        = m_builder_dependency_hashes.emplace_back();
+    builder_dependency_hashes.reserve(
+        util::arguments_of_t<decltype(&Builder_T::build)>::size()
+    );
+    std::pmr::vector<uint64_t>& entry_dependency_hashes
+        = m_entry_dependency_hashes.emplace_back();
+    entry_dependency_hashes.reserve(
         util::arguments_of_t<decltype(&Builder_T::build)>::size()
     );
     util::for_each(
         util::arguments_of_t<decltype(&Builder_T::build)>{},
-        [&dependency_entry_hashes]<typename Dependency_T> -> void
+        [&builder_dependency_hashes,
+         &entry_dependency_hashes]<typename Dependency_T> -> void
         {
             using StrippedDependency = strip_dependency_t<Dependency_T>;
-            static_assert(std::derived_from<StrippedDependency, EntryBase>);
-            dependency_entry_hashes.push_back(util::hash_u64<StrippedDependency>());
+            if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+            {
+                builder_dependency_hashes.push_back(
+                    util::hash_u64<
+                        util::result_of_t<decltype(&StrippedDependency::build)>>()
+                );
+            }
+            else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
+            {
+                entry_dependency_hashes.push_back(util::hash_u64<StrippedDependency>());
+            }
+            else
+            {
+                static_assert(false, "invalid build dependency");
+            }
         }
     );
 }

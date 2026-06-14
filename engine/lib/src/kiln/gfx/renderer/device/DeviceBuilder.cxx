@@ -100,7 +100,7 @@ auto DeviceBuilder::build(
     app::MemoryArena&       memory_arena,
     const vulkan::Instance& instance,
     const wsi::Context&     wsi_context
-) const&& -> Device
+) const -> Device
 {
     std::pmr::monotonic_buffer_resource transient_memory_resource{
         memory_arena.make_transient_resource()

@@ -79,7 +79,7 @@ public:
         app::MemoryArena&       memory_arena,
         const vulkan::Instance& instance,
         const wsi::Context&     wsi_context
-    ) const&& -> Device;
+    ) const -> Device;
 
 private:
     vulkan::PhysicalDeviceFilter       m_physical_device_filter;
