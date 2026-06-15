@@ -5,10 +5,10 @@
 
 import kiln.app.registry.BuildableEntry;
 import kiln.app.registry.BuildableEntryBuilder;
+import kiln.app.registry.BuildDirector;
 import kiln.app.registry.ConfigurationEntry;
 import kiln.app.registry.CyclicDependencyDetected;
 import kiln.app.registry.EntryBase;
-import kiln.app.registry.EntryBuildDirector;
 import kiln.app.registry.EntryBuilderBase;
 import kiln.app.registry.Registry;
 import kiln.app.registry.RegistryBuilder;
@@ -23,7 +23,7 @@ const std::string type_name{ util::name_of<RegistryBuilder>() };
 
 template <typename Entry_T>
 struct BuildDescriber {
-    constexpr static auto operator()(EntryBuildDirector<Entry_T>& build_director) -> void
+    constexpr static auto operator()(BuildDirector<Entry_T>& build_director) -> void
     {
         build_director.template use_builder<typename Entry_T::Builder>();
     }

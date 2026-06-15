@@ -14,7 +14,7 @@ export module kiln.gfx.renderer.memory.Allocator;
 import vulkan_hpp;
 
 import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
@@ -27,7 +27,7 @@ namespace kiln::gfx::renderer {
 
 export class Allocator;
 
-auto describe_build(app::EntryBuildDirector<Allocator>& build_director) -> void;
+auto describe_build(app::BuildDirector<Allocator>& build_director) -> void;
 
 class Allocator : public app::BuildableEntry<Allocator, describe_build> {
 public:

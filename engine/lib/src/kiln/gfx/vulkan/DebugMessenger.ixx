@@ -3,13 +3,13 @@ export module kiln.gfx.vulkan.DebugMessenger;
 import vulkan_hpp;
 
 import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 
 namespace kiln::gfx::vulkan {
 
 export class DebugMessenger;
 
-auto describe_build(app::EntryBuildDirector<DebugMessenger>& build_director) -> void;
+auto describe_build(app::BuildDirector<DebugMessenger>& build_director) -> void;
 
 class DebugMessenger
     : public app::BuildableEntry<DebugMessenger, describe_build> {

@@ -1,13 +1,13 @@
 export module kiln.gfx.renderer.presentation.PresentationContext;
 
 import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 
 namespace kiln::gfx::renderer {
 
 export struct PresentationContext;
 
-auto describe_build(app::EntryBuildDirector<PresentationContext>& build_director)
+auto describe_build(app::BuildDirector<PresentationContext>& build_director)
     -> void;
 
 struct PresentationContext

@@ -53,7 +53,7 @@ public:
     }
 };
 
-auto describe_build(kiln::app::EntryBuildDirector<Context>& build_director) -> void
+auto describe_build(kiln::app::BuildDirector<Context>& build_director) -> void
 {
     build_director.use_builder<ContextBuilder>();
 }

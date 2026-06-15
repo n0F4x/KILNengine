@@ -19,7 +19,7 @@ import vulkan_hpp;
 
 import kiln.app.memory.MemoryArena;
 import kiln.app.registry.BuildableEntryBuilder;
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 import kiln.event.Timestamp;
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.Queue;
@@ -137,7 +137,7 @@ auto select_staging_queue(
     }
 }
 
-auto describe_builder(kiln::app::EntryBuildDirector<Context>& build_director) -> void
+auto describe_builder(kiln::app::BuildDirector<Context>& build_director) -> void
 {
     build_director.use_builder<ContextBuilder>();
 }

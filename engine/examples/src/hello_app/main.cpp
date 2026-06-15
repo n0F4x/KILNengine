@@ -8,7 +8,7 @@ struct GraphicsSystemIntegration : kiln::app::EntryBase {};
 template <typename Entry_T>
 struct BuildDescriber {
     constexpr static auto operator()(
-        kiln::app::EntryBuildDirector<Entry_T>& build_director
+        kiln::app::BuildDirector<Entry_T>& build_director
     ) -> void;
 };
 
@@ -70,7 +70,7 @@ struct RenderSystem::Builder : kiln::app::BuildableEntryBuilder {
 
 template <typename Entry_T>
 constexpr auto BuildDescriber<Entry_T>::operator()(
-    kiln::app::EntryBuildDirector<Entry_T>& build_director
+    kiln::app::BuildDirector<Entry_T>& build_director
 ) -> void
 {
     build_director.template use_builder<typename Entry_T::Builder>();

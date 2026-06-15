@@ -7,13 +7,13 @@ export module kiln.gfx.vulkan.Instance;
 import vulkan_hpp;
 
 import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 
 namespace kiln::gfx::vulkan {
 
 export class Instance;
 
-auto describe_build(app::EntryBuildDirector<Instance>& build_director) -> void;
+auto describe_build(app::BuildDirector<Instance>& build_director) -> void;
 
 class Instance : public app::BuildableEntry<Instance, describe_build> {
 public:

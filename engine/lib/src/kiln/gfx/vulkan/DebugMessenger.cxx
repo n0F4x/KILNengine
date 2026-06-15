@@ -137,7 +137,7 @@ public:
     }
 };
 
-auto describe_build(app::EntryBuildDirector<DebugMessenger>& build_director) -> void
+auto describe_build(app::BuildDirector<DebugMessenger>& build_director) -> void
 {
     build_director.use_builder<DebugMessengerBuilder>();
 }

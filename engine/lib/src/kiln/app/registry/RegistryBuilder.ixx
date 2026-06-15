@@ -6,8 +6,8 @@ module;
 export module kiln.app.registry.RegistryBuilder;
 
 import kiln.app.registry.BuildableEntryBase;
+import kiln.app.registry.BuildDirector;
 import kiln.app.registry.entry_c;
-import kiln.app.registry.EntryBuildDirector;
 import kiln.app.registry.EntryBuilderContainer;
 import kiln.app.registry.EntryInjectionContainer;
 import kiln.app.registry.Registry;
@@ -75,7 +75,7 @@ auto RegistryBuilder::register_entry() -> void
 {
     if constexpr (buildable_entry_c<Entry_T>)
     {
-        EntryBuildDirector<Entry_T> build_director{
+        BuildDirector<Entry_T> build_director{
             m_injections,
             m_builders,
             m_registry,

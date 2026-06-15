@@ -6,12 +6,12 @@ module kiln.gfx.vulkan.Instance;
 
 import vulkan_hpp;
 
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::vulkan {
 
-auto describe_build(app::EntryBuildDirector<Instance>& build_director) -> void
+auto describe_build(app::BuildDirector<Instance>& build_director) -> void
 {
     build_director.use_builder<InstanceBuilder>();
 }

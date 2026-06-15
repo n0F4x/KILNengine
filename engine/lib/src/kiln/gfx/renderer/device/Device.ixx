@@ -10,7 +10,7 @@ export module kiln.gfx.renderer.device.Device;
 import vulkan_hpp;
 
 import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.EntryBuildDirector;
+import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueFamilyInfo;
@@ -27,7 +27,7 @@ struct QueueInfos {
 
 export class Device;
 
-auto describe_build(app::EntryBuildDirector<Device>& build_director) -> void;
+auto describe_build(app::BuildDirector<Device>& build_director) -> void;
 
 class Device : public app::BuildableEntry<Device, describe_build> {
 public:

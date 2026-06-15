@@ -14,6 +14,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         BuildableEntry.ixx
         BuildableEntryBase.ixx
         BuildableEntryBuilder.ixx
+        BuildDirector.ixx
         configuration_entry_c.ixx
         ConfigurationEntry.ixx
         CyclicDependencyDetected.ixx
@@ -21,7 +22,6 @@ target_sources(${PROJECT_NAME} PUBLIC
         entry_c.ixx
         entry_builder_c.ixx
         EntryBase.ixx
-        EntryBuildDirector.ixx
         EntryBuilderBase.ixx
         EntryBuilderContainer.ixx
         EntryBuilderFailedError.ixx

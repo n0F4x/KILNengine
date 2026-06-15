@@ -8,7 +8,7 @@ module;
 
 #include "kiln/util/contract_macros.hpp"
 
-export module kiln.app.registry.EntryBuildDirector;
+export module kiln.app.registry.BuildDirector;
 
 import kiln.app.registry.BuildableEntryBase;
 import kiln.app.registry.ConfigurationEntry;
@@ -42,9 +42,9 @@ concept entry_maker_function_reference_c
    && std::same_as<util::result_of_t<T>, Entry_T>;
 
 export template <typename Entry_T>
-class EntryBuildDirector {
+class BuildDirector {
 public:
-    explicit EntryBuildDirector(
+    explicit BuildDirector(
         EntryInjectionContainer& injection_container,
         EntryBuilderContainer&   builder_container,
         Registry&                registry
@@ -58,7 +58,7 @@ public:
 
 private:
     template <typename>
-    friend class EntryBuildDirector;
+    friend class BuildDirector;
 
     EntryInjectionContainer* m_injection_container{};
     EntryBuilderContainer*   m_builder_container{};
@@ -89,7 +89,7 @@ concept represents_optional_dependency_c
     = util::specialization_of_c<T, util::OptionalRef>;
 
 template <typename Entry_T>
-EntryBuildDirector<Entry_T>::EntryBuildDirector(
+BuildDirector<Entry_T>::BuildDirector(
     EntryInjectionContainer& injection_container,
     EntryBuilderContainer&   builder_container,
     Registry&                registry
@@ -107,13 +107,13 @@ concept injectable_builder_c = requires {
 
 template <typename Entry_T>
 template <builds_entry_c<Entry_T> Builder_T>
-auto EntryBuildDirector<Entry_T>::use_builder() -> void
+auto BuildDirector<Entry_T>::use_builder() -> void
 {
     PRECOND(
         m_injection_container != nullptr
             && m_builder_container != nullptr
             && m_registry != nullptr,
-        std::format("{} can only be used once", util::name_of<EntryBuildDirector>())
+        std::format("{} can only be used once", util::name_of<BuildDirector>())
     );
 
     build_builder<Builder_T>();
@@ -140,14 +140,14 @@ struct DummyBuilder<func_T> {
 
 template <typename Entry_T>
 template <entry_maker_function_reference_c<Entry_T> auto func_T>
-auto EntryBuildDirector<Entry_T>::use_function() -> void
+auto BuildDirector<Entry_T>::use_function() -> void
 {
     use_builder<DummyBuilder<func_T>>();
 }
 
 template <typename Entry_T>
 template <typename Builder_T>
-auto EntryBuildDirector<Entry_T>::build_builder() -> void
+auto BuildDirector<Entry_T>::build_builder() -> void
 {
     if constexpr (injectable_builder_c<Builder_T>)
     {
@@ -174,7 +174,7 @@ auto EntryBuildDirector<Entry_T>::build_builder() -> void
 
 template <typename Entry_T>
 template <typename Builder_T>
-auto EntryBuildDirector<Entry_T>::resolve_dependencies() -> void
+auto BuildDirector<Entry_T>::resolve_dependencies() -> void
 {
     if constexpr (injectable_builder_c<Builder_T>)
     {
@@ -185,7 +185,7 @@ auto EntryBuildDirector<Entry_T>::resolve_dependencies() -> void
 
 template <typename Entry_T>
 template <typename Builder_T>
-auto EntryBuildDirector<Entry_T>::resolve_create_dependencies() -> void
+auto BuildDirector<Entry_T>::resolve_create_dependencies() -> void
 {
     PRECOND(m_injection_container != nullptr);
     PRECOND(m_builder_container != nullptr);
@@ -222,7 +222,7 @@ auto EntryBuildDirector<Entry_T>::resolve_create_dependencies() -> void
 
 template <typename Entry_T>
 template <typename Builder_T>
-auto EntryBuildDirector<Entry_T>::resolve_build_dependencies() const -> void
+auto BuildDirector<Entry_T>::resolve_build_dependencies() const -> void
 {
     PRECOND(m_injection_container != nullptr);
     PRECOND(m_builder_container != nullptr);
@@ -255,7 +255,7 @@ auto EntryBuildDirector<Entry_T>::resolve_build_dependencies() const -> void
 
 template <typename Entry_T>
 template <typename UEntry_T>
-auto EntryBuildDirector<Entry_T>::build_entry() const -> void
+auto BuildDirector<Entry_T>::build_entry() const -> void
 {
     if constexpr (std::derived_from<UEntry_T, internal::BuildableEntryBase>)
     {
@@ -265,7 +265,7 @@ auto EntryBuildDirector<Entry_T>::build_entry() const -> void
          * function.
          */
 
-        EntryBuildDirector<UEntry_T> build_director{
+        BuildDirector<UEntry_T> build_director{
             *m_injection_container,
             *m_builder_container,
             *m_registry,

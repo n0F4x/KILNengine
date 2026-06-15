@@ -14,7 +14,7 @@ namespace demo {
 
 export class Context;
 
-auto describe_build(kiln::app::EntryBuildDirector<Context>& build_director) -> void;
+auto describe_build(kiln::app::BuildDirector<Context>& build_director) -> void;
 
 export class Context : public kiln::app::BuildableEntry<Context, describe_build> {
 public:
