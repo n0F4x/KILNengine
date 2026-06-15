@@ -13,7 +13,7 @@ import vulkan_hpp;
 
 import kiln.app.config.Config;
 import kiln.app.memory.MemoryArena;
-import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.BuildableEntryBuilder;
 import kiln.gfx.vulkan.Instance;
 import kiln.util.StringLiteral;
 
@@ -31,7 +31,7 @@ struct InstanceBuilderPrecondition {
 };
 
 export class InstanceBuilder : InstanceBuilderPrecondition,
-                               public app::EntryBuilderBase   //
+                               public app::BuildableEntryBuilder   //
 {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;

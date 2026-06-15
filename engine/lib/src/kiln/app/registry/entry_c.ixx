@@ -14,8 +14,8 @@ namespace kiln::app {
 
 export template <typename T>
 concept entry_c =   //
-    std::derived_from<T, EntryBase>
-    && util::generic_stack_item_c<T>
+    util::generic_stack_item_c<T>
+    && std::derived_from<T, EntryBase>
     && (std::default_initializable<T>
         || std::derived_from<T, internal::BuildableEntryBase>)
     && !std::derived_from<T, EntryBuilderBase>;

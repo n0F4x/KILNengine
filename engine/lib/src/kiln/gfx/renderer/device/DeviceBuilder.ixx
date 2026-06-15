@@ -8,7 +8,7 @@ export module kiln.gfx.renderer.device.DeviceBuilder;
 import vulkan_hpp;
 
 import kiln.app.memory.MemoryArena;
-import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.BuildableEntryBuilder;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
@@ -22,7 +22,7 @@ import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
-export class DeviceBuilder : public app::EntryBuilderBase {
+export class DeviceBuilder : public app::BuildableEntryBuilder {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 

@@ -6,7 +6,6 @@ module;
 export module kiln.app.registry.BuildableEntry;
 
 import kiln.app.registry.BuildableEntryBase;
-import kiln.app.registry.EntryBase;
 import kiln.app.registry.EntryBuildDirector;
 
 namespace kiln::app {

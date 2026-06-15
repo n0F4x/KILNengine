@@ -1,6 +1,6 @@
 export module kiln.gfx.renderer.command.QueueProviderBuilder;
 
-import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.BuildableEntryBuilder;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;
@@ -8,7 +8,7 @@ import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
-export class QueueProviderBuilder : public app::EntryBuilderBase {
+export class QueueProviderBuilder : public app::BuildableEntryBuilder {
 public:
     [[nodiscard]]
     static auto create(

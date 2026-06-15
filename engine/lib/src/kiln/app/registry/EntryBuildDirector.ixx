@@ -89,9 +89,6 @@ concept represents_optional_dependency_c
     = util::specialization_of_c<T, util::OptionalRef>;
 
 template <typename Entry_T>
-concept buildable_entry_c = std::derived_from<Entry_T, internal::BuildableEntryBase>;
-
-template <typename Entry_T>
 EntryBuildDirector<Entry_T>::EntryBuildDirector(
     EntryInjectionContainer& injection_container,
     EntryBuilderContainer&   builder_container,
@@ -260,7 +257,7 @@ template <typename Entry_T>
 template <typename UEntry_T>
 auto EntryBuildDirector<Entry_T>::build_entry() const -> void
 {
-    if constexpr (buildable_entry_c<UEntry_T>)
+    if constexpr (std::derived_from<UEntry_T, internal::BuildableEntryBase>)
     {
         /*
          * This can end up in an infinite recursion in case of a cyclic

@@ -18,7 +18,7 @@ module examples.frustum_culling.Context;
 import vulkan_hpp;
 
 import kiln.app.memory.MemoryArena;
-import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.BuildableEntryBuilder;
 import kiln.app.registry.EntryBuildDirector;
 import kiln.event.Timestamp;
 import kiln.gfx.asset.gltf.Parser;
@@ -61,7 +61,7 @@ import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 
-class ContextBuilder : public kiln::app::EntryBuilderBase {
+class ContextBuilder : public kiln::app::BuildableEntryBuilder {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed

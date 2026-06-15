@@ -173,17 +173,6 @@ struct ErasedEntryBuilderLambda {
     }
 };
 
-template <typename Builder_T, typename... Args_T>
-    requires std::constructible_from<Builder_T, Args_T&&...>
-[[nodiscard]]
-auto make_erased_entry_builder_lambda(Args_T&&... args)
-    -> ErasedEntryBuilderLambda<Builder_T>
-{
-    return ErasedEntryBuilderLambda<Builder_T>{
-        .builder{ std::forward<Args_T>(args)... },
-    };
-}
-
 template <typename Builder_T>
 auto EntryBuilderContainer::contains() const noexcept -> bool
 {
@@ -239,7 +228,8 @@ auto EntryBuilderContainer::try_emplace(Args_T&&... args) -> bool
     }
 
     m_builders.emplace_back(
-        make_erased_entry_builder_lambda<Builder_T>(std::forward<Args_T>(args)...)
+        std::in_place_type<ErasedEntryBuilderLambda<Builder_T>>,
+        std::forward<Args_T>(args)...
     );
     m_entry_hashes.push_back(
         util::hash_u64<util::result_of_t<decltype(&Builder_T::build)>>()

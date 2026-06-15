@@ -43,7 +43,7 @@ struct RenderSystem
     WindowSystem*              window_system{};
 };
 
-struct RenderSystem::Builder : kiln::app::EntryBuilderBase {
+struct RenderSystem::Builder : kiln::app::BuildableEntryBuilder {
     static auto create(
         const kiln::util::OptionalRef<WindowSystem::Builder> window_builder
     ) -> Builder

@@ -15,7 +15,7 @@ import kiln;
 
 namespace demo {
 
-class ContextBuilder : public kiln::app::EntryBuilderBase {
+class ContextBuilder : public kiln::app::BuildableEntryBuilder {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed

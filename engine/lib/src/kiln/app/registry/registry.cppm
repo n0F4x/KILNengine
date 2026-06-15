@@ -2,6 +2,8 @@ export module kiln.app.registry;
 
 export import kiln.app.registry.BuildableEntry;
 export import kiln.app.registry.BuildableEntryBase;
+export import kiln.app.registry.BuildableEntryBuilder;
+export import kiln.app.registry.configuration_entry_c;
 export import kiln.app.registry.ConfigurationEntry;
 export import kiln.app.registry.CyclicDependencyDetected;
 export import kiln.app.registry.DependencyChainNode;

@@ -1,6 +1,6 @@
 export module kiln.gfx.renderer.presentation.PresentationContextBuilder;
 
-import kiln.app.registry.EntryBuilderBase;
+import kiln.app.registry.BuildableEntryBuilder;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.vulkan.InstanceBuilder;
@@ -8,7 +8,7 @@ import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
-export class PresentationContextBuilder : public app::EntryBuilderBase {
+export class PresentationContextBuilder : public app::BuildableEntryBuilder {
 public:
     [[nodiscard]]
     static auto create(

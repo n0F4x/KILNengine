@@ -12,6 +12,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         registry.cppm
         BuildableEntry.ixx
         BuildableEntryBase.ixx
+        BuildableEntryBuilder.ixx
+        configuration_entry_c.ixx
         ConfigurationEntry.ixx
         CyclicDependencyDetected.ixx
         DependencyChainNode.ixx

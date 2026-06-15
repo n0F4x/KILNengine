@@ -8,8 +8,6 @@ module;
 #include <string>
 #include <vector>
 
-#include "kiln/util/contract_macros.hpp"
-
 export module kiln.app.registry.EntryInjectionContainer;
 
 import kiln.app.registry.ConfigurationEntry;
@@ -23,7 +21,6 @@ import kiln.util.concepts.function_pointer;
 import kiln.util.concepts.specialization_of;
 import kiln.util.containers.MoveOnlyFunction;
 import kiln.util.containers.OptionalRef;
-import kiln.util.contracts;
 import kiln.util.reflection;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.forward_like;
