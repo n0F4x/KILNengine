@@ -104,8 +104,35 @@ auto EntryBuilderContainer::check_cyclic_dependencies(
     std::pmr::memory_resource& transient_memory_resource
 ) const -> bool
 {
-    return check_entry_cyclic_dependencies(transient_memory_resource)
-        || check_builder_cyclic_dependencies(transient_memory_resource);
+    for (const auto& [builder_index, entry_hash] : std::views::enumerate(m_entry_hashes))
+    {
+        std::pmr::vector<uint64_t> reversed_hash_cache{ &transient_memory_resource };
+        reversed_hash_cache.push_back(entry_hash);
+
+        if (check_builder_cyclic_dependencies(
+                static_cast<std::size_t>(builder_index),
+                reversed_hash_cache,
+                transient_memory_resource
+            ))
+        {
+            return true;
+        }
+
+        std::pmr::vector<uint64_t> hash_cache{ &transient_memory_resource };
+        hash_cache.push_back(entry_hash);
+
+        if (check_entry_cyclic_dependencies(
+                static_cast<std::size_t>(builder_index),
+                reversed_hash_cache,
+                hash_cache,
+                transient_memory_resource
+            ))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 #endif
 
@@ -368,37 +395,34 @@ auto EntryBuilderContainer::bubble_up_entry_dependencies_of(const std::size_t in
 
 #ifdef KILN_DEBUG
 auto EntryBuilderContainer::check_entry_cyclic_dependencies(
-    std::pmr::memory_resource& transient_memory_resource
+    const std::size_t                 builder_index,
+    const std::pmr::vector<uint64_t>& reversed_hash_cache,
+    std::pmr::vector<uint64_t>&       hash_cache,
+    std::pmr::memory_resource&        transient_memory_resource
 ) const -> bool
 {
-    for (const auto& [entry_hash, dependency_hashes, entry_name] :
-         std::views::zip(m_entry_hashes, m_entry_dependency_hashes, m_entry_names))
+    const DependencyChainNode dependency_chain_node{
+        .hash = m_entry_hashes[builder_index],
+        .name = m_entry_names[builder_index],
+    };
+    for (const uint64_t dependency_hash : m_entry_dependency_hashes[builder_index])
     {
-        std::pmr::vector<uint64_t> hash_cache{ &transient_memory_resource };
-        hash_cache.push_back(entry_hash);
-
-        const DependencyChainNode dependency_chain_node{
-            .hash = entry_hash,
-            .name = entry_name,
-        };
-
-        for (const uint64_t dependency_hash : dependency_hashes)
+        if (const auto dependency_hash_iter
+            = std::ranges::find(m_entry_hashes, dependency_hash);
+            dependency_hash_iter != m_entry_hashes.cend())
         {
-            if (const auto dependency_hash_iter
-                = std::ranges::find(m_entry_hashes, dependency_hash);
-                dependency_hash_iter != m_entry_hashes.cend())
+            if (check_entry_cyclic_dependencies(
+                    static_cast<std::size_t>(
+                        std::distance(m_entry_hashes.begin(), dependency_hash_iter)
+                    ),
+                    dependency_chain_node,
+                    hash_cache,
+                    builder_index,
+                    reversed_hash_cache,
+                    transient_memory_resource
+                ))
             {
-                if (check_entry_cyclic_dependencies(
-                        static_cast<std::size_t>(
-                            std::distance(m_entry_hashes.begin(), dependency_hash_iter)
-                        ),
-                        dependency_chain_node,
-                        hash_cache,
-                        transient_memory_resource
-                    ))
-                {
-                    return true;
-                }
+                return true;
             }
         }
     }
@@ -407,10 +431,12 @@ auto EntryBuilderContainer::check_entry_cyclic_dependencies(
 }
 
 auto EntryBuilderContainer::check_entry_cyclic_dependencies(
-    const std::size_t           builder_index,
-    const DependencyChainNode&  dependency_chain,
-    std::pmr::vector<uint64_t>& hash_cache,
-    std::pmr::memory_resource&  transient_memory_resource
+    const std::size_t                 builder_index,
+    const DependencyChainNode&        dependency_chain,
+    std::pmr::vector<uint64_t>&       hash_cache,
+    const std::size_t                 root_builder_index,
+    const std::pmr::vector<uint64_t>& reversed_hash_cache,
+    std::pmr::memory_resource&        transient_memory_resource
 ) const -> bool
 {
     const uint64_t         entry_hash{ m_entry_hashes[builder_index] };
@@ -427,6 +453,31 @@ auto EntryBuilderContainer::check_entry_cyclic_dependencies(
                 entry_name,
                 dependency_chain.format(&transient_memory_resource),
                 entry_name
+            )
+        );
+        return true;
+    }
+
+    if (std::ranges::binary_search(reversed_hash_cache, entry_hash))
+    {
+        PRECOND_AS(
+            false,
+            CyclicDependencyDetected,
+            std::format(
+                "Cyclic dependency detected"
+                " - entry of type `{}` depends on both an entry of type `{}` ({} -> {})"
+                " and its builder of type `{}` ({})",
+                m_entry_names[root_builder_index],
+                entry_name,
+                dependency_chain.format(&transient_memory_resource),
+                entry_name,
+                m_builder_names[builder_index],
+                path_as_string_to_builder_from(
+                    root_builder_index,
+                    entry_hash,
+                    &transient_memory_resource,
+                    transient_memory_resource
+                )
             )
         );
         return true;
@@ -456,6 +507,8 @@ auto EntryBuilderContainer::check_entry_cyclic_dependencies(
                     ),
                     dependency_chain_node,
                     hash_cache,
+                    root_builder_index,
+                    reversed_hash_cache,
                     transient_memory_resource
                 ))
             {
@@ -468,45 +521,38 @@ auto EntryBuilderContainer::check_entry_cyclic_dependencies(
 }
 
 auto EntryBuilderContainer::check_builder_cyclic_dependencies(
-    std::pmr::memory_resource& transient_memory_resource
+    const std::size_t           builder_index,
+    std::pmr::vector<uint64_t>& hash_cache,
+    std::pmr::memory_resource&  transient_memory_resource
 ) const -> bool
 {
-    for (const auto& [entry_hash, dependency_hashes, builder_name] : std::views::zip(
-             m_entry_hashes,
-             m_builder_dependency_entry_hashes,
-             m_builder_names
-         ))
+    const std::pmr::string build_method_name{
+        m_builder_names[builder_index] + "::build()",
+        &transient_memory_resource,
+    };
+
+    const ReverseDependencyChainNode reversed_dependency_chain_node{
+        .hash = m_entry_hashes[builder_index],
+        .name = build_method_name,
+    };
+
+    for (const uint64_t dependency_hash :
+         m_builder_dependency_entry_hashes[builder_index])
     {
-        std::pmr::vector<uint64_t> hash_cache{ &transient_memory_resource };
-        hash_cache.push_back(entry_hash);
-
-        const std::pmr::string build_method_name{
-            builder_name + "::build()",
-            &transient_memory_resource,
-        };
-
-        const ReverseDependencyChainNode dependency_chain_node{
-            .hash = entry_hash,
-            .name = build_method_name,
-        };
-
-        for (const uint64_t dependency_hash : dependency_hashes)
+        if (const auto dependency_hash_iter
+            = std::ranges::find(m_entry_hashes, dependency_hash);
+            dependency_hash_iter != m_entry_hashes.cend())
         {
-            if (const auto dependency_hash_iter
-                = std::ranges::find(m_entry_hashes, dependency_hash);
-                dependency_hash_iter != m_entry_hashes.cend())
+            if (check_builder_cyclic_dependencies(
+                    static_cast<std::size_t>(
+                        std::distance(m_entry_hashes.begin(), dependency_hash_iter)
+                    ),
+                    reversed_dependency_chain_node,
+                    hash_cache,
+                    transient_memory_resource
+                ))
             {
-                if (check_builder_cyclic_dependencies(
-                        static_cast<std::size_t>(
-                            std::distance(m_entry_hashes.begin(), dependency_hash_iter)
-                        ),
-                        dependency_chain_node,
-                        hash_cache,
-                        transient_memory_resource
-                    ))
-                {
-                    return true;
-                }
+                return true;
             }
         }
     }
@@ -578,6 +624,101 @@ auto EntryBuilderContainer::check_builder_cyclic_dependencies(
     }
 
     return false;
+}
+
+auto EntryBuilderContainer::path_as_string_to_builder_from(
+    const std::size_t                        source_builder_index,
+    const uint64_t                           destination_builder_entry_hash,
+    const std::pmr::polymorphic_allocator<>& allocator,
+    std::pmr::memory_resource&               transient_memory_resource
+) const -> std::pmr::string
+{
+    std::pmr::vector<uint64_t> hash_cache{ &transient_memory_resource };
+    hash_cache.push_back(m_entry_hashes[source_builder_index]);
+
+    const DependencyChainNode dependency_chain_node{
+        .hash = m_entry_hashes[source_builder_index],
+        .name = m_entry_names[source_builder_index],
+    };
+
+    for (const uint64_t builder_dependency_entry_hash :
+         m_builder_dependency_entry_hashes[source_builder_index])
+    {
+        if (auto result{
+                path_as_string_to_builder_from(
+                    builder_dependency_entry_hash,
+                    destination_builder_entry_hash,
+                    dependency_chain_node,
+                    hash_cache,
+                    allocator
+                ),
+            };
+            result.has_value())
+        {
+            return std::move(*result);
+        }
+    }
+
+    std::unreachable();
+}
+
+auto EntryBuilderContainer::path_as_string_to_builder_from(
+    const uint64_t                           builder_entry_hash,
+    const uint64_t                           destination_builder_entry_hash,
+    const DependencyChainNode&               dependency_chain,
+    std::pmr::vector<uint64_t>&              hash_cache,
+    const std::pmr::polymorphic_allocator<>& allocator
+) const -> std::optional<std::pmr::string>
+{
+    if (std::ranges::binary_search(hash_cache, builder_entry_hash))
+    {
+        return std::nullopt;
+    }
+
+    const std::size_t builder_index{
+        static_cast<std::size_t>(
+            std::distance(
+                m_entry_hashes.begin(),
+                std::ranges::find(m_entry_hashes, builder_entry_hash)
+            )   //
+        ),
+    };
+
+    const DependencyChainNode dependency_chain_node{
+        .previous = &dependency_chain,
+        .hash     = builder_entry_hash,
+        .name     = m_builder_names[builder_index],
+    };
+
+    if (builder_entry_hash == destination_builder_entry_hash)
+    {
+        return dependency_chain_node.format(allocator);
+    }
+
+    hash_cache.insert(
+        std::ranges::lower_bound(hash_cache, builder_entry_hash),
+        builder_entry_hash
+    );
+
+    for (const uint64_t builder_dependency_entry_hash :
+         m_builder_dependency_entry_hashes[builder_index])
+    {
+        if (auto result{
+                path_as_string_to_builder_from(
+                    builder_dependency_entry_hash,
+                    destination_builder_entry_hash,
+                    dependency_chain_node,
+                    hash_cache,
+                    allocator
+                ),
+            };
+            result.has_value())
+        {
+            return std::move(*result);
+        }
+    }
+
+    return std::nullopt;
 }
 #endif
 

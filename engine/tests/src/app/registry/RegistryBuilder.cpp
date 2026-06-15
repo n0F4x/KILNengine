@@ -102,160 +102,180 @@ struct OptionalSelfCreateDependentEntry
     };
 };
 
-struct SimpleEntryCyclicBuildEntryA;
-struct SimpleEntryCyclicBuildEntryB;
+struct EntryCyclicBuildEntryA;
+struct EntryCyclicBuildEntryB;
 
-struct SimpleEntryCyclicBuildEntryA
-    : BuildableEntry<
-          SimpleEntryCyclicBuildEntryA,
-          BuildDescriber<SimpleEntryCyclicBuildEntryA>{}>   //
+struct EntryCyclicBuildEntryA
+    : BuildableEntry<EntryCyclicBuildEntryA, BuildDescriber<EntryCyclicBuildEntryA>{}>   //
 {
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(SimpleEntryCyclicBuildEntryB&) noexcept
-            -> SimpleEntryCyclicBuildEntryA
+        constexpr static auto build(EntryCyclicBuildEntryB&) noexcept
+            -> EntryCyclicBuildEntryA
         {
-            return SimpleEntryCyclicBuildEntryA{};
+            return EntryCyclicBuildEntryA{};
         }
     };
 };
 
-struct SimpleEntryCyclicBuildEntryB
-    : BuildableEntry<
-          SimpleEntryCyclicBuildEntryB,
-          BuildDescriber<SimpleEntryCyclicBuildEntryB>{}>   //
+struct EntryCyclicBuildEntryB
+    : BuildableEntry<EntryCyclicBuildEntryB, BuildDescriber<EntryCyclicBuildEntryB>{}>   //
 {
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(SimpleEntryCyclicBuildEntryA&) noexcept
-            -> SimpleEntryCyclicBuildEntryB
+        constexpr static auto build(EntryCyclicBuildEntryA&) noexcept
+            -> EntryCyclicBuildEntryB
         {
-            return SimpleEntryCyclicBuildEntryB{};
+            return EntryCyclicBuildEntryB{};
         }
     };
 };
 
-struct SimpleBuilderCyclicBuildEntryA
-    : BuildableEntry<
-          SimpleBuilderCyclicBuildEntryA,
-          BuildDescriber<SimpleBuilderCyclicBuildEntryA>{}>   //
+struct BuilderCyclicBuildEntryA
+    : BuildableEntry<BuilderCyclicBuildEntryA, BuildDescriber<BuilderCyclicBuildEntryA>{}>   //
 {
     struct Builder;
 };
 
-struct SimpleBuilderCyclicBuildEntryB
-    : BuildableEntry<
-          SimpleBuilderCyclicBuildEntryB,
-          BuildDescriber<SimpleBuilderCyclicBuildEntryB>{}>   //
+struct BuilderCyclicBuildEntryB
+    : BuildableEntry<BuilderCyclicBuildEntryB, BuildDescriber<BuilderCyclicBuildEntryB>{}>   //
 {
     struct Builder;
 };
 
-struct SimpleBuilderCyclicBuildEntryA::Builder : BuildableEntryBuilder {
+struct EntryAndBuilderCyclicBuildEntryA
+    : BuildableEntry<
+          EntryAndBuilderCyclicBuildEntryA,
+          BuildDescriber<EntryAndBuilderCyclicBuildEntryA>{}>   //
+{
+    struct Builder : EntryBuilderBase {
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr static auto build() noexcept -> EntryAndBuilderCyclicBuildEntryA
+        {
+            return EntryAndBuilderCyclicBuildEntryA{};
+        }
+    };
+};
+
+struct EntryAndBuilderCyclicBuildEntryB
+    : BuildableEntry<
+          EntryAndBuilderCyclicBuildEntryB,
+          BuildDescriber<EntryAndBuilderCyclicBuildEntryB>{}>   //
+{
+    struct Builder : EntryBuilderBase {
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr static auto build(
+            EntryAndBuilderCyclicBuildEntryA&,
+            const EntryAndBuilderCyclicBuildEntryA::Builder&
+        ) noexcept -> EntryAndBuilderCyclicBuildEntryB
+        {
+            return EntryAndBuilderCyclicBuildEntryB{};
+        }
+    };
+};
+
+struct BuilderCyclicBuildEntryA::Builder : BuildableEntryBuilder {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto build(const SimpleBuilderCyclicBuildEntryB::Builder&) noexcept
-        -> SimpleBuilderCyclicBuildEntryA
+    constexpr static auto build(const BuilderCyclicBuildEntryB::Builder&) noexcept
+        -> BuilderCyclicBuildEntryA
     {
-        return SimpleBuilderCyclicBuildEntryA{};
+        return BuilderCyclicBuildEntryA{};
     }
 };
 
-struct SimpleBuilderCyclicBuildEntryB::Builder : BuildableEntryBuilder {
+struct BuilderCyclicBuildEntryB::Builder : BuildableEntryBuilder {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto build(const SimpleBuilderCyclicBuildEntryA::Builder&) noexcept
-        -> SimpleBuilderCyclicBuildEntryB
+    constexpr static auto build(const BuilderCyclicBuildEntryA::Builder&) noexcept
+        -> BuilderCyclicBuildEntryB
     {
-        return SimpleBuilderCyclicBuildEntryB{};
+        return BuilderCyclicBuildEntryB{};
     }
 };
 
-struct SimpleCyclicCreateEntryA
-    : BuildableEntry<SimpleCyclicCreateEntryA, BuildDescriber<SimpleCyclicCreateEntryA>{}>   //
+struct CyclicCreateEntryA
+    : BuildableEntry<CyclicCreateEntryA, BuildDescriber<CyclicCreateEntryA>{}>   //
 {
     struct Builder;
 };
 
-struct SimpleCyclicCreateEntryB
-    : BuildableEntry<SimpleCyclicCreateEntryB, BuildDescriber<SimpleCyclicCreateEntryB>{}>   //
+struct CyclicCreateEntryB
+    : BuildableEntry<CyclicCreateEntryB, BuildDescriber<CyclicCreateEntryB>{}>   //
 {
     struct Builder;
 };
 
-struct SimpleCyclicCreateEntryA::Builder : BuildableEntryBuilder {
+struct CyclicCreateEntryA::Builder : BuildableEntryBuilder {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto create(SimpleCyclicCreateEntryB::Builder&) noexcept -> Builder
+    constexpr static auto create(CyclicCreateEntryB::Builder&) noexcept -> Builder
     {
         return Builder{};
     }
 
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto build() noexcept -> SimpleCyclicCreateEntryA
+    constexpr static auto build() noexcept -> CyclicCreateEntryA
     {
-        return SimpleCyclicCreateEntryA{};
+        return CyclicCreateEntryA{};
     }
 };
 
-struct SimpleCyclicCreateEntryB::Builder : BuildableEntryBuilder {
+struct CyclicCreateEntryB::Builder : BuildableEntryBuilder {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto create(SimpleCyclicCreateEntryA::Builder&) noexcept -> Builder
+    constexpr static auto create(CyclicCreateEntryA::Builder&) noexcept -> Builder
     {
         return Builder{};
     }
 
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto build() noexcept -> SimpleCyclicCreateEntryB
+    constexpr static auto build() noexcept -> CyclicCreateEntryB
     {
-        return SimpleCyclicCreateEntryB{};
+        return CyclicCreateEntryB{};
     }
 };
 
-struct SimpleEntryDependencyA : EntryBase {};
+struct EntryDependencyA : EntryBase {};
 
-struct SimpleEntryDependencyB
-    : BuildableEntry<SimpleEntryDependencyB, BuildDescriber<SimpleEntryDependencyB>{}> {
-    constexpr explicit SimpleEntryDependencyB(SimpleEntryDependencyA&) noexcept {}
+struct EntryDependencyB
+    : BuildableEntry<EntryDependencyB, BuildDescriber<EntryDependencyB>{}> {
+    constexpr explicit EntryDependencyB(EntryDependencyA&) noexcept {}
 
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(SimpleEntryDependencyA& a) noexcept
-            -> SimpleEntryDependencyB
+        constexpr static auto build(EntryDependencyA& a) noexcept -> EntryDependencyB
         {
-            return SimpleEntryDependencyB{ a };
+            return EntryDependencyB{ a };
         }
     };
 };
 
-struct SimpleEntryBuilderDependencyA
-    : BuildableEntry<
-          SimpleEntryBuilderDependencyA,
-          BuildDescriber<SimpleEntryBuilderDependencyA>{}>   //
+struct EntryBuilderDependencyA
+    : BuildableEntry<EntryBuilderDependencyA, BuildDescriber<EntryBuilderDependencyA>{}>   //
 {
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() noexcept -> SimpleEntryBuilderDependencyA
+        constexpr static auto build() noexcept -> EntryBuilderDependencyA
         {
-            return SimpleEntryBuilderDependencyA{};
+            return EntryBuilderDependencyA{};
         }
     };
 };
 
-struct SimpleEntryBuilderDependencyB
-    : BuildableEntry<
-          SimpleEntryBuilderDependencyB,
-          BuildDescriber<SimpleEntryBuilderDependencyB>{}>   //
+struct EntryBuilderDependencyB
+    : BuildableEntry<EntryBuilderDependencyB, BuildDescriber<EntryBuilderDependencyB>{}>   //
 {
-    constexpr explicit SimpleEntryBuilderDependencyB(
-        const SimpleEntryBuilderDependencyA::Builder&
+    constexpr explicit EntryBuilderDependencyB(
+        const EntryBuilderDependencyA::Builder&
     ) noexcept
     {
     }
@@ -264,45 +284,39 @@ struct SimpleEntryBuilderDependencyB
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
         constexpr static auto build(
-            const SimpleEntryBuilderDependencyA::Builder& a_builder
-        ) noexcept -> SimpleEntryBuilderDependencyB
+            const EntryBuilderDependencyA::Builder& a_builder
+        ) noexcept -> EntryBuilderDependencyB
         {
-            return SimpleEntryBuilderDependencyB{ a_builder };
+            return EntryBuilderDependencyB{ a_builder };
         }
     };
 };
 
-struct SimpleBuilderEntryDependencyA : ConfigurationEntry {};
+struct BuilderEntryDependencyA : ConfigurationEntry {};
 
-struct SimpleBuilderEntryDependencyB
-    : BuildableEntry<
-          SimpleBuilderEntryDependencyB,
-          BuildDescriber<SimpleBuilderEntryDependencyB>{}>   //
+struct BuilderEntryDependencyB
+    : BuildableEntry<BuilderEntryDependencyB, BuildDescriber<BuilderEntryDependencyB>{}>   //
 {
-    constexpr explicit SimpleBuilderEntryDependencyB(
-        SimpleBuilderEntryDependencyA&
-    ) noexcept
-    {
-    }
+    constexpr explicit BuilderEntryDependencyB(BuilderEntryDependencyA&) noexcept {}
 
     struct Builder : BuildableEntryBuilder {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto create(SimpleBuilderEntryDependencyA& a) noexcept -> Builder
+        constexpr static auto create(BuilderEntryDependencyA& a) noexcept -> Builder
         {
             return Builder{ a };
         }
 
-        std::reference_wrapper<SimpleBuilderEntryDependencyA> a;
+        std::reference_wrapper<BuilderEntryDependencyA> a;
 
         // ReSharper disable once CppDFAUnreachableFunctionCall
-        constexpr explicit Builder(SimpleBuilderEntryDependencyA& a) : a{ a } {}
+        constexpr explicit Builder(BuilderEntryDependencyA& a) : a{ a } {}
 
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr auto build() const noexcept -> SimpleBuilderEntryDependencyB
+        constexpr auto build() const noexcept -> BuilderEntryDependencyB
         {
-            return SimpleBuilderEntryDependencyB{ a };
+            return BuilderEntryDependencyB{ a };
         }
     };
 };
@@ -372,11 +386,11 @@ TEST_CASE(type_name)
             }
         }
 
-        SECTION("simple entry -> entry cycle")
+        SECTION("entry -> entry cycle")
         {
             RegistryBuilder registry_builder;
 
-            registry_builder.register_entry<SimpleEntryCyclicBuildEntryA>();
+            registry_builder.register_entry<EntryCyclicBuildEntryA>();
 
             REQUIRE_THROWS_AS(
                 std::move(registry_builder).build(transient_memory_resource),
@@ -384,11 +398,11 @@ TEST_CASE(type_name)
             );
         }
 
-        SECTION("simple entry -> builder cycle")
+        SECTION("entry -> builder cycle")
         {
             RegistryBuilder registry_builder;
 
-            registry_builder.register_entry<SimpleBuilderCyclicBuildEntryA>();
+            registry_builder.register_entry<BuilderCyclicBuildEntryA>();
 
             REQUIRE_THROWS_AS(
                 std::move(registry_builder).build(transient_memory_resource),
@@ -396,11 +410,23 @@ TEST_CASE(type_name)
             );
         }
 
-        SECTION("simple builder -> builder cycle")
+        SECTION("entry -> (entry, builder)")
         {
             RegistryBuilder registry_builder;
 
-            registry_builder.register_entry<SimpleCyclicCreateEntryA>();
+            registry_builder.register_entry<EntryAndBuilderCyclicBuildEntryB>();
+
+            REQUIRE_THROWS_AS(
+                std::move(registry_builder).build(transient_memory_resource),
+                CyclicDependencyDetected
+            );
+        }
+
+        SECTION("builder -> builder cycle")
+        {
+            RegistryBuilder registry_builder;
+
+            registry_builder.register_entry<CyclicCreateEntryA>();
 
             REQUIRE_THROWS_AS(
                 std::move(registry_builder).build(transient_memory_resource),
@@ -410,117 +436,117 @@ TEST_CASE(type_name)
     }
 #endif
 
-    SECTION("simple entry -> entry dependency")
+    SECTION("entry -> entry dependency")
     {
         SECTION("base")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryDependencyA>();
-            registry_builder.register_entry<SimpleEntryDependencyB>();
+            registry_builder.register_entry<EntryDependencyA>();
+            registry_builder.register_entry<EntryDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleEntryDependencyA>());
-            REQUIRE(registry.contains<SimpleEntryDependencyB>());
+            REQUIRE(registry.contains<EntryDependencyA>());
+            REQUIRE(registry.contains<EntryDependencyB>());
         }
 
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryDependencyB>();
-            registry_builder.register_entry<SimpleEntryDependencyA>();
+            registry_builder.register_entry<EntryDependencyB>();
+            registry_builder.register_entry<EntryDependencyA>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleEntryDependencyA>());
-            REQUIRE(registry.contains<SimpleEntryDependencyB>());
+            REQUIRE(registry.contains<EntryDependencyA>());
+            REQUIRE(registry.contains<EntryDependencyB>());
         }
 
         SECTION("automatically registered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryDependencyB>();
+            registry_builder.register_entry<EntryDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleEntryDependencyA>());
-            REQUIRE(registry.contains<SimpleEntryDependencyB>());
+            REQUIRE(registry.contains<EntryDependencyA>());
+            REQUIRE(registry.contains<EntryDependencyB>());
         }
     }
 
-    SECTION("simple entry -> builder dependency")
+    SECTION("entry -> builder dependency")
     {
         SECTION("base")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryBuilderDependencyA>();
-            registry_builder.register_entry<SimpleEntryBuilderDependencyB>();
+            registry_builder.register_entry<EntryBuilderDependencyA>();
+            registry_builder.register_entry<EntryBuilderDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
-            REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+            REQUIRE(registry.contains<EntryBuilderDependencyA>());
+            REQUIRE(registry.contains<EntryBuilderDependencyB>());
         }
 
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryBuilderDependencyB>();
-            registry_builder.register_entry<SimpleEntryBuilderDependencyA>();
+            registry_builder.register_entry<EntryBuilderDependencyB>();
+            registry_builder.register_entry<EntryBuilderDependencyA>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
-            REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+            REQUIRE(registry.contains<EntryBuilderDependencyA>());
+            REQUIRE(registry.contains<EntryBuilderDependencyB>());
         }
 
         SECTION("automatically registered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryBuilderDependencyB>();
+            registry_builder.register_entry<EntryBuilderDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
-            REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+            REQUIRE(registry.contains<EntryBuilderDependencyA>());
+            REQUIRE(registry.contains<EntryBuilderDependencyB>());
         }
     }
 
-    SECTION("simple builder -> (configuration) entry dependency")
+    SECTION("builder -> (configuration) entry dependency")
     {
         SECTION("base")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleBuilderEntryDependencyA>();
-            registry_builder.register_entry<SimpleBuilderEntryDependencyB>();
+            registry_builder.register_entry<BuilderEntryDependencyA>();
+            registry_builder.register_entry<BuilderEntryDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleBuilderEntryDependencyA>());
-            REQUIRE(registry.contains<SimpleBuilderEntryDependencyB>());
+            REQUIRE(registry.contains<BuilderEntryDependencyA>());
+            REQUIRE(registry.contains<BuilderEntryDependencyB>());
         }
 
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleBuilderEntryDependencyB>();
-            registry_builder.register_entry<SimpleBuilderEntryDependencyA>();
+            registry_builder.register_entry<BuilderEntryDependencyB>();
+            registry_builder.register_entry<BuilderEntryDependencyA>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleBuilderEntryDependencyA>());
-            REQUIRE(registry.contains<SimpleBuilderEntryDependencyB>());
+            REQUIRE(registry.contains<BuilderEntryDependencyA>());
+            REQUIRE(registry.contains<BuilderEntryDependencyB>());
         }
 
         SECTION("automatically registered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleBuilderEntryDependencyB>();
+            registry_builder.register_entry<BuilderEntryDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
-            REQUIRE(registry.contains<SimpleBuilderEntryDependencyA>());
-            REQUIRE(registry.contains<SimpleBuilderEntryDependencyB>());
+            REQUIRE(registry.contains<BuilderEntryDependencyA>());
+            REQUIRE(registry.contains<BuilderEntryDependencyB>());
         }
     }
 }

@@ -6,6 +6,7 @@ module;
 #include <memory_resource>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -82,8 +83,9 @@ private:
     std::pmr::vector<ErasedEntryBuilder>         m_builders;
     std::pmr::vector<uint64_t>                   m_entry_hashes;
     std::pmr::vector<std::pmr::vector<uint64_t>> m_builder_dependency_entry_hashes;
-    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_builder_entry_hashes;
-    std::pmr::vector<std::pmr::vector<uint64_t>>                m_entry_dependency_hashes;
+    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>>
+                                                 m_dependent_builder_entry_hashes;
+    std::pmr::vector<std::pmr::vector<uint64_t>> m_entry_dependency_hashes;
     std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_entry_hashes;
 #ifdef KILN_DEBUG
     std::pmr::vector<std::pmr::string> m_entry_names;
@@ -112,18 +114,25 @@ private:
 
     [[nodiscard]]
     auto check_entry_cyclic_dependencies(
-        std::pmr::memory_resource& transient_memory_resource
+        std::size_t                       builder_index,
+        const std::pmr::vector<uint64_t>& reversed_hash_cache,
+        std::pmr::vector<uint64_t>&       hash_cache,
+        std::pmr::memory_resource&        transient_memory_resource
     ) const -> bool;
     [[nodiscard]]
     auto check_entry_cyclic_dependencies(
-        std::size_t                 builder_index,
-        const DependencyChainNode&  dependency_chain,
-        std::pmr::vector<uint64_t>& hash_cache,
-        std::pmr::memory_resource&  transient_memory_resource
+        std::size_t                       builder_index,
+        const DependencyChainNode&        dependency_chain,
+        std::pmr::vector<uint64_t>&       hash_cache,
+        std::size_t                       root_builder_index,
+        const std::pmr::vector<uint64_t>& reversed_hash_cache,
+        std::pmr::memory_resource&        transient_memory_resource
     ) const -> bool;
     [[nodiscard]]
     auto check_builder_cyclic_dependencies(
-        std::pmr::memory_resource& transient_memory_resource
+        std::size_t                 builder_index,
+        std::pmr::vector<uint64_t>& hash_cache,
+        std::pmr::memory_resource&  transient_memory_resource
     ) const -> bool;
     [[nodiscard]]
     auto check_builder_cyclic_dependencies(
@@ -132,6 +141,22 @@ private:
         std::pmr::vector<uint64_t>&       hash_cache,
         std::pmr::memory_resource&        transient_memory_resource
     ) const -> bool;
+
+    [[nodiscard]]
+    auto path_as_string_to_builder_from(
+        std::size_t                              source_builder_index,
+        uint64_t                                 destination_builder_entry_hash,
+        const std::pmr::polymorphic_allocator<>& allocator,
+        std::pmr::memory_resource&               transient_memory_resource
+    ) const -> std::pmr::string;
+    [[nodiscard]]
+    auto path_as_string_to_builder_from(
+        uint64_t                                 builder_entry_hash,
+        uint64_t                                 destination_builder_entry_hash,
+        const DependencyChainNode&               dependency_chain,
+        std::pmr::vector<uint64_t>&              hash_cache,
+        const std::pmr::polymorphic_allocator<>& allocator
+    ) const -> std::optional<std::pmr::string>;
 };
 
 }   // namespace kiln::app
