@@ -80,7 +80,9 @@ auto main() -> int
 {
     /*
      * GraphicsSystemIntegration gets implicitly injected
-     *  as the RenderSystem unconditionally depends on it
+     *  as RenderSystem unconditionally depends on it.
+     * WindowSystem gets built before RenderSystem
+     *  as RenderSystem (conditionally) depends on it.
      */
     kiln::app::App app = kiln::app::create()
                              .register_entry<RenderSystem>()

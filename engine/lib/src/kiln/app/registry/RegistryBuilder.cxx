@@ -6,7 +6,7 @@ module;
 module kiln.app.registry.RegistryBuilder;
 
 import kiln.app.registry.EntryBuilderContainer;
-import kiln.app.registry.ErasedEntryInjection;
+import kiln.app.registry.EntryInjectionContainer;
 
 kiln::app::RegistryBuilder::RegistryBuilder(
     RegistryBuilder&&     other,
@@ -34,15 +34,7 @@ auto kiln::app::RegistryBuilder::build(
     std::pmr::memory_resource& transient_memory_resource
 ) && -> Registry
 {
-    m_injections.sort(transient_memory_resource);
-    std::move(m_injections)
-        .for_each(
-            [this](ErasedEntryInjection&& injection) -> void
-            {
-                std::move(injection)(m_builders, m_registry);   //
-            }
-        );
-
+    std::move(m_injections).build(m_builders, m_registry, transient_memory_resource);
     std::move(m_builders).build(m_registry, transient_memory_resource);
 
     return std::move(m_registry);

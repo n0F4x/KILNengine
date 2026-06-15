@@ -5,6 +5,7 @@ module;
 #include <cstdint>
 #include <memory_resource>
 #include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -12,6 +13,7 @@ module;
 
 export module kiln.app.registry.EntryBuilderContainer;
 
+import kiln.app.registry.DependencyChainNode;
 import kiln.app.registry.EntryBase;
 import kiln.app.registry.EntryBuilderBase;
 import kiln.app.registry.strip_dependency_t;
@@ -68,7 +70,7 @@ public:
 
     template <typename Builder_T, typename... Args_T>
         requires std::constructible_from<Builder_T, Args_T&&...>
-    auto emplace_back(Args_T&&... args) -> void;
+    auto try_emplace(Args_T&&... args) -> bool;
 
     auto build(
         Registry&                  registry,
@@ -79,38 +81,40 @@ private:
     std::pmr::vector<ErasedEntryBuilder>         m_builders;
     std::pmr::vector<uint64_t>                   m_entry_hashes;
     std::pmr::vector<std::pmr::vector<uint64_t>> m_builder_dependency_hashes;
-    std::pmr::vector<std::pmr::vector<uint64_t>> m_entry_dependency_hashes;
+    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_builder_hashes;
+    std::pmr::vector<std::pmr::vector<uint64_t>>                m_entry_dependency_hashes;
+    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_entry_hashes;
+#ifdef KILN_DEBUG
+    std::pmr::vector<std::pmr::string> m_entry_name;
+#endif
 
 
     [[nodiscard]]
     auto try_index_of_builder(uint64_t hash) const noexcept -> std::optional<std::size_t>;
 
-    auto sort(std::pmr::memory_resource& transient_memory_resource) -> void;
+    auto sort() -> void;
 
-    auto sort_based_on_builder_dependencies(
+    [[nodiscard]]
+    auto check_cyclic_dependencies(
         std::pmr::memory_resource& transient_memory_resource
-    ) -> void;
-    auto sort_based_on_entry_dependencies(
-        std::pmr::memory_resource& transient_memory_resource
-    ) -> void;
+    ) const -> bool;
 
-    auto collect_dependent_builder_hashes(
-        std::pmr::vector<std::pmr::vector<uint64_t>>& out
-    ) const -> void;
-    auto collect_dependent_builder_hashes_of(
-        uint64_t                    hash,
-        std::pmr::vector<uint64_t>& out
-    ) const -> void;
-    auto collect_dependent_entry_hashes(
-        std::pmr::vector<std::pmr::vector<uint64_t>>& out
-    ) const -> void;
-    auto collect_dependent_entry_hashes_of(
-        uint64_t                    hash,
-        std::pmr::vector<uint64_t>& out
-    ) const -> void;
+    auto sort_based_on_builder_dependencies() -> void;
+    auto sort_based_on_entry_dependencies() -> void;
+
+    auto collect_dependent_builder_hashes() -> void;
+    auto collect_dependent_entry_hashes() -> void;
 
     auto push_down_builder_dependencies_of(std::size_t index) -> void;
     auto bubble_up_entry_dependencies_of(std::size_t index) -> void;
+
+    [[nodiscard]]
+    auto check_cyclic_dependencies(
+        std::size_t                 builder_index,
+        const DependencyChainNode&  dependency_chain,
+        std::pmr::vector<uint64_t>& hash_cache,
+        std::pmr::memory_resource&  transient_memory_resource
+    ) const -> bool;
 };
 
 }   // namespace kiln::app
@@ -219,14 +223,20 @@ auto EntryBuilderContainer::at(this Self_T& self) noexcept
 template <typename Builder_T>
 auto EntryBuilderContainer::insert(Builder_T&& builder) -> void
 {
-    emplace_back<std::remove_cvref_t<Builder_T>>(std::forward<Builder_T>(builder));
+    [[maybe_unused]]
+    const bool success
+        = try_emplace<std::remove_cvref_t<Builder_T>>(std::forward<Builder_T>(builder));
+    PRECOND(success);
 }
 
 template <typename Builder_T, typename... Args_T>
     requires std::constructible_from<Builder_T, Args_T&&...>
-auto EntryBuilderContainer::emplace_back(Args_T&&... args) -> void
+auto EntryBuilderContainer::try_emplace(Args_T&&... args) -> bool
 {
-    PRECOND(!contains<Builder_T>());
+    if (contains<Builder_T>())
+    {
+        return false;
+    }
 
     m_builders.emplace_back(
         make_erased_entry_builder_lambda<Builder_T>(std::forward<Args_T>(args)...)
@@ -240,11 +250,13 @@ auto EntryBuilderContainer::emplace_back(Args_T&&... args) -> void
     builder_dependency_hashes.reserve(
         util::arguments_of_t<decltype(&Builder_T::build)>::size()
     );
+    m_dependent_builder_hashes.emplace_back();
     std::pmr::vector<uint64_t>& entry_dependency_hashes
         = m_entry_dependency_hashes.emplace_back();
     entry_dependency_hashes.reserve(
         util::arguments_of_t<decltype(&Builder_T::build)>::size()
     );
+    m_dependent_entry_hashes.emplace_back();
     util::for_each(
         util::arguments_of_t<decltype(&Builder_T::build)>{},
         [&builder_dependency_hashes,
@@ -268,6 +280,14 @@ auto EntryBuilderContainer::emplace_back(Args_T&&... args) -> void
             }
         }
     );
+
+#ifdef KILN_DEBUG
+    m_entry_name.emplace_back(
+        util::name_of<util::result_of_t<decltype(&Builder_T::build)>>()
+    );
+#endif
+
+    return true;
 }
 
 }   // namespace kiln::app

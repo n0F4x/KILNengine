@@ -5,14 +5,11 @@ module;
 
 export module kiln.app.registry.RegistryBuilder;
 
-import kiln.app.registry.BuildableEntry;
 import kiln.app.registry.BuildableEntryBase;
 import kiln.app.registry.entry_c;
 import kiln.app.registry.EntryBuildDirector;
 import kiln.app.registry.EntryBuilderContainer;
 import kiln.app.registry.EntryInjectionContainer;
-import kiln.app.registry.ErasedEntry;
-import kiln.app.registry.ErasedEntryInjection;
 import kiln.app.registry.Registry;
 
 namespace kiln::app {
@@ -44,10 +41,7 @@ public:
     auto get_allocator() const noexcept -> allocator_type;
 
     template <entry_c Entry_T>
-    auto register_entry(
-        std::pmr::memory_resource& transient_memory_resource
-        = *std::pmr::get_default_resource()
-    ) -> void;
+    auto register_entry() -> void;
 
     [[nodiscard]]
     auto build(std::pmr::memory_resource& transient_memory_resource) && -> Registry;
@@ -63,8 +57,7 @@ private:
 namespace kiln::app {
 
 template <typename Entry_T>
-concept buildable_entry_c
-    = std::derived_from<Entry_T, internal::BuildableEntryBase>;
+concept buildable_entry_c = std::derived_from<Entry_T, internal::BuildableEntryBase>;
 
 template <decays_to_entry_c... Entries_T>
 RegistryBuilder::RegistryBuilder(
@@ -78,8 +71,7 @@ RegistryBuilder::RegistryBuilder(
 }
 
 template <entry_c Entry_T>
-auto RegistryBuilder::register_entry(std::pmr::memory_resource& transient_memory_resource)
-    -> void
+auto RegistryBuilder::register_entry() -> void
 {
     if constexpr (buildable_entry_c<Entry_T>)
     {
@@ -87,11 +79,9 @@ auto RegistryBuilder::register_entry(std::pmr::memory_resource& transient_memory
             m_injections,
             m_builders,
             m_registry,
-            true,   //
-            transient_memory_resource,
         };
 
-        describe_build(std::type_identity<Entry_T>{}, build_director);
+        describe_build(build_director);
     }
     else
     {

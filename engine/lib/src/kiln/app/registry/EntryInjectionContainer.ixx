@@ -3,9 +3,9 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
-#include <functional>
 #include <memory_resource>
-#include <utility>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include "kiln/util/contract_macros.hpp"
@@ -13,17 +13,27 @@ module;
 export module kiln.app.registry.EntryInjectionContainer;
 
 import kiln.app.registry.ConfigurationEntry;
+import kiln.app.registry.DependencyChainNode;
 import kiln.app.registry.EntryBuilderBase;
-import kiln.app.registry.ErasedEntryInjection;
+import kiln.app.registry.EntryBuilderContainer;
 import kiln.app.registry.strip_dependency_t;
+import kiln.app.registry.Registry;
 import kiln.util.concepts.function;
 import kiln.util.concepts.function_pointer;
+import kiln.util.concepts.specialization_of;
+import kiln.util.containers.MoveOnlyFunction;
+import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
 import kiln.util.reflection;
+import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.forward_like;
 import kiln.util.type_traits.result_of;
+import kiln.util.TypeList;
 
 namespace kiln::app {
+
+using ErasedEntryInjection
+    = util::MoveOnlyFunction<auto(EntryBuilderContainer&, Registry&) &&->void, 0>;
 
 export class EntryInjectionContainer {
 public:
@@ -45,56 +55,75 @@ public:
 
 
     template <typename Builder_T, typename... Dependencies_T>
-    auto push_back(auto (*create)(Dependencies_T...)->Builder_T) -> void;
+    auto try_insert(auto (*create)(Dependencies_T...)->Builder_T) -> bool;
 
-    auto sort(std::pmr::memory_resource& transient_memory_resource) -> void;
-
-    template <
-        typename Self_T,
-        std::invocable<util::forward_like_t<ErasedEntryInjection, Self_T>> F>
-    auto for_each(this Self_T&&, F&& func) -> F;
+    auto build(
+        EntryBuilderContainer&     builders,
+        Registry&                  registry,
+        std::pmr::memory_resource& transient_memory_resource
+    ) && -> void;
 
 private:
     std::pmr::vector<ErasedEntryInjection>       m_injections;
-    std::pmr::vector<uint64_t>                   m_entry_hashes;
-    std::pmr::vector<std::pmr::vector<uint64_t>> m_dependency_entry_hashes;
+    std::pmr::vector<uint64_t>                   m_builder_hashes;
+    std::pmr::vector<std::pmr::vector<uint64_t>> m_dependency_hashes;
+    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_builder_hashes;
+#ifdef KILN_DEBUG
+    std::pmr::vector<std::pmr::string> m_builder_names;
+#endif
 
 
-    auto bubble_up_dependencies_of(
-        uint64_t                   hash,
+    auto sort() -> void;
+
+    [[nodiscard]]
+    auto check_cyclic_dependencies(
         std::pmr::memory_resource& transient_memory_resource
-    ) -> void;
-    auto collect_dependencies_of(uint64_t hash, std::pmr::vector<uint64_t>& result)
-        -> void;
+    ) const -> bool;
+
+    auto collect_dependent_builder_hashes() -> void;
+    auto bubble_up_dependencies_of(std::size_t index) -> void;
+
+
+    [[nodiscard]]
+    auto check_cyclic_dependencies(
+        std::size_t                 injection_index,
+        const DependencyChainNode&  dependency_chain,
+        std::pmr::vector<uint64_t>& hash_cache,
+        std::pmr::memory_resource&  transient_memory_resource
+    ) const -> bool;
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
 
-template <util::function_c Injection_T>
-auto EntryInjectionContainer::contains() const noexcept -> bool
-{
-    return std::ranges::contains(
-        m_entry_hashes,
-        util::hash_u64<
-            util::result_of_t<decltype(&util::result_of_t<Injection_T>::build)>>()
-    );
-}
-
 template <typename Dependency_T>
 // ReSharper disable once CppNotAllPathsReturnValue
-consteval auto hash_dependency() -> uint64_t
+auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry) -> Dependency_T
 {
     using StrippedDependency = strip_dependency_t<Dependency_T>;
 
     if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
     {
-        return util::hash_u64<util::result_of_t<decltype(&StrippedDependency::build)>>();
+        if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
+        {
+            return builders.find<StrippedDependency>();
+        }
+        else
+        {
+            return builders.at<StrippedDependency>();
+        }
     }
     else if constexpr (std::derived_from<StrippedDependency, ConfigurationEntry>)
     {
-        return util::hash_u64<StrippedDependency>();
+        if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
+        {
+            return registry.find<StrippedDependency>();
+        }
+        else
+        {
+            return registry.at<StrippedDependency>();
+        }
     }
     else
     {
@@ -102,33 +131,53 @@ consteval auto hash_dependency() -> uint64_t
     }
 }
 
-template <typename Builder_T, typename... Dependencies_T>
-auto EntryInjectionContainer::push_back(auto (*create)(Dependencies_T...)->Builder_T)
-    -> void
-{
-    PRECOND(!contains<std::remove_pointer_t<decltype(create)>>());
+template <typename Builder_T>
+struct ErasedEntryInjectionLambda {
+    static auto operator()(EntryBuilderContainer& builders, Registry& registry) -> void
+    {
+        [&builders,
+         &registry]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> void
+        {
+            builders.insert(
+                Builder_T::create(fetch_dependency<Dependencies_T>(builders, registry)...)
+            );
+        }(util::arguments_of_t<decltype(Builder_T::create)>{});
+    }
+};
 
-    m_injections.emplace_back(make_erased_entry_injection<Builder_T>());
-    m_entry_hashes.push_back(
-        util::hash_u64<util::result_of_t<
-            decltype(&util::result_of_t<std::remove_pointer_t<decltype(create)>>::build)>>()
-    );
-    m_dependency_entry_hashes.emplace_back(
-        std::initializer_list{ hash_dependency<Dependencies_T>()... }
+template <util::function_c Injection_T>
+auto EntryInjectionContainer::contains() const noexcept -> bool
+{
+    return std::ranges::contains(
+        m_builder_hashes,
+        util::hash_u64<util::result_of_t<Injection_T>>()
     );
 }
 
-template <
-    typename Self_T,
-    std::invocable<util::forward_like_t<ErasedEntryInjection, Self_T>> F>
-auto EntryInjectionContainer::for_each(this Self_T&& self, F&& func) -> F
+template <typename Builder_T, typename... Dependencies_T>
+auto EntryInjectionContainer::try_insert(   //
+    [[maybe_unused]]
+    auto (*create)(Dependencies_T...)
+        ->Builder_T
+) -> bool
 {
-    for (auto&& injection : self.m_injections)
+    if (contains<std::remove_pointer_t<decltype(create)>>())
     {
-        std::invoke(func, std::forward_like<Self_T>(injection));
+        return false;
     }
 
-    return std::forward<F>(func);
+    m_injections.emplace_back(ErasedEntryInjectionLambda<Builder_T>{});
+    m_builder_hashes.push_back(util::hash_u64<Builder_T>());
+    m_dependency_hashes.emplace_back(
+        std::initializer_list{ util::hash_u64<strip_dependency_t<Dependencies_T>>()... }
+    );
+    m_dependent_builder_hashes.emplace_back();
+
+#ifdef KILN_DEBUG
+    m_builder_names.emplace_back(util::name_of<Builder_T>());
+#endif
+
+    return true;
 }
 
 }   // namespace kiln::app

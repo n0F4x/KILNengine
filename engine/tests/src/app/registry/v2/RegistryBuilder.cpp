@@ -32,7 +32,8 @@ struct SelfBuildDependentEntry
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(SelfBuildDependentEntry&) -> SelfBuildDependentEntry
+        constexpr static auto build(SelfBuildDependentEntry&) noexcept
+            -> SelfBuildDependentEntry
         {
             return SelfBuildDependentEntry{};
         }
@@ -45,14 +46,14 @@ struct SelfCreateDependentEntry
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto create(Builder&) -> Builder
+        constexpr static auto create(Builder&) noexcept -> Builder
         {
             return Builder{};
         }
 
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() -> SelfCreateDependentEntry
+        constexpr static auto build() noexcept -> SelfCreateDependentEntry
         {
             return SelfCreateDependentEntry{};
         }
@@ -67,8 +68,9 @@ struct OptionalSelfBuildDependentEntry
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(util::OptionalRef<OptionalSelfBuildDependentEntry>)
-            -> OptionalSelfBuildDependentEntry
+        constexpr static auto build(
+            util::OptionalRef<OptionalSelfBuildDependentEntry>
+        ) noexcept -> OptionalSelfBuildDependentEntry
         {
             return OptionalSelfBuildDependentEntry{};
         }
@@ -83,14 +85,14 @@ struct OptionalSelfCreateDependentEntry
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto create(util::OptionalRef<Builder>) -> Builder
+        constexpr static auto create(util::OptionalRef<Builder>) noexcept -> Builder
         {
             return Builder{};
         }
 
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() -> OptionalSelfCreateDependentEntry
+        constexpr static auto build() noexcept -> OptionalSelfCreateDependentEntry
         {
             return OptionalSelfCreateDependentEntry{};
         }
@@ -106,7 +108,7 @@ struct SimpleCyclicBuildEntryA
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(util::OptionalRef<SimpleCyclicBuildEntryB>)
+        constexpr static auto build(SimpleCyclicBuildEntryB&) noexcept
             -> SimpleCyclicBuildEntryA
         {
             return SimpleCyclicBuildEntryA{};
@@ -120,7 +122,7 @@ struct SimpleCyclicBuildEntryB
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(util::OptionalRef<SimpleCyclicBuildEntryA>)
+        constexpr static auto build(SimpleCyclicBuildEntryA&) noexcept
             -> SimpleCyclicBuildEntryB
         {
             return SimpleCyclicBuildEntryB{};
@@ -146,15 +148,14 @@ struct SimpleCyclicCreateEntryB
 struct SimpleCyclicCreateEntryA::Builder : EntryBuilderBase {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto create(util::OptionalRef<SimpleCyclicCreateEntryB::Builder>)
-        -> Builder
+    constexpr static auto create(SimpleCyclicCreateEntryB::Builder&) noexcept -> Builder
     {
         return Builder{};
     }
 
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto build() -> SimpleCyclicCreateEntryA
+    constexpr static auto build() noexcept -> SimpleCyclicCreateEntryA
     {
         return SimpleCyclicCreateEntryA{};
     }
@@ -163,15 +164,14 @@ struct SimpleCyclicCreateEntryA::Builder : EntryBuilderBase {
 struct SimpleCyclicCreateEntryB::Builder : EntryBuilderBase {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto create(util::OptionalRef<SimpleCyclicCreateEntryA::Builder>)
-        -> Builder
+    constexpr static auto create(SimpleCyclicCreateEntryA::Builder&) noexcept -> Builder
     {
         return Builder{};
     }
 
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
-    constexpr static auto build() -> SimpleCyclicCreateEntryB
+    constexpr static auto build() noexcept -> SimpleCyclicCreateEntryB
     {
         return SimpleCyclicCreateEntryB{};
     }
@@ -247,10 +247,10 @@ TEST_CASE(type_name)
             {
                 RegistryBuilder registry_builder;
 
+                registry_builder.register_entry<SelfBuildDependentEntry>();
+
                 REQUIRE_THROWS_AS(
-                    registry_builder.register_entry<SelfBuildDependentEntry>(
-                        transient_memory_resource
-                    ),
+                    std::move(registry_builder).build(transient_memory_resource),
                     CyclicDependencyDetected
                 );
             }
@@ -259,10 +259,10 @@ TEST_CASE(type_name)
             {
                 RegistryBuilder registry_builder;
 
+                registry_builder.register_entry<SelfCreateDependentEntry>();
+
                 REQUIRE_THROWS_AS(
-                    registry_builder.register_entry<SelfCreateDependentEntry>(
-                        transient_memory_resource
-                    ),
+                    std::move(registry_builder).build(transient_memory_resource),
                     CyclicDependencyDetected
                 );
             }
@@ -274,10 +274,10 @@ TEST_CASE(type_name)
             {
                 RegistryBuilder registry_builder;
 
+                registry_builder.register_entry<OptionalSelfBuildDependentEntry>();
+
                 REQUIRE_THROWS_AS(
-                    registry_builder.register_entry<OptionalSelfBuildDependentEntry>(
-                        transient_memory_resource
-                    ),
+                    std::move(registry_builder).build(transient_memory_resource),
                     CyclicDependencyDetected
                 );
             }
@@ -286,10 +286,10 @@ TEST_CASE(type_name)
             {
                 RegistryBuilder registry_builder;
 
+                registry_builder.register_entry<OptionalSelfCreateDependentEntry>();
+
                 REQUIRE_THROWS_AS(
-                    registry_builder.register_entry<OptionalSelfCreateDependentEntry>(
-                        transient_memory_resource
-                    ),
+                    std::move(registry_builder).build(transient_memory_resource),
                     CyclicDependencyDetected
                 );
             }
@@ -301,10 +301,10 @@ TEST_CASE(type_name)
             {
                 RegistryBuilder registry_builder;
 
+                registry_builder.register_entry<SimpleCyclicBuildEntryA>();
+
                 REQUIRE_THROWS_AS(
-                    registry_builder.register_entry<SimpleCyclicBuildEntryA>(
-                        transient_memory_resource
-                    ),
+                    std::move(registry_builder).build(transient_memory_resource),
                     CyclicDependencyDetected
                 );
             }
@@ -313,10 +313,10 @@ TEST_CASE(type_name)
             {
                 RegistryBuilder registry_builder;
 
+                registry_builder.register_entry<SimpleCyclicCreateEntryA>();
+
                 REQUIRE_THROWS_AS(
-                    registry_builder.register_entry<SimpleCyclicCreateEntryA>(
-                        transient_memory_resource
-                    ),
+                    std::move(registry_builder).build(transient_memory_resource),
                     CyclicDependencyDetected
                 );
             }
@@ -329,12 +329,8 @@ TEST_CASE(type_name)
         SECTION("base")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryDependencyA>(
-                transient_memory_resource
-            );
-            registry_builder.register_entry<SimpleEntryDependencyB>(
-                transient_memory_resource
-            );
+            registry_builder.register_entry<SimpleEntryDependencyA>();
+            registry_builder.register_entry<SimpleEntryDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
@@ -344,12 +340,8 @@ TEST_CASE(type_name)
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryDependencyB>(
-                transient_memory_resource
-            );
-            registry_builder.register_entry<SimpleEntryDependencyA>(
-                transient_memory_resource
-            );
+            registry_builder.register_entry<SimpleEntryDependencyB>();
+            registry_builder.register_entry<SimpleEntryDependencyA>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
@@ -359,9 +351,7 @@ TEST_CASE(type_name)
         SECTION("automatically registered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryDependencyB>(
-                transient_memory_resource
-            );
+            registry_builder.register_entry<SimpleEntryDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
@@ -375,12 +365,8 @@ TEST_CASE(type_name)
         SECTION("base")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryBuilderDependencyA>(
-                transient_memory_resource
-            );
-            registry_builder.register_entry<SimpleEntryBuilderDependencyB>(
-                transient_memory_resource
-            );
+            registry_builder.register_entry<SimpleEntryBuilderDependencyA>();
+            registry_builder.register_entry<SimpleEntryBuilderDependencyB>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 
@@ -390,12 +376,8 @@ TEST_CASE(type_name)
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
-            registry_builder.register_entry<SimpleEntryBuilderDependencyB>(
-                transient_memory_resource
-            );
-            registry_builder.register_entry<SimpleEntryBuilderDependencyA>(
-                transient_memory_resource
-            );
+            registry_builder.register_entry<SimpleEntryBuilderDependencyB>();
+            registry_builder.register_entry<SimpleEntryBuilderDependencyA>();
             Registry registry
                 = std::move(registry_builder).build(transient_memory_resource);
 

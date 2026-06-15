@@ -18,10 +18,7 @@ export template <typename Entry_T, auto describe_build_T>
 class BuildableEntry : public internal::BuildableEntryBase {
     static_assert(build_description_c<decltype(describe_build_T), Entry_T>);
 
-    friend auto describe_build(
-        std::type_identity<Entry_T>,
-        EntryBuildDirector<Entry_T>& build_director
-    ) -> void
+    friend auto describe_build(EntryBuildDirector<Entry_T>& build_director) -> void
     {
         static_assert(std::derived_from<Entry_T, BuildableEntry>);
         std::invoke(describe_build_T, build_director);
