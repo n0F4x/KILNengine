@@ -105,7 +105,7 @@ class DataDrivenGameEngineRecipe(ConanFile):
         self.requires("fastgltf/0.9.0", transitive_headers=True)
 
         if self._enable_tests:
-            self.test_requires("catch2/3.14.0")
+            self.test_requires("catch2/3.15.0")
 
     def layout(self):
         cmake_layout(self)
