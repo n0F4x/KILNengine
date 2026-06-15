@@ -20,4 +20,5 @@ export import kiln.app.registry.Registry;
 export import kiln.app.registry.RegistryBuilder;
 export import kiln.app.registry.represents_entry_dependency_c;
 export import kiln.app.registry.RepresentsEntryDependencyConcept;
+export import kiln.app.registry.ReverseDependencyChainNode;
 export import kiln.app.registry.strip_dependency_t;

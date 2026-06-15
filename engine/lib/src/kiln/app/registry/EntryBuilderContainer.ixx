@@ -18,6 +18,7 @@ import kiln.app.registry.EntryBase;
 import kiln.app.registry.EntryBuilderBase;
 import kiln.app.registry.strip_dependency_t;
 import kiln.app.registry.Registry;
+import kiln.app.registry.ReverseDependencyChainNode;
 import kiln.util.concepts.specialization_of;
 import kiln.util.containers.OptionalRef;
 import kiln.util.containers.MoveOnlyFunction;
@@ -80,12 +81,13 @@ public:
 private:
     std::pmr::vector<ErasedEntryBuilder>         m_builders;
     std::pmr::vector<uint64_t>                   m_entry_hashes;
-    std::pmr::vector<std::pmr::vector<uint64_t>> m_builder_dependency_hashes;
-    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_builder_hashes;
+    std::pmr::vector<std::pmr::vector<uint64_t>> m_builder_dependency_entry_hashes;
+    std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_builder_entry_hashes;
     std::pmr::vector<std::pmr::vector<uint64_t>>                m_entry_dependency_hashes;
     std::pmr::vector<std::optional<std::pmr::vector<uint64_t>>> m_dependent_entry_hashes;
 #ifdef KILN_DEBUG
-    std::pmr::vector<std::pmr::string> m_entry_name;
+    std::pmr::vector<std::pmr::string> m_entry_names;
+    std::pmr::vector<std::pmr::string> m_builder_names;
 #endif
 
 
@@ -109,11 +111,26 @@ private:
     auto bubble_up_entry_dependencies_of(std::size_t index) -> void;
 
     [[nodiscard]]
-    auto check_cyclic_dependencies(
+    auto check_entry_cyclic_dependencies(
+        std::pmr::memory_resource& transient_memory_resource
+    ) const -> bool;
+    [[nodiscard]]
+    auto check_entry_cyclic_dependencies(
         std::size_t                 builder_index,
         const DependencyChainNode&  dependency_chain,
         std::pmr::vector<uint64_t>& hash_cache,
         std::pmr::memory_resource&  transient_memory_resource
+    ) const -> bool;
+    [[nodiscard]]
+    auto check_builder_cyclic_dependencies(
+        std::pmr::memory_resource& transient_memory_resource
+    ) const -> bool;
+    [[nodiscard]]
+    auto check_builder_cyclic_dependencies(
+        std::size_t                       builder_index,
+        const ReverseDependencyChainNode& dependency_chain,
+        std::pmr::vector<uint64_t>&       hash_cache,
+        std::pmr::memory_resource&        transient_memory_resource
     ) const -> bool;
 };
 
@@ -236,11 +253,11 @@ auto EntryBuilderContainer::try_emplace(Args_T&&... args) -> bool
     );
 
     std::pmr::vector<uint64_t>& builder_dependency_hashes
-        = m_builder_dependency_hashes.emplace_back();
+        = m_builder_dependency_entry_hashes.emplace_back();
     builder_dependency_hashes.reserve(
         util::arguments_of_t<decltype(&Builder_T::build)>::size()
     );
-    m_dependent_builder_hashes.emplace_back();
+    m_dependent_builder_entry_hashes.emplace_back();
     std::pmr::vector<uint64_t>& entry_dependency_hashes
         = m_entry_dependency_hashes.emplace_back();
     entry_dependency_hashes.reserve(
@@ -272,9 +289,10 @@ auto EntryBuilderContainer::try_emplace(Args_T&&... args) -> bool
     );
 
 #ifdef KILN_DEBUG
-    m_entry_name.emplace_back(
+    m_entry_names.emplace_back(
         util::name_of<util::result_of_t<decltype(&Builder_T::build)>>()
     );
+    m_builder_names.emplace_back(util::name_of<Builder_T>());
 #endif
 
     return true;
