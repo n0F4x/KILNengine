@@ -1,8 +1,10 @@
+#include <functional>
 #include <memory_resource>
 
 #include <catch2/catch_test_macros.hpp>
 
 import kiln.app.registry.BuildableEntry;
+import kiln.app.registry.ConfigurationEntry;
 import kiln.app.registry.CyclicDependencyDetected;
 import kiln.app.registry.EntryBase;
 import kiln.app.registry.EntryBuildDirector;
@@ -197,7 +199,8 @@ struct SimpleEntryDependencyB
 struct SimpleEntryBuilderDependencyA
     : BuildableEntry<
           SimpleEntryBuilderDependencyA,
-          BuildDescriber<SimpleEntryBuilderDependencyA>{}> {
+          BuildDescriber<SimpleEntryBuilderDependencyA>{}>   //
+{
     struct Builder : EntryBuilderBase {
         [[nodiscard]]
         // ReSharper disable once CppDeclaratorNeverUsed
@@ -211,7 +214,8 @@ struct SimpleEntryBuilderDependencyA
 struct SimpleEntryBuilderDependencyB
     : BuildableEntry<
           SimpleEntryBuilderDependencyB,
-          BuildDescriber<SimpleEntryBuilderDependencyB>{}> {
+          BuildDescriber<SimpleEntryBuilderDependencyB>{}>   //
+{
     constexpr explicit SimpleEntryBuilderDependencyB(
         const SimpleEntryBuilderDependencyA::Builder&
     ) noexcept
@@ -226,6 +230,42 @@ struct SimpleEntryBuilderDependencyB
         ) noexcept -> SimpleEntryBuilderDependencyB
         {
             return SimpleEntryBuilderDependencyB{ a_builder };
+        }
+    };
+};
+
+struct SimpleBuilderEntryDependencyA : ConfigurationEntry {};
+
+struct SimpleBuilderEntryDependencyB
+    : BuildableEntry<
+          SimpleBuilderEntryDependencyB,
+          BuildDescriber<SimpleBuilderEntryDependencyB>{}>   //
+{
+    constexpr explicit SimpleBuilderEntryDependencyB(
+        const SimpleBuilderEntryDependencyA&
+    ) noexcept
+    {
+    }
+
+    struct Builder : EntryBuilderBase {
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr static auto create(const SimpleBuilderEntryDependencyA& a) noexcept
+            -> Builder
+        {
+            return Builder{ a };
+        }
+
+        std::reference_wrapper<const SimpleBuilderEntryDependencyA> a;
+
+        // ReSharper disable once CppDFAUnreachableFunctionCall
+        constexpr explicit Builder(const SimpleBuilderEntryDependencyA& a) : a{ a } {}
+
+        [[nodiscard]]
+        // ReSharper disable once CppDeclaratorNeverUsed
+        constexpr auto build() const noexcept -> SimpleBuilderEntryDependencyB
+        {
+            return SimpleBuilderEntryDependencyB{ a };
         }
     };
 };
@@ -337,6 +377,7 @@ TEST_CASE(type_name)
             REQUIRE(registry.contains<SimpleEntryDependencyA>());
             REQUIRE(registry.contains<SimpleEntryDependencyB>());
         }
+
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
@@ -348,6 +389,7 @@ TEST_CASE(type_name)
             REQUIRE(registry.contains<SimpleEntryDependencyA>());
             REQUIRE(registry.contains<SimpleEntryDependencyB>());
         }
+
         SECTION("automatically registered")
         {
             RegistryBuilder registry_builder;
@@ -373,6 +415,7 @@ TEST_CASE(type_name)
             REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
             REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
         }
+
         SECTION("reordered")
         {
             RegistryBuilder registry_builder;
@@ -384,19 +427,55 @@ TEST_CASE(type_name)
             REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
             REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
         }
-        // TODO: enable section
-        // SECTION("automatically registered")
-        // {
-        //     RegistryBuilder registry_builder;
-        //     registry_builder.register_entry<SimpleEntryBuilderDependencyB>(
-        //         transient_memory_resource
-        //     );
-        //     Registry registry
-        //         = std::move(registry_builder).build(transient_memory_resource);
-        //
-        //     REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
-        //     REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
-        // }
+
+        SECTION("automatically registered")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleEntryBuilderDependencyB>();
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleEntryBuilderDependencyA>());
+            REQUIRE(registry.contains<SimpleEntryBuilderDependencyB>());
+        }
+    }
+
+    SECTION("simple builder -> (configuration) entry dependency")
+    {
+        SECTION("base")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleBuilderEntryDependencyA>();
+            registry_builder.register_entry<SimpleBuilderEntryDependencyB>();
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleBuilderEntryDependencyA>());
+            REQUIRE(registry.contains<SimpleBuilderEntryDependencyB>());
+        }
+
+        SECTION("reordered")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleBuilderEntryDependencyB>();
+            registry_builder.register_entry<SimpleBuilderEntryDependencyA>();
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleBuilderEntryDependencyA>());
+            REQUIRE(registry.contains<SimpleBuilderEntryDependencyB>());
+        }
+
+        SECTION("automatically registered")
+        {
+            RegistryBuilder registry_builder;
+            registry_builder.register_entry<SimpleBuilderEntryDependencyB>();
+            Registry registry
+                = std::move(registry_builder).build(transient_memory_resource);
+
+            REQUIRE(registry.contains<SimpleBuilderEntryDependencyA>());
+            REQUIRE(registry.contains<SimpleBuilderEntryDependencyB>());
+        }
     }
 }
 

@@ -215,6 +215,8 @@ auto EntryBuildDirector<Entry_T>::resolve_create_dependencies() -> void
                     static_assert(
                         std::derived_from<StrippedDependency, ConfigurationEntry>
                     );
+
+                    build_entry<StrippedDependency>();
                 }
             }
         }
@@ -237,8 +239,15 @@ auto EntryBuildDirector<Entry_T>::resolve_build_dependencies() const -> void
             {
                 using StrippedDependency = std::remove_cvref_t<Dependency_T>;
 
-                // TODO: resolve builder dependencies as well
-                if constexpr (std::derived_from<StrippedDependency, EntryBase>)
+                if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+                {
+                    /*
+                     * Use `build_entry` instead of `build_builder`
+                     *  to restrict infinite template instantiation recursion
+                     */
+                    build_entry<util::result_of_t<decltype(&StrippedDependency::build)>>();
+                }
+                else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
                 {
                     build_entry<StrippedDependency>();
                 }
