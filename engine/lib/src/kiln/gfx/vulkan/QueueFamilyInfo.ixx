@@ -41,6 +41,8 @@ public:
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
     [[nodiscard]]
+    auto family_index() const noexcept -> QueueFamilyIndex;
+    [[nodiscard]]
     auto flags() const noexcept -> vk::DeviceQueueCreateFlags;
     [[nodiscard]]
     auto queue_count() const noexcept -> uint32_t;

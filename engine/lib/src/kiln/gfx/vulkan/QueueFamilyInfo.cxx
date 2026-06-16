@@ -64,6 +64,11 @@ auto DeviceCreateInfo::get_allocator() const noexcept -> allocator_type
     return m_info.get_allocator();
 }
 
+auto DeviceCreateInfo::family_index() const noexcept -> QueueFamilyIndex
+{
+    return QueueFamilyIndex{ m_info.root().queueFamilyIndex };
+}
+
 auto DeviceCreateInfo::flags() const noexcept -> vk::DeviceQueueCreateFlags
 {
     return m_info.root().flags;

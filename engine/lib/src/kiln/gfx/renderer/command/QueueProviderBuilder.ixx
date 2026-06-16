@@ -1,9 +1,21 @@
+module;
+
+#include <memory_resource>
+#include <vector>
+
 export module kiln.gfx.renderer.command.QueueProviderBuilder;
+
+import vulkan_hpp;
 
 import kiln.app.registry.BuildableEntryBuilder;
 import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.command.QueueProvider;
+import kiln.gfx.renderer.command.QueueType;
 import kiln.gfx.renderer.device.Device;
+import kiln.gfx.vulkan.Instance;
+import kiln.gfx.vulkan.QueueFamilyInfo;
+import kiln.util.EnumMask;
+import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
@@ -14,8 +26,21 @@ auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) ->
 export class QueueProviderBuilder
     : public app::BuildableEntryBuilder<QueueProviderBuilder, describe_build> {
 public:
+    auto request_queue(QueueType type) -> void;
+
     [[nodiscard]]
-    static auto build(const Device& device) -> QueueProvider;
+    auto create_queue_family_infos(
+        const vulkan::Instance&                  instance,
+        const wsi::Context&                      wsi_context,
+        const vk::raii::PhysicalDevice&          physical_device,
+        const std::pmr::polymorphic_allocator<>& allocator
+    ) const -> std::pmr::vector<vulkan::QueueFamilyInfo>;
+
+    [[nodiscard]]
+    auto build(const Device& device) const -> QueueProvider;
+
+private:
+    util::EnumMask<QueueType> m_requested_queue_types;
 };
 
 }   // namespace kiln::gfx::renderer

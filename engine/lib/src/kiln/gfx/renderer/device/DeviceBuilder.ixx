@@ -10,14 +10,13 @@ import vulkan_hpp;
 import kiln.app.memory.MemoryArena;
 import kiln.app.registry.BuildableEntryBuilder;
 import kiln.app.registry.BuildDirector;
+import kiln.gfx.renderer.command.QueueProviderBuilder;
 import kiln.gfx.renderer.device.Device;
-import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.PhysicalDeviceFilter;
 import kiln.gfx.vulkan.QueueFamilyInfo;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
-import kiln.util.EnumMask;
 import kiln.util.StringLiteral;
 import kiln.wsi.Context;
 
@@ -74,29 +73,17 @@ public:
     template <typename Self_T, typename... Args_T>
     auto add_custom_requirement(this Self_T&&, Args_T&&... args) -> Self_T&&;
 
-    auto request_queue(QueueType type) -> void;
-
     [[nodiscard]]
     auto build(
-        app::MemoryArena&       memory_arena,
-        const vulkan::Instance& instance,
-        const wsi::Context&     wsi_context
+        app::MemoryArena&           memory_arena,
+        const vulkan::Instance&     instance,
+        const wsi::Context&         wsi_context,
+        const QueueProviderBuilder& queue_provider_builder
     ) const -> Device;
 
 private:
     vulkan::PhysicalDeviceFilter       m_physical_device_filter;
     vulkan::PhysicalDeviceCapabilities m_optional_capabilities;
-    util::EnumMask<QueueType>          m_requested_queue_types;
-
-
-    [[nodiscard]]
-    auto create_queue_family_infos(
-        const vulkan::Instance&                  instance,
-        const wsi::Context&                      wsi_context,
-        const vk::raii::PhysicalDevice&          physical_device,
-        Device::QueueInfos&                      out_queue_infos,
-        const std::pmr::polymorphic_allocator<>& allocator
-    ) const -> std::pmr::vector<vulkan::QueueFamilyInfo>;
 };
 
 }   // namespace kiln::gfx::renderer

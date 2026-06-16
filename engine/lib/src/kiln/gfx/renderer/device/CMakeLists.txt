@@ -11,5 +11,4 @@ target_sources(${PROJECT_NAME} PUBLIC
         Device.ixx
         DeviceBuilder.ixx
         DeviceBuildFailedError.ixx
-        QueueType.ixx
 )

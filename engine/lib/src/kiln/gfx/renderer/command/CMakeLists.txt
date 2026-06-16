@@ -33,10 +33,11 @@ target_sources(${PROJECT_NAME} PUBLIC
         GraphicsQueueRef.ixx
         PresentQueueRef.ixx
         Queue.ixx
-        QueueRef.ixx
-        QueueRefBase.ixx
         QueueProvider.ixx
         QueueProviderBuilder.ixx
+        QueueRef.ixx
+        QueueRefBase.ixx
+        QueueType.ixx
         SubmitInfo.ixx
         TransferCommandBuffer.ixx
         TransferCommandPool.ixx

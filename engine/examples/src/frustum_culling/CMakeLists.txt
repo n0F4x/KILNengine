@@ -2,6 +2,10 @@ project(frustum_culling)
 
 add_executable(${PROJECT_NAME})
 
+target_compile_options(${PROJECT_NAME} PRIVATE
+        -ftime-trace
+)
+
 find_package(glm CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE glm::glm)
 

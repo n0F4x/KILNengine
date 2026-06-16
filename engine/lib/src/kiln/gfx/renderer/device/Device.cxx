@@ -2,7 +2,7 @@ module;
 
 #include <cassert>
 #include <memory_resource>
-#include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -27,8 +27,7 @@ Device::Device(Device&& other, const allocator_type& allocator)
     : m_physical_device{ std::move(other.m_physical_device) },
       m_logical_device{ std::move(other.m_logical_device) },
       m_capabilities{ std::move(other.m_capabilities), allocator },
-      m_queue_family_infos{ std::move(other.m_queue_family_infos), allocator },
-      m_queue_infos{ other.m_queue_infos }
+      m_queue_family_infos{ std::move(other.m_queue_family_infos), allocator }
 {
 }
 
@@ -36,8 +35,7 @@ Device::Device(
     vk::raii::PhysicalDevice&&                  physical_device,
     vk::raii::Device&&                          logical_device,
     vulkan::PhysicalDeviceCapabilities&&        capabilities,
-    std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
-    const QueueInfos&                           queue_infos
+    std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos
 )
     : Device{
           std::allocator_arg,   //
@@ -46,7 +44,6 @@ Device::Device(
           std::move(logical_device),
           std::move(capabilities),
           std::move(queue_family_infos),
-          queue_infos,
       }
 {
 }
@@ -57,14 +54,12 @@ Device::Device(
     vk::raii::PhysicalDevice&&                  physical_device,
     vk::raii::Device&&                          logical_device,
     vulkan::PhysicalDeviceCapabilities&&        capabilities,
-    std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
-    const QueueInfos&                           queue_infos
+    std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos
 )
     : m_physical_device{ std::move(physical_device) },
       m_logical_device{ std::move(logical_device) },
       m_capabilities{ std::move(capabilities), allocator },
-      m_queue_family_infos{ std::move(queue_family_infos), allocator },
-      m_queue_infos{ queue_infos }
+      m_queue_family_infos{ std::move(queue_family_infos), allocator }
 {
 }
 
@@ -106,34 +101,9 @@ auto Device::queue_family(const vulkan::QueueFamilyIndex family_index) const noe
     return result;
 }
 
-auto Device::graphics_queue_info() const noexcept
-    -> util::OptionalRef<const vulkan::QueueInfo>
+auto Device::queue_families() const noexcept -> std::span<const vulkan::QueueFamilyInfo>
 {
-    if (m_queue_infos.graphics_queue_info.has_value())
-    {
-        return *m_queue_infos.graphics_queue_info;
-    }
-    return std::nullopt;
-}
-
-auto Device::compute_queue_info() const noexcept
-    -> util::OptionalRef<const vulkan::QueueInfo>
-{
-    if (m_queue_infos.compute_queue_info.has_value())
-    {
-        return *m_queue_infos.compute_queue_info;
-    }
-    return std::nullopt;
-}
-
-auto Device::host_to_device_transfer_queue_info() const noexcept
-    -> util::OptionalRef<const vulkan::QueueInfo>
-{
-    if (m_queue_infos.host_to_device_transfer_queue_info.has_value())
-    {
-        return *m_queue_infos.host_to_device_transfer_queue_info;
-    }
-    return std::nullopt;
+    return m_queue_family_infos;
 }
 
 }   // namespace kiln::gfx::renderer

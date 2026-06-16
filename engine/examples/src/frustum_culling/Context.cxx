@@ -24,8 +24,9 @@ import kiln.event.Timestamp;
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueProvider;
+import kiln.gfx.renderer.command.QueueProviderBuilder;
+import kiln.gfx.renderer.command.QueueType;
 import kiln.gfx.renderer.device.DeviceBuilder;
-import kiln.gfx.renderer.device.QueueType;
 import kiln.gfx.renderer.pipeline.PipelineContext;
 import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.vulkan.Instance;
@@ -71,8 +72,9 @@ public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     static auto create(
-        kiln::gfx::vulkan::InstanceBuilder& instance_builder,
-        kiln::gfx::renderer::DeviceBuilder& device_builder
+        kiln::gfx::vulkan::InstanceBuilder&        instance_builder,
+        kiln::gfx::renderer::DeviceBuilder&        device_builder,
+        kiln::gfx::renderer::QueueProviderBuilder& queue_provider_builder
     ) -> ContextBuilder
     {
         instance_builder.target_api_version(vk::ApiVersion14);
@@ -98,7 +100,8 @@ public:
         device_builder.enable_features(
             vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
         );
-        device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+
+        queue_provider_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
         return ContextBuilder{};
     }

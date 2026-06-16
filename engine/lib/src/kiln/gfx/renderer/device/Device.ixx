@@ -1,7 +1,7 @@
 module;
 
 #include <memory_resource>
-#include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -14,16 +14,8 @@ import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueFamilyInfo;
-import kiln.gfx.vulkan.QueueInfo;
-import kiln.util.containers.OptionalRef;
 
 namespace kiln::gfx::renderer {
-
-struct QueueInfos {
-    std::optional<vulkan::QueueInfo> graphics_queue_info;
-    std::optional<vulkan::QueueInfo> compute_queue_info;
-    std::optional<vulkan::QueueInfo> host_to_device_transfer_queue_info;
-};
 
 export class Device;
 
@@ -32,7 +24,6 @@ auto describe_build(app::BuildDirector<Device>& build_director) -> void;
 class Device : public app::BuildableEntry<Device, describe_build> {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
-    using QueueInfos = QueueInfos;
 
 
     Device(Device&&, const allocator_type& allocator);
@@ -41,8 +32,7 @@ public:
         vk::raii::PhysicalDevice&&                  physical_device,
         vk::raii::Device&&                          logical_device,
         vulkan::PhysicalDeviceCapabilities&&        capabilities,
-        std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
-        const QueueInfos&                           queue_infos
+        std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos
     );
     explicit Device(
         std::allocator_arg_t,
@@ -50,8 +40,7 @@ public:
         vk::raii::PhysicalDevice&&                  physical_device,
         vk::raii::Device&&                          logical_device,
         vulkan::PhysicalDeviceCapabilities&&        capabilities,
-        std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos,
-        const QueueInfos&                           queue_infos
+        std::pmr::vector<vulkan::QueueFamilyInfo>&& queue_family_infos
     );
 
 
@@ -70,21 +59,13 @@ public:
     auto queue_family(vulkan::QueueFamilyIndex family_index) const noexcept
         -> const vulkan::QueueFamilyInfo&;
     [[nodiscard]]
-    auto graphics_queue_info() const noexcept
-        -> util::OptionalRef<const vulkan::QueueInfo>;
-    [[nodiscard]]
-    auto compute_queue_info() const noexcept
-        -> util::OptionalRef<const vulkan::QueueInfo>;
-    [[nodiscard]]
-    auto host_to_device_transfer_queue_info() const noexcept
-        -> util::OptionalRef<const vulkan::QueueInfo>;
+    auto queue_families() const noexcept -> std::span<const vulkan::QueueFamilyInfo>;
 
 private:
     vk::raii::PhysicalDevice                  m_physical_device;
     vk::raii::Device                          m_logical_device;
     vulkan::PhysicalDeviceCapabilities        m_capabilities;
     std::pmr::vector<vulkan::QueueFamilyInfo> m_queue_family_infos;
-    QueueInfos                                m_queue_infos;
 };
 
 }   // namespace kiln::gfx::renderer

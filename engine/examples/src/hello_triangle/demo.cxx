@@ -25,12 +25,12 @@ public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     static auto create(
-        kiln::gfx::renderer::DeviceBuilder& device_builder,
+        kiln::gfx::renderer::QueueProviderBuilder& queue_provider_builder,
         const kiln::gfx::renderer::PresentationContextBuilder&,
         const kiln::gfx::renderer::PipelineContextBuilder&
     ) -> ContextBuilder
     {
-        device_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+        queue_provider_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
         return ContextBuilder{};
     }

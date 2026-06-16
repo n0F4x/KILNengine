@@ -2,25 +2,35 @@ module;
 
 #include <array>
 #include <cstdint>
+#include <memory_resource>
 #include <optional>
+#include <ranges>
+#include <span>
+#include <vector>
+
+#include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.command.QueueProviderBuilder;
 
 import vulkan_hpp;
 
 import kiln.gfx.renderer.command.Queue;
+import kiln.gfx.renderer.command.QueueType;
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.vulkan.InstanceBuilder;
+import kiln.gfx.vulkan.QueueFamilyIndex;
+import kiln.gfx.vulkan.QueueFamilyInfo;
 import kiln.gfx.vulkan.QueueInfo;
 import kiln.util.containers.OptionalRef;
+import kiln.util.contracts;
+import kiln.util.EnumMask;
+import kiln.wsi.vulkan_queue_family_supports_presenting;
 
 namespace kiln::gfx::renderer {
 
 [[nodiscard]]
-auto make_queue_provider_builder(
-    vulkan::InstanceBuilder& instance_builder,
-    DeviceBuilder&           device_builder
-) -> QueueProviderBuilder
+auto make_builder(vulkan::InstanceBuilder& instance_builder, DeviceBuilder& device_builder)
+    -> QueueProviderBuilder
 {
     /*
      * Vulkan 1.4 requires that graphics and command queues also support transfer
@@ -41,8 +51,166 @@ auto make_queue_provider_builder(
 
 auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) -> void
 {
-    build_director.use_function<make_queue_provider_builder>();
+    build_director.use_function<make_builder>();
 }
+
+auto QueueProviderBuilder::request_queue(const QueueType type) -> void
+{
+    m_requested_queue_types |= type;
+}
+
+[[nodiscard]]
+auto queue_family_is_full(
+    const std::span<const vulkan::QueueFamilyInfo> family_infos,
+    const uint32_t                                 capacity,
+    const vulkan::QueueFamilyIndex                 family_index
+) -> bool
+{
+    uint32_t count{};
+
+    for (const vulkan::QueueFamilyInfo& family_info : family_infos)
+    {
+        if (family_info.index() == family_index)
+        {
+            count += family_info.queue_count();
+        }
+    }
+
+    return count >= capacity;
+}
+
+auto try_emplace_queue(
+    vulkan::QueueFamilyInfo&         out,
+    const vk::DeviceQueueCreateFlags flags    = {},
+    const float                      priority = 0.5f
+) -> std::optional<vulkan::QueueInfo>
+{
+    return out.try_emplace(flags, priority);
+}
+
+auto try_emplace_graphics_queue(const std::span<vulkan::QueueFamilyInfo> out)
+    -> std::optional<vulkan::QueueInfo>
+{
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
+    {
+        if (queue_family_info.flags() & vk::QueueFlagBits::eGraphics
+            // TODO: move presentation support logic elsewhere
+            && queue_family_info.supports_presentation())
+        {
+            return try_emplace_queue(queue_family_info);
+        }
+    }
+
+    return std::nullopt;
+}
+
+[[nodiscard]]
+auto is_dedicated_compute_queue_family(const vk::QueueFlags flags) -> bool
+{
+    return flags & vk::QueueFlagBits::eCompute && !(flags & vk::QueueFlagBits::eGraphics);
+}
+
+auto try_emplace_compute_queue(const std::span<vulkan::QueueFamilyInfo> out)
+    -> std::optional<vulkan::QueueInfo>
+{
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
+    {
+        if (is_dedicated_compute_queue_family(queue_family_info.flags()))
+        {
+            return try_emplace_queue(queue_family_info);
+        }
+    }
+
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
+    {
+        if (queue_family_info.flags() & vk::QueueFlagBits::eCompute)
+        {
+            return try_emplace_queue(queue_family_info);
+        }
+    }
+
+    return std::nullopt;
+}
+
+[[nodiscard]]
+auto is_dedicated_transfer_queue_family(const vk::QueueFlags flags) -> bool
+{
+    return flags & vk::QueueFlagBits::eTransfer
+        && !(flags & vk::QueueFlagBits::eGraphics)
+        && !(flags & vk::QueueFlagBits::eCompute);
+}
+
+auto try_emplace_transfer_queue(const std::span<vulkan::QueueFamilyInfo> out)
+    -> std::optional<vulkan::QueueInfo>
+{
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
+    {
+        if (is_dedicated_transfer_queue_family(queue_family_info.flags()))
+        {
+            return try_emplace_queue(queue_family_info);
+        }
+    }
+
+    for (vulkan::QueueFamilyInfo& queue_family_info : out)
+    {
+        if (queue_family_info.flags() & vk::QueueFlagBits::eTransfer)
+        {
+            return try_emplace_queue(queue_family_info);
+        }
+    }
+
+    return std::nullopt;
+}
+
+auto QueueProviderBuilder::create_queue_family_infos(
+    const vulkan::Instance&                  instance,
+    const wsi::Context&                      wsi_context,
+    const vk::raii::PhysicalDevice&          physical_device,
+    const std::pmr::polymorphic_allocator<>& allocator
+) const -> std::pmr::vector<vulkan::QueueFamilyInfo>
+{
+    const auto queue_family_properties{ physical_device.getQueueFamilyProperties2() };
+
+    std::pmr::vector<vulkan::QueueFamilyInfo> result{ allocator };
+    result.reserve(queue_family_properties.size());
+    for (auto&& [index, properties] : std::views::enumerate(queue_family_properties))
+    {
+        const vulkan::QueueFamilyIndex family_index{
+            static_cast<vulkan::QueueFamilyIndex::Underlying>(index)
+        };
+        result.emplace_back(
+            family_index,
+            properties,
+            wsi::vulkan_queue_family_supports_presenting(
+                wsi_context,
+                instance.get(),
+                physical_device,
+                family_index
+            )
+        );
+    }
+
+    if (m_requested_queue_types & QueueType::eGraphics)
+    {
+        try_emplace_graphics_queue(result);
+    }
+    if (m_requested_queue_types & QueueType::eCompute)
+    {
+        try_emplace_compute_queue(result);
+    }
+    if (m_requested_queue_types & QueueType::eHostToDeviceTransfer)
+    {
+        try_emplace_transfer_queue(result);
+    }
+
+    return result;
+}
+
+struct QueueInfos {
+    std::optional<vulkan::QueueInfo> graphics_queue_info;
+    std::optional<vulkan::QueueInfo> compute_queue_info;
+    std::optional<vulkan::QueueInfo> host_to_device_transfer_queue_info;
+};
 
 [[nodiscard]]
 auto find_queue_slot_index(
@@ -82,15 +250,235 @@ auto next_empty_queue_slot_index(const std::array<std::optional<Queue>, 3>& queu
     std::unreachable();
 }
 
-auto QueueProviderBuilder::build(const Device& device) -> QueueProvider
+[[nodiscard]]
+auto choose_queue(
+    const std::span<const vulkan::QueueFamilyInfo::DeviceCreateInfo> create_infos,
+    const vk::DeviceQueueCreateFlags                                 create_flags,
+    const uint32_t                                                   start_index = 0
+) -> std::optional<vulkan::QueueInfo>
+{
+    uint32_t queue_index{ 0 };
+    for (const vulkan::QueueFamilyInfo::DeviceCreateInfo& create_info : create_infos)
+    {
+        if (queue_index + create_info.queue_count() < start_index)
+        {
+            queue_index += create_info.queue_count();
+            continue;
+        }
+
+        if (create_info.flags() == create_flags)
+        {
+            if (queue_index < start_index)
+            {
+                queue_index = start_index;
+            }
+
+            return vulkan::QueueInfo{
+                .family_index = create_info.family_index(),
+                .flags        = create_flags,
+                .index        = queue_index,
+            };
+        }
+
+        queue_index += create_info.queue_count();
+    }
+
+    return std::nullopt;
+}
+
+auto choose_graphics_queue(
+    QueueInfos&                                    out,
+    const std::span<const vulkan::QueueFamilyInfo> queue_family_infos
+) -> void
+{
+    PRECOND(!out.graphics_queue_info.has_value());
+    PRECOND(!out.compute_queue_info.has_value());
+    PRECOND(!out.host_to_device_transfer_queue_info.has_value());
+
+    for (const vulkan::QueueFamilyInfo& queue_family_info : queue_family_infos)
+    {
+        if (queue_family_info.flags() & vk::QueueFlagBits::eGraphics
+            // TODO: move presentation support logic elsewhere
+            && queue_family_info.supports_presentation())
+        {
+            constexpr static vk::DeviceQueueCreateFlags create_flags{};
+
+            out.graphics_queue_info
+                = choose_queue(queue_family_info.create_infos(), create_flags);
+            if (out.graphics_queue_info.has_value())
+            {
+                return;
+            }
+        }
+    }
+}
+
+auto choose_compute_queue(
+    QueueInfos&                                    out,
+    const std::span<const vulkan::QueueFamilyInfo> queue_family_infos
+) -> void
+{
+    PRECOND(!out.compute_queue_info.has_value());
+    PRECOND(!out.host_to_device_transfer_queue_info.has_value());
+
+    constexpr static vk::DeviceQueueCreateFlags create_flags{};
+
+    for (const vulkan::QueueFamilyInfo& queue_family_info : queue_family_infos)
+    {
+        if (is_dedicated_compute_queue_family(queue_family_info.flags()))
+        {
+            out.compute_queue_info
+                = choose_queue(queue_family_info.create_infos(), create_flags);
+            if (out.compute_queue_info.has_value())
+            {
+                return;
+            }
+        }
+    }
+
+    for (const vulkan::QueueFamilyInfo& queue_family_info : queue_family_infos)
+    {
+        if (queue_family_info.flags() & vk::QueueFlagBits::eCompute)
+        {
+            out.compute_queue_info
+                = choose_queue(queue_family_info.create_infos(), create_flags);
+            if (out.compute_queue_info.has_value()
+                && out.graphics_queue_info.has_value()
+                && out.graphics_queue_info->family_index == queue_family_info.index()
+                && out.compute_queue_info->index == out.graphics_queue_info->index)
+            {
+                out.compute_queue_info = choose_queue(
+                    queue_family_info.create_infos(),
+                    create_flags,
+                    out.graphics_queue_info->index + 1
+                );
+                if (out.compute_queue_info.has_value())
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    if (out.graphics_queue_info.has_value()
+        && (queue_family_infos[out.graphics_queue_info->family_index.underlying()].flags()
+            & vk::QueueFlagBits::eCompute))
+    {
+        out.compute_queue_info = out.graphics_queue_info;
+    }
+}
+
+auto choose_host_to_device_transfer_queue(
+    QueueInfos&                                    out,
+    const std::span<const vulkan::QueueFamilyInfo> queue_family_infos
+) -> void
+{
+    PRECOND(!out.host_to_device_transfer_queue_info.has_value());
+
+    constexpr static vk::DeviceQueueCreateFlags create_flags{};
+
+    for (const vulkan::QueueFamilyInfo& queue_family_info : queue_family_infos)
+    {
+        if (is_dedicated_transfer_queue_family(queue_family_info.flags()))
+        {
+            out.host_to_device_transfer_queue_info
+                = choose_queue(queue_family_info.create_infos(), create_flags);
+            if (out.host_to_device_transfer_queue_info.has_value())
+            {
+                return;
+            }
+        }
+    }
+
+    for (const vulkan::QueueFamilyInfo& queue_family_info : queue_family_infos)
+    {
+        if (queue_family_info.flags() & vk::QueueFlagBits::eTransfer)
+        {
+            out.host_to_device_transfer_queue_info
+                = choose_queue(queue_family_info.create_infos(), create_flags);
+            if (out.host_to_device_transfer_queue_info.has_value())
+            {
+                if (out.graphics_queue_info.has_value()
+                    && out.graphics_queue_info->family_index == queue_family_info.index()
+                    && out.host_to_device_transfer_queue_info->index
+                           == out.graphics_queue_info->index)
+                {
+                    out.host_to_device_transfer_queue_info = choose_queue(
+                        queue_family_info.create_infos(),
+                        create_flags,
+                        out.graphics_queue_info->index + 1
+                    );
+                }
+
+                if (out.compute_queue_info.has_value()
+                    && out.compute_queue_info->family_index == queue_family_info.index()
+                    && out.host_to_device_transfer_queue_info->index
+                           == out.compute_queue_info->index)
+                {
+                    out.host_to_device_transfer_queue_info = choose_queue(
+                        queue_family_info.create_infos(),
+                        create_flags,
+                        out.compute_queue_info->index + 1
+                    );
+                }
+            }
+        }
+    }
+
+    if (out.host_to_device_transfer_queue_info.has_value())
+    {
+        return;
+    }
+
+    if (out.compute_queue_info.has_value()
+        && (queue_family_infos[out.compute_queue_info->family_index.underlying()].flags()
+            & vk::QueueFlagBits::eCompute))
+    {
+        out.host_to_device_transfer_queue_info = out.compute_queue_info;
+        return;
+    }
+
+    if (out.graphics_queue_info.has_value()
+        && (queue_family_infos[out.graphics_queue_info->family_index.underlying()].flags()
+            & vk::QueueFlagBits::eCompute))
+    {
+        out.host_to_device_transfer_queue_info = out.graphics_queue_info;
+    }
+}
+
+[[nodiscard]]
+auto make_queue_infos(
+    const util::EnumMask<QueueType>                requested_queue_types,
+    const std::span<const vulkan::QueueFamilyInfo> queue_family_infos
+) -> QueueInfos
+{
+    QueueInfos result;
+
+    if (requested_queue_types & QueueType::eGraphics)
+    {
+        choose_graphics_queue(result, queue_family_infos);
+    }
+    if (requested_queue_types & QueueType::eCompute)
+    {
+        choose_compute_queue(result, queue_family_infos);
+    }
+    if (requested_queue_types & QueueType::eHostToDeviceTransfer)
+    {
+        choose_host_to_device_transfer_queue(result, queue_family_infos);
+    }
+
+    return result;
+}
+
+auto QueueProviderBuilder::build(const Device& device) const -> QueueProvider
 {
     std::array<std::optional<Queue>, 3> queue_slots{};
     QueueProvider::QueueIndices         queue_indices;
 
     const auto assign{
         [&device, &queue_slots](
-            const util::OptionalRef<const vulkan::QueueInfo> queue_info,
-            std::optional<uint32_t>&                         queue_index
+            const std::optional<vulkan::QueueInfo>& queue_info,
+            std::optional<uint32_t>&                queue_index
         ) -> void
         {
             if (queue_info.has_value())
@@ -113,10 +501,14 @@ auto QueueProviderBuilder::build(const Device& device) -> QueueProvider
         },
     };
 
-    assign(device.compute_queue_info(), queue_indices.compute_queue_index);
-    assign(device.graphics_queue_info(), queue_indices.graphics_queue_index);
+    const auto [graphics_queue_info, compute_queue_info, host_to_device_transfer_queue_info]{
+        make_queue_infos(m_requested_queue_types, device.queue_families())
+    };
+
+    assign(compute_queue_info, queue_indices.compute_queue_index);
+    assign(graphics_queue_info, queue_indices.graphics_queue_index);
     assign(
-        device.host_to_device_transfer_queue_info(),
+        host_to_device_transfer_queue_info,
         queue_indices.host_to_device_transfer_queue_index
     );
 

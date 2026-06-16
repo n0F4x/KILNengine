@@ -2,7 +2,7 @@ module;
 
 #include <cstdint>
 
-export module kiln.gfx.renderer.device.QueueType;
+export module kiln.gfx.renderer.command.QueueType;
 
 import kiln.util.EnumMask;
 

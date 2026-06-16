@@ -23,7 +23,7 @@ import kiln.gfx.renderer.command.TransferQueueRef;
 import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueRef;
 import kiln.gfx.renderer.command.QueueRefBase;
-import kiln.gfx.renderer.device.QueueType;
+import kiln.gfx.renderer.command.QueueType;
 
 namespace kiln::gfx::renderer {
 
