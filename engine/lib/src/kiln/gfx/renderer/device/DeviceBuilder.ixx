@@ -71,7 +71,10 @@ public:
     ) -> Self_T&&;
 
     template <typename Self_T, typename... Args_T>
-    auto add_custom_requirement(this Self_T&&, Args_T&&... args) -> Self_T&&;
+    auto add_custom_requirement(this Self_T&&, Args_T&&... args) -> Self_T&&
+        requires std::constructible_from<
+            vulkan::PhysicalDeviceFilter::CustomRequirement,
+            Args_T&&...>;
 
     [[nodiscard]]
     auto build(
@@ -165,6 +168,8 @@ auto DeviceBuilder::require_and_enable_capabilities(
 template <typename Self_T, typename... Args_T>
 auto DeviceBuilder::add_custom_requirement(this Self_T&& self, Args_T&&... args)
     -> Self_T&&
+    requires std::
+        constructible_from<vulkan::PhysicalDeviceFilter::CustomRequirement, Args_T&&...>
 {
     self.m_physical_device_filter.add_custom_requirement(std::forward<Args_T>(args)...);
     return std::forward<Self_T>(self);

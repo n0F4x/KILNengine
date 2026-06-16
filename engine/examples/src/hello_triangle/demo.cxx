@@ -30,7 +30,7 @@ public:
         const kiln::gfx::renderer::PipelineContextBuilder&
     ) -> ContextBuilder
     {
-        queue_provider_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+        queue_provider_builder.require_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
         return ContextBuilder{};
     }

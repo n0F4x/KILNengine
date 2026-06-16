@@ -21,7 +21,7 @@ namespace kiln::gfx::vulkan {
 export class PhysicalDeviceFilter {
 public:
     using CustomRequirement
-        = util::CopyableFunction<bool(const vk::raii::PhysicalDevice&) const>;
+        = util::CopyableFunction<auto(const vk::raii::PhysicalDevice&) const->bool>;
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 

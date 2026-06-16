@@ -101,7 +101,7 @@ public:
             vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
         );
 
-        queue_provider_builder.request_queue(kiln::gfx::renderer::QueueType::eGraphics);
+        queue_provider_builder.require_queue(kiln::gfx::renderer::QueueType::eGraphics);
 
         return ContextBuilder{};
     }

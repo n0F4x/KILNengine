@@ -13,6 +13,7 @@ import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.command.QueueType;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.Instance;
+import kiln.gfx.vulkan.PhysicalDeviceFilter;
 import kiln.gfx.vulkan.QueueFamilyInfo;
 import kiln.util.EnumMask;
 import kiln.wsi.Context;
@@ -26,7 +27,11 @@ auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) ->
 export class QueueProviderBuilder
     : public app::BuildableEntryBuilder<QueueProviderBuilder, describe_build> {
 public:
+    auto require_queue(QueueType type) -> void;
     auto request_queue(QueueType type) -> void;
+
+    [[nodiscard]]
+    auto device_requirement() const -> vulkan::PhysicalDeviceFilter::CustomRequirement;
 
     [[nodiscard]]
     auto create_queue_family_infos(
@@ -40,6 +45,7 @@ public:
     auto build(const Device& device) const -> QueueProvider;
 
 private:
+    util::EnumMask<QueueType> m_required_queue_types;
     util::EnumMask<QueueType> m_requested_queue_types;
 };
 

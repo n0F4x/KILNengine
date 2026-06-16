@@ -105,14 +105,19 @@ auto DeviceBuilder::build(
         memory_arena.make_transient_resource()
     };
 
+    const vulkan::PhysicalDeviceFilter physical_device_filter{
+        auto{ m_physical_device_filter }
+            .add_custom_requirement(queue_provider_builder.device_requirement())
+    };
+
     std::vector<vk::raii::PhysicalDevice> supported_devices{
         vulkan::check_result(instance.get().enumeratePhysicalDevices())
     };
     std::erase_if(
         supported_devices,
-        [this](const vk::raii::PhysicalDevice& physical_device) -> bool
+        [&physical_device_filter](const vk::raii::PhysicalDevice& physical_device) -> bool
         {
-            return !m_physical_device_filter.is_adequate(physical_device);   //
+            return !physical_device_filter.is_adequate(physical_device);   //
         }
     );
 
@@ -124,7 +129,7 @@ auto DeviceBuilder::build(
     vk::raii::PhysicalDevice physical_device{ std::move(supported_devices.front()) };
 
     vulkan::PhysicalDeviceCapabilities capabilities{
-        m_physical_device_filter.required_capabilities()
+        physical_device_filter.required_capabilities()
     };
 
     for (const std::vector<vk::ExtensionProperties> supported_extension_properties{
@@ -163,7 +168,7 @@ auto DeviceBuilder::build(
     );
     capabilities.insert_features(supported_optional_features);
 
-    std::pmr::vector   queue_family_infos{
+    std::pmr::vector queue_family_infos{
         queue_provider_builder.create_queue_family_infos(
             instance,
             wsi_context,

@@ -44,6 +44,12 @@ public:
     }
 
     [[nodiscard]]
+    constexpr auto operator~() const noexcept -> EnumMask
+    {
+        return static_cast<Enum_T>(~m_mask);
+    }
+
+    [[nodiscard]]
     constexpr explicit operator bool() const noexcept
     {
         return underlying() != std::underlying_type_t<Enum_T>{ 0 };

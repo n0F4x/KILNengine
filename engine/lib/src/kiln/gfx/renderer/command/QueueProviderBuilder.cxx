@@ -8,6 +8,8 @@ module;
 #include <span>
 #include <vector>
 
+#include <magic_enum/magic_enum.hpp>
+
 #include "kiln/util/contract_macros.hpp"
 
 module kiln.gfx.renderer.command.QueueProviderBuilder;
@@ -54,9 +56,72 @@ auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) ->
     build_director.use_function<make_builder>();
 }
 
+auto QueueProviderBuilder::require_queue(const QueueType type) -> void
+{
+    m_required_queue_types |= type;
+    m_requested_queue_types |= type;
+}
+
 auto QueueProviderBuilder::request_queue(const QueueType type) -> void
 {
     m_requested_queue_types |= type;
+}
+
+[[nodiscard]]
+// ReSharper disable once CppNotAllPathsReturnValue
+auto queue_flag_from(const QueueType queue_type) -> vk::QueueFlags
+{
+    switch (queue_type)
+    {
+        case QueueType::eGraphics:             return vk::QueueFlagBits::eGraphics;
+        case QueueType::eCompute:              return vk::QueueFlagBits::eCompute;
+        case QueueType::eHostToDeviceTransfer: return vk::QueueFlagBits::eTransfer;
+    }
+}
+
+[[nodiscard]]
+auto queue_flags_from(const util::EnumMask<QueueType> queue_types) -> vk::QueueFlags
+{
+    vk::QueueFlags result;
+
+    for (const QueueType queue_type : magic_enum::enum_values<QueueType>())
+    {
+        if (queue_types & queue_type)
+        {
+            result |= queue_flag_from(queue_type);
+        }
+    }
+
+    return result;
+}
+
+auto QueueProviderBuilder::device_requirement() const
+    -> vulkan::PhysicalDeviceFilter::CustomRequirement
+{
+    return vulkan::PhysicalDeviceFilter::CustomRequirement{
+        [required_queue_types = m_required_queue_types](
+            const vk::raii::PhysicalDevice& physical_device
+        ) -> bool
+        {
+            vk::QueueFlags remaining_queue_types{ queue_flags_from(required_queue_types) };
+
+            const std::vector<vk::QueueFamilyProperties2> queue_families{
+                physical_device.getQueueFamilyProperties2()
+            };
+
+            for (const vk::QueueFamilyProperties2 family_properties : queue_families)
+            {
+                remaining_queue_types
+                    = remaining_queue_types
+                    & ~family_properties.queueFamilyProperties.queueFlags;
+                if (!remaining_queue_types)
+                {
+                    return true;
+                }
+            }
+            return false;
+        },
+    };
 }
 
 [[nodiscard]]
