@@ -1,22 +1,19 @@
 export module kiln.gfx.renderer.presentation.PresentationContextBuilder;
 
 import kiln.app.registry.BuildableEntryBuilder;
-import kiln.gfx.renderer.device.DeviceBuilder;
+import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.presentation.PresentationContext;
-import kiln.gfx.vulkan.InstanceBuilder;
-import kiln.wsi.Context;
 
 namespace kiln::gfx::renderer {
 
-export class PresentationContextBuilder : public app::BuildableEntryBuilder {
-public:
-    [[nodiscard]]
-    static auto create(
-        const wsi::Context&      wsi_context,
-        vulkan::InstanceBuilder& instance_builder,
-        DeviceBuilder&           device_builder
-    ) -> PresentationContextBuilder;
+export class PresentationContextBuilder;
 
+auto describe_build(app::BuildDirector<PresentationContextBuilder>& build_director)
+    -> void;
+
+export class PresentationContextBuilder
+    : public app::BuildableEntryBuilder<PresentationContextBuilder, describe_build> {
+public:
     [[nodiscard]]
     static auto build() -> PresentationContext;
 };

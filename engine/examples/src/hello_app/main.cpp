@@ -7,9 +7,21 @@ struct GraphicsSystemIntegration : kiln::app::EntryBase {};
 
 template <typename Entry_T>
 struct BuildDescriber {
+    constexpr static auto operator()(kiln::app::BuildDirector<Entry_T>& build_director)
+        -> void
+    {
+        build_director.template use_builder<typename Entry_T::Builder>();
+    }
+};
+
+template <typename EntryBuilder_T>
+struct BuilderBuildDescriber {
     constexpr static auto operator()(
-        kiln::app::BuildDirector<Entry_T>& build_director
-    ) -> void;
+        kiln::app::BuildDirector<EntryBuilder_T>& build_director
+    ) -> void
+    {
+        build_director.template use_function<EntryBuilder_T::create>();
+    }
 };
 
 struct WindowSystem
@@ -43,7 +55,9 @@ struct RenderSystem
     WindowSystem*              window_system{};
 };
 
-struct RenderSystem::Builder : kiln::app::BuildableEntryBuilder {
+struct RenderSystem::Builder
+    : kiln::app::BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}>   //
+{
     static auto create(
         const kiln::util::OptionalRef<WindowSystem::Builder> window_builder
     ) -> Builder
@@ -67,14 +81,6 @@ struct RenderSystem::Builder : kiln::app::BuildableEntryBuilder {
         };
     }
 };
-
-template <typename Entry_T>
-constexpr auto BuildDescriber<Entry_T>::operator()(
-    kiln::app::BuildDirector<Entry_T>& build_director
-) -> void
-{
-    build_director.template use_builder<typename Entry_T::Builder>();
-}
 
 auto main() -> int
 {

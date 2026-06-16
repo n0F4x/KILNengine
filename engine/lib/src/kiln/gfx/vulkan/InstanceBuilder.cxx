@@ -7,6 +7,7 @@ module;
 
 module kiln.gfx.vulkan.InstanceBuilder;
 
+import kiln.app.config.Config;
 import kiln.app.memory.MemoryArena;
 import kiln.gfx.vulkan.context;
 import kiln.gfx.vulkan.result.check_result;
@@ -26,11 +27,6 @@ InstanceBuilderPrecondition::InstanceBuilderPrecondition(
 )
 {
     PRECOND(check_version_support(context));
-}
-
-auto InstanceBuilder::check_version_support(const vk::raii::Context& context) -> bool
-{
-    return InstanceBuilderPrecondition::check_version_support(context);
 }
 
 [[nodiscard]]
@@ -55,7 +51,8 @@ auto builder_create_info(const app::Config& config) noexcept
     };
 }
 
-auto InstanceBuilder::create(app::MemoryArena& memory_arena, const app::Config& config)
+[[nodiscard]]
+auto make_instance_builder(app::MemoryArena& memory_arena, const app::Config& config)
     -> InstanceBuilder
 {
     return InstanceBuilder{
@@ -64,6 +61,16 @@ auto InstanceBuilder::create(app::MemoryArena& memory_arena, const app::Config& 
         builder_create_info(config),
         context(),
     };
+}
+
+auto describe_build(app::BuildDirector<InstanceBuilder>& build_director) -> void
+{
+    build_director.use_function<make_instance_builder>();
+}
+
+auto InstanceBuilder::check_version_support(const vk::raii::Context& context) -> bool
+{
+    return InstanceBuilderPrecondition::check_version_support(context);
 }
 
 InstanceBuilder::InstanceBuilder(

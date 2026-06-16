@@ -11,15 +11,18 @@ module;
 export module kiln.app.registry.BuildDirector;
 
 import kiln.app.registry.BuildableEntryBase;
-import kiln.app.registry.ConfigurationEntry;
+import kiln.app.registry.BuildableEntryBuilderBase;
+import kiln.app.registry.configuration_entry_c;
+import kiln.app.registry.entry_c;
 import kiln.app.registry.entry_builder_c;
 import kiln.app.registry.EntryBase;
 import kiln.app.registry.EntryBuilderBase;
 import kiln.app.registry.EntryBuilderContainer;
 import kiln.app.registry.EntryInjectionContainer;
-import kiln.app.registry.RepresentsEntryDependencyConcept;
 import kiln.app.registry.Registry;
-import kiln.util.concepts.function_reference;
+import kiln.app.registry.represents_entry_builder_dependency_c;
+import kiln.app.registry.represents_entry_dependency_c;
+import kiln.util.concepts.function_pointer;
 import kiln.util.concepts.specialization_of;
 import kiln.util.concepts.type_list_all_of;
 import kiln.util.containers.OptionalRef;
@@ -31,65 +34,111 @@ import kiln.util.type_traits.result_of;
 
 namespace kiln::app {
 
-template <typename T, typename Entry_T>
-concept builds_entry_c
-    = entry_builder_c<T> && std::same_as<util::result_of_t<decltype(&T::build)>, Entry_T>;
+export template <typename>
+class BuildDirector;
 
-template <typename T, typename Entry_T>
-concept entry_maker_function_reference_c
-    = util::function_reference_c<T>
-   && util::type_list_all_of_c<util::arguments_of_t<T>, RepresentsEntryDependencyConcept>
-   && std::same_as<util::result_of_t<T>, Entry_T>;
-
-export template <typename Entry_T>
-class BuildDirector {
+class BuildDirectorBase {
 public:
-    explicit BuildDirector(
+    explicit BuildDirectorBase(
         EntryInjectionContainer& injection_container,
         EntryBuilderContainer&   builder_container,
         Registry&                registry
     );
 
-    template <builds_entry_c<Entry_T> Builder_T>
-    auto use_builder() -> void;
+protected:
+    [[nodiscard]]
+    auto empty() const noexcept -> bool;
+    auto reset() noexcept -> void;
 
-    template <entry_maker_function_reference_c<Entry_T> auto func_T>
-    auto use_function() -> void;
+    template <auto injection_T>
+    auto try_insert_injection() const -> bool;
+    template <typename Builder_T>
+    auto try_emplace_builder() const -> bool;
+
+    template <typename EntryBuilder_T>
+    auto build_builder() const -> void;
+    template <typename Entry_T>
+    auto build_entry() const -> void;
+
+    template <typename Builder_T>
+    auto resolve_build_dependencies() const -> void;
+    template <typename Dependency_T>
+    auto resolve_dependency() const -> void;
 
 private:
-    template <typename>
-    friend class BuildDirector;
-
     EntryInjectionContainer* m_injection_container{};
     EntryBuilderContainer*   m_builder_container{};
     Registry*                m_registry{};
+};
 
+template <typename T>
+struct RepresentsEntryBuilderDependencyConcept {
+    constexpr static bool value = represents_entry_builder_dependency_c<T>;
+};
 
-    template <typename Builder_T>
-    auto build_builder() -> void;
+template <typename T, typename EntryBuilder_T>
+concept entry_builder_maker_function_pointer_c
+    = util::function_pointer_c<T>
+   && util::type_list_all_of_c<
+          util::arguments_of_t<T>,
+          RepresentsEntryBuilderDependencyConcept>
+   && std::same_as<util::result_of_t<T>, EntryBuilder_T>;
 
-    template <typename Builder_T>
-    auto resolve_dependencies() -> void;
+template <entry_builder_c EntryBuilder_T>
+class BuildDirector<EntryBuilder_T> : public BuildDirectorBase {
+public:
+    using BuildDirectorBase::BuildDirectorBase;
 
-    template <typename Builder_T>
-    auto resolve_create_dependencies() -> void;
-    template <typename Builder_T>
-    auto resolve_build_dependencies() const -> void;
+    template <typename T>
+        requires(!std::is_same_v<T, EntryBuilder_T>)
+    explicit BuildDirector(const BuildDirector<T>&);
 
-    template <typename UEntry_T>
-    auto build_entry() const -> void;
+    template <entry_builder_maker_function_pointer_c<EntryBuilder_T> auto func_T>
+        requires(func_T != nullptr)
+    auto use_function() -> void;
+
+private:
+    template <typename... Dependencies_T>
+    auto resolve_dependencies(auto (*)(Dependencies_T...)->EntryBuilder_T) const -> void;
+};
+
+template <typename T, typename Entry_T>
+concept builds_entry_c
+    = entry_builder_c<T> && std::same_as<util::result_of_t<decltype(&T::build)>, Entry_T>;
+
+template <typename T>
+struct RepresentsEntryDependencyConcept {
+    constexpr static bool value = represents_entry_dependency_c<T>;
+};
+
+template <typename T, typename Entry_T>
+concept entry_maker_function_pointer_c
+    = util::function_pointer_c<T>
+   && util::type_list_all_of_c<util::arguments_of_t<T>, RepresentsEntryDependencyConcept>
+   && std::same_as<util::result_of_t<T>, Entry_T>;
+
+template <entry_c Entry_T>
+class BuildDirector<Entry_T> : public BuildDirectorBase {
+public:
+    using BuildDirectorBase::BuildDirectorBase;
+
+    template <typename T>
+        requires(!std::is_same_v<T, Entry_T>)
+    explicit BuildDirector(const BuildDirector<T>&);
+
+    template <builds_entry_c<Entry_T> Builder_T>
+    auto use_builder() -> void;
+
+    template <entry_maker_function_pointer_c<Entry_T> auto func_T>
+        requires(func_T != nullptr)
+    auto use_function() -> void;
 };
 
 }   // namespace kiln::app
 
 namespace kiln::app {
 
-template <typename T>
-concept represents_optional_dependency_c
-    = util::specialization_of_c<T, util::OptionalRef>;
-
-template <typename Entry_T>
-BuildDirector<Entry_T>::BuildDirector(
+BuildDirectorBase::BuildDirectorBase(
     EntryInjectionContainer& injection_container,
     EntryBuilderContainer&   builder_container,
     Registry&                registry
@@ -100,27 +149,189 @@ BuildDirector<Entry_T>::BuildDirector(
 {
 }
 
+auto BuildDirectorBase::empty() const noexcept -> bool
+{
+    return m_injection_container == nullptr
+        || m_builder_container == nullptr
+        || m_registry == nullptr;
+}
+
+auto BuildDirectorBase::reset() noexcept -> void
+{
+    m_injection_container = nullptr;
+    m_builder_container   = nullptr;
+    m_registry            = nullptr;
+}
+
+template <typename T>
+concept represents_optional_dependency_c
+    = util::specialization_of_c<T, util::OptionalRef>;
+
+template <auto injection_T>
+auto BuildDirectorBase::try_insert_injection() const -> bool
+{
+    return m_injection_container->try_insert<injection_T>();
+}
+
 template <typename Builder_T>
-concept injectable_builder_c = requires {
-    requires std::same_as<util::result_of_t<decltype(Builder_T::create)>, Builder_T>;
-};
+auto BuildDirectorBase::try_emplace_builder() const -> bool
+{
+    return m_builder_container->try_emplace<Builder_T>();
+}
+
+template <typename EntryBuilder_T>
+auto BuildDirectorBase::build_builder() const -> void
+{
+    if constexpr (std::derived_from<EntryBuilder_T, internal::BuildableEntryBuilderBase>)
+    {
+        BuildDirector<EntryBuilder_T> build_director{
+            *m_injection_container,
+            *m_builder_container,
+            *m_registry,
+        };
+
+        describe_build(build_director);
+    }
+    else
+    {
+        m_builder_container->try_emplace<EntryBuilder_T>();
+    }
+}
 
 template <typename Entry_T>
+auto BuildDirectorBase::build_entry() const -> void
+{
+    PRECOND(m_injection_container != nullptr);
+    PRECOND(m_builder_container != nullptr);
+    PRECOND(m_registry != nullptr);
+
+    if constexpr (std::derived_from<Entry_T, internal::BuildableEntryBase>)
+    {
+        BuildDirector<Entry_T> build_director{
+            *m_injection_container,
+            *m_builder_container,
+            *m_registry,
+        };
+
+        describe_build(build_director);
+    }
+    else
+    {
+        m_registry->try_emplace<Entry_T>();
+    }
+}
+
+template <typename Builder_T>
+auto BuildDirectorBase::resolve_build_dependencies() const -> void
+{
+    util::for_each(
+        util::arguments_of_t<decltype(&Builder_T::build)>{},
+        [&]<typename Dependency_T> -> void { resolve_dependency<Dependency_T>(); }
+    );
+}
+
+template <typename Dependency_T>
+auto BuildDirectorBase::resolve_dependency() const -> void
+{
+    if constexpr (!represents_optional_dependency_c<Dependency_T>)
+    {
+        using StrippedDependency = std::remove_cvref_t<Dependency_T>;
+
+        if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+        {
+            build_builder<StrippedDependency>();
+        }
+        else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
+        {
+            build_entry<StrippedDependency>();
+        }
+        else
+        {
+            static_assert(false, "invalid dependency");
+        }
+    }
+}
+
+template <entry_builder_c EntryBuilder_T>
+template <typename T>
+    requires(!std::is_same_v<T, EntryBuilder_T>)
+BuildDirector<EntryBuilder_T>::BuildDirector(const BuildDirector<T>& other)
+    : BuildDirectorBase{ other }
+{
+}
+
+template <entry_builder_c EntryBuilder_T>
+template <entry_builder_maker_function_pointer_c<EntryBuilder_T> auto func_T>
+    requires(func_T != nullptr)
+auto BuildDirector<EntryBuilder_T>::use_function() -> void
+{
+    PRECOND(
+        !empty(),
+        std::format("{} can only be used once", util::name_of<BuildDirector>())
+    );
+
+    if (const bool success = try_insert_injection<func_T>(); !success)
+    {
+        return;
+    }
+
+    /*
+     * Dependencies must be resolved after injection to avoid recursion
+     *  in case of a cyclic dependency
+     */
+    resolve_dependencies(func_T);
+    resolve_build_dependencies<EntryBuilder_T>();
+
+    reset();
+}
+
+template <entry_builder_c EntryBuilder_T>
+template <typename... Dependencies_T>
+auto BuildDirector<EntryBuilder_T>::resolve_dependencies(
+    auto (*)(Dependencies_T...)->EntryBuilder_T
+) const -> void
+{
+    (resolve_dependency<Dependencies_T>(), ...);
+}
+
+template <entry_c Entry_T>
+template <typename T>
+    requires(!std::is_same_v<T, Entry_T>)
+BuildDirector<Entry_T>::BuildDirector(const BuildDirector<T>& other)
+    : BuildDirectorBase{ other }
+{
+}
+
+template <entry_c Entry_T>
 template <builds_entry_c<Entry_T> Builder_T>
 auto BuildDirector<Entry_T>::use_builder() -> void
 {
     PRECOND(
-        m_injection_container != nullptr
-            && m_builder_container != nullptr
-            && m_registry != nullptr,
+        !empty(),
         std::format("{} can only be used once", util::name_of<BuildDirector>())
     );
 
-    build_builder<Builder_T>();
+    if constexpr (std::derived_from<Builder_T, internal::BuildableEntryBuilderBase>)
+    {
+        BuildDirector<Builder_T> build_director{ *this };
 
-    m_injection_container = nullptr;
-    m_builder_container   = nullptr;
-    m_registry            = nullptr;
+        describe_build(build_director);
+    }
+    else
+    {
+        if (const bool success = try_emplace_builder<Builder_T>(); !success)
+        {
+            return;
+        }
+
+        /*
+         * Dependencies must be resolved after builder to avoid recursion
+         *  in case of a cyclic dependency
+         */
+        resolve_build_dependencies<Builder_T>();
+    }
+
+    reset();
 }
 
 template <auto func_T>
@@ -138,145 +349,12 @@ struct DummyBuilder<func_T> {
     }
 };
 
-template <typename Entry_T>
-template <entry_maker_function_reference_c<Entry_T> auto func_T>
+template <entry_c Entry_T>
+template <entry_maker_function_pointer_c<Entry_T> auto func_T>
+    requires(func_T != nullptr)
 auto BuildDirector<Entry_T>::use_function() -> void
 {
     use_builder<DummyBuilder<func_T>>();
-}
-
-template <typename Entry_T>
-template <typename Builder_T>
-auto BuildDirector<Entry_T>::build_builder() -> void
-{
-    if constexpr (injectable_builder_c<Builder_T>)
-    {
-        if (const bool success = m_injection_container->try_insert(Builder_T::create);
-            !success)
-        {
-            return;
-        }
-    }
-    else
-    {
-        if (const bool success = m_builder_container->try_emplace<Builder_T>(); !success)
-        {
-            return;
-        }
-    }
-
-    /*
-     * Dependencies must be resolved after builder to avoid recursion
-     *  in case of a cyclic dependency
-     */
-    resolve_dependencies<Builder_T>();
-}
-
-template <typename Entry_T>
-template <typename Builder_T>
-auto BuildDirector<Entry_T>::resolve_dependencies() -> void
-{
-    if constexpr (injectable_builder_c<Builder_T>)
-    {
-        resolve_create_dependencies<Builder_T>();
-    }
-    resolve_build_dependencies<Builder_T>();
-}
-
-template <typename Entry_T>
-template <typename Builder_T>
-auto BuildDirector<Entry_T>::resolve_create_dependencies() -> void
-{
-    PRECOND(m_injection_container != nullptr);
-    PRECOND(m_builder_container != nullptr);
-    PRECOND(m_registry != nullptr);
-
-    util::for_each(
-        util::arguments_of_t<decltype(Builder_T::create)>{},
-        [&]<typename Dependency_T> -> void
-        {
-            if constexpr (!represents_optional_dependency_c<Dependency_T>)
-            {
-                using StrippedDependency = std::remove_cvref_t<Dependency_T>;
-
-                if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
-                {
-                    /*
-                     * Use `build_entry` instead of `build_builder`
-                     *  to restrict infinite template instantiation recursion
-                     */
-                    build_entry<util::result_of_t<decltype(&StrippedDependency::build)>>();
-                }
-                else
-                {
-                    static_assert(
-                        std::derived_from<StrippedDependency, ConfigurationEntry>
-                    );
-
-                    build_entry<StrippedDependency>();
-                }
-            }
-        }
-    );
-}
-
-template <typename Entry_T>
-template <typename Builder_T>
-auto BuildDirector<Entry_T>::resolve_build_dependencies() const -> void
-{
-    PRECOND(m_injection_container != nullptr);
-    PRECOND(m_builder_container != nullptr);
-    PRECOND(m_registry != nullptr);
-
-    util::for_each(
-        util::arguments_of_t<decltype(&Builder_T::build)>{},
-        [&]<typename Dependency_T> -> void
-        {
-            if constexpr (!represents_optional_dependency_c<Dependency_T>)
-            {
-                using StrippedDependency = std::remove_cvref_t<Dependency_T>;
-
-                if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
-                {
-                    /*
-                     * Use `build_entry` instead of `build_builder`
-                     *  to restrict infinite template instantiation recursion
-                     */
-                    build_entry<util::result_of_t<decltype(&StrippedDependency::build)>>();
-                }
-                else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
-                {
-                    build_entry<StrippedDependency>();
-                }
-            }
-        }
-    );
-}
-
-template <typename Entry_T>
-template <typename UEntry_T>
-auto BuildDirector<Entry_T>::build_entry() const -> void
-{
-    if constexpr (std::derived_from<UEntry_T, internal::BuildableEntryBase>)
-    {
-        /*
-         * This can end up in an infinite recursion in case of a cyclic
-         * dependency. Cyclic dependencies must be checked before calling this
-         * function.
-         */
-
-        BuildDirector<UEntry_T> build_director{
-            *m_injection_container,
-            *m_builder_container,
-            *m_registry,
-        };
-
-        describe_build(build_director);
-    }
-    else
-    {
-        m_registry->try_emplace<UEntry_T>();
-    }
 }
 
 }   // namespace kiln::app

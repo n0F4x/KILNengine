@@ -11,9 +11,8 @@ export module kiln.gfx.vulkan.InstanceBuilder;
 
 import vulkan_hpp;
 
-import kiln.app.config.Config;
-import kiln.app.memory.MemoryArena;
 import kiln.app.registry.BuildableEntryBuilder;
+import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.Instance;
 import kiln.util.StringLiteral;
 
@@ -30,28 +29,30 @@ struct InstanceBuilderPrecondition {
     explicit InstanceBuilderPrecondition(const vk::raii::Context& context);
 };
 
-export class InstanceBuilder : InstanceBuilderPrecondition,
-                               public app::BuildableEntryBuilder   //
+export class InstanceBuilder;
+
+auto describe_build(app::BuildDirector<InstanceBuilder>& build_director) -> void;
+
+struct CreateInfo {
+    std::optional<util::StringLiteral> engine_name;
+    std::optional<uint32_t>            engine_version;
+    std::optional<util::StringLiteral> application_name;
+    std::optional<uint32_t>            application_version;
+};
+
+export class InstanceBuilder
+    : InstanceBuilderPrecondition,
+      public app::BuildableEntryBuilder<InstanceBuilder, describe_build>   //
 {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
-
-    struct CreateInfo {
-        std::optional<util::StringLiteral> engine_name;
-        std::optional<uint32_t>            engine_version;
-        std::optional<util::StringLiteral> application_name;
-        std::optional<uint32_t>            application_version;
-    };
+    using CreateInfo     = CreateInfo;
 
     [[nodiscard]]
     consteval static auto minimum_version() noexcept -> uint32_t;
 
     [[nodiscard]]
     static auto check_version_support(const vk::raii::Context& context) -> bool;
-
-    [[nodiscard]]
-    static auto create(app::MemoryArena& memory_arena, const app::Config& config)
-        -> InstanceBuilder;
 
 
     InstanceBuilder(const InstanceBuilder&, const allocator_type&);

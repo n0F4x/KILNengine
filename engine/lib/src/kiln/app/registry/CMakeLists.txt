@@ -14,6 +14,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         BuildableEntry.ixx
         BuildableEntryBase.ixx
         BuildableEntryBuilder.ixx
+        BuildableEntryBuilderBase.ixx
         BuildDirector.ixx
         configuration_entry_c.ixx
         ConfigurationEntry.ixx
@@ -29,8 +30,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         ErasedEntry.ixx
         Registry.ixx
         RegistryBuilder.ixx
+        represents_entry_builder_dependency_c.ixx
         represents_entry_dependency_c.ixx
-        RepresentsEntryDependencyConcept.ixx
         ReverseDependencyChainNode.ixx
         strip_dependency_t.ixx
 )

@@ -61,7 +61,12 @@ import examples.frustum_culling.workflow.Scene;
 
 namespace demo {
 
-class ContextBuilder : public kiln::app::BuildableEntryBuilder {
+class ContextBuilder;
+
+auto describe_injection(kiln::app::BuildDirector<ContextBuilder>& build_director) -> void;
+
+class ContextBuilder
+    : public kiln::app::BuildableEntryBuilder<ContextBuilder, describe_injection> {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
@@ -121,6 +126,11 @@ public:
         };
     }
 };
+
+auto describe_injection(kiln::app::BuildDirector<ContextBuilder>& build_director) -> void
+{
+    build_director.use_function<ContextBuilder::create>();
+}
 
 [[nodiscard]]
 // ReSharper disable once CppNotAllPathsReturnValue

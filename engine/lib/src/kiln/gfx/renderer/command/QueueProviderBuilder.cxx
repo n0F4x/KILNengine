@@ -10,12 +10,14 @@ import vulkan_hpp;
 
 import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.device.DeviceBuilder;
+import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.QueueInfo;
 import kiln.util.containers.OptionalRef;
 
 namespace kiln::gfx::renderer {
 
-auto QueueProviderBuilder::create(
+[[nodiscard]]
+auto make_queue_provider_builder(
     vulkan::InstanceBuilder& instance_builder,
     DeviceBuilder&           device_builder
 ) -> QueueProviderBuilder
@@ -35,6 +37,11 @@ auto QueueProviderBuilder::create(
     );
 
     return QueueProviderBuilder{};
+}
+
+auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) -> void
+{
+    build_director.use_function<make_queue_provider_builder>();
 }
 
 [[nodiscard]]

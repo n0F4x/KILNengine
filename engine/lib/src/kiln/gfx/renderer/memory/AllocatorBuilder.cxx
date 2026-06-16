@@ -9,7 +9,7 @@ import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::renderer {
 
-auto AllocatorBuilder::create(
+auto make_allocator_builder(
     vulkan::InstanceBuilder& instance_builder,
     DeviceBuilder&           device_builder
 ) -> AllocatorBuilder
@@ -48,6 +48,11 @@ auto AllocatorBuilder::create(
 
 
     return AllocatorBuilder{};
+}
+
+auto describe_build(app::BuildDirector<AllocatorBuilder>& build_director) -> void
+{
+    build_director.use_function<make_allocator_builder>();
 }
 
 auto AllocatorBuilder::build(const vulkan::Instance& instance, const Device& device)

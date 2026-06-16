@@ -5,7 +5,7 @@ module;
 
 export module kiln.app.registry.entry_builder_c;
 
-import kiln.app.registry.BuildableEntryBuilder;
+import kiln.app.registry.BuildableEntryBuilderBase;
 import kiln.app.registry.configuration_entry_c;
 import kiln.app.registry.entry_c;
 import kiln.app.registry.EntryBase;
@@ -62,28 +62,12 @@ consteval auto is_entry_builder(auto (Builder_T::*)(Dependencies_T...) const&&->
     return (represents_entry_dependency_c<Dependencies_T> && ...) && entry_c<Entry_T>;
 }
 
-template <typename T>
-concept represents_builder_dependency_c
-    = (std::is_lvalue_reference_v<T>
-       && (std::derived_from<std::remove_cvref_t<T>, EntryBuilderBase>
-           || configuration_entry_c<std::remove_cvref_t<T>>))
-   || (util::specialization_of_c<T, util::OptionalRef>
-       && (std::derived_from<std::remove_cvref_t<typename T::ValueType>, EntryBuilderBase>
-           || configuration_entry_c<std::remove_cvref_t<typename T::ValueType>>));
-
-template <typename Builder_T, typename... Dependencies_T>
-consteval auto is_injection(auto (*)(Dependencies_T...)->Builder_T) -> bool
-{
-    return (represents_builder_dependency_c<Dependencies_T> && ...);
-}
-
 export template <typename T>
 concept entry_builder_c = util::storable_c<T>
                        && std::derived_from<T, EntryBuilderBase>
-                       && requires { requires is_entry_builder(&T::build); }   //
-                       && ((std::derived_from<T, BuildableEntryBuilder>
-                            && requires { requires is_injection<T>(T::create); })
-                           || std::default_initializable<T>)
+                       && requires { requires is_entry_builder(&T::build); }
+                       && (std::default_initializable<T>
+                           || std::derived_from<T, internal::BuildableEntryBuilderBase>)
                        && !std::derived_from<T, EntryBase>;
 
 export template <typename T>

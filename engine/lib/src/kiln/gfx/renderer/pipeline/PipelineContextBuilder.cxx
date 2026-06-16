@@ -7,7 +7,8 @@ import kiln.gfx.renderer.pipeline.PipelineContext;
 
 namespace kiln::gfx::renderer {
 
-auto PipelineContextBuilder::create(DeviceBuilder& device_builder)
+[[nodiscard]]
+auto make_pipeline_context_builder(DeviceBuilder& device_builder)
     -> PipelineContextBuilder
 {
     device_builder.enable_features(
@@ -21,6 +22,11 @@ auto PipelineContextBuilder::create(DeviceBuilder& device_builder)
     );
 
     return PipelineContextBuilder{};
+}
+
+auto describe_build(app::BuildDirector<PipelineContextBuilder>& build_director) -> void
+{
+    build_director.use_function<make_pipeline_context_builder>();
 }
 
 auto PipelineContextBuilder::build() -> PipelineContext

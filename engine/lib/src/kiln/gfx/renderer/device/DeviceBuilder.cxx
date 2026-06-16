@@ -20,9 +20,15 @@ import kiln.wsi.vulkan_queue_family_supports_presenting;
 
 namespace kiln::gfx::renderer {
 
-auto DeviceBuilder::create(app::MemoryArena& memory_arena) -> DeviceBuilder
+[[nodiscard]]
+auto make_device_builder(app::MemoryArena& memory_arena) -> DeviceBuilder
 {
     return DeviceBuilder{ memory_arena.pool_allocator() };
+}
+
+auto describe_build(app::BuildDirector<DeviceBuilder>& build_director) -> void
+{
+    build_director.use_function<make_device_builder>();
 }
 
 DeviceBuilder::DeviceBuilder(const DeviceBuilder& other, const allocator_type& allocator)

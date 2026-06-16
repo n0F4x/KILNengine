@@ -51,8 +51,8 @@ public:
     auto contains() const noexcept -> bool;
 
 
-    template <typename Builder_T, typename... Dependencies_T>
-    auto try_insert(auto (*create)(Dependencies_T...)->Builder_T) -> bool;
+    template <auto injection_T>
+    auto try_insert() -> bool;
 
     auto build(
         EntryBuilderContainer&     builders,
@@ -94,51 +94,61 @@ private:
 
 namespace kiln::app {
 
-template <typename Dependency_T>
-// ReSharper disable once CppNotAllPathsReturnValue
-auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry) -> Dependency_T
-{
-    using StrippedDependency = strip_dependency_t<Dependency_T>;
-
-    if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
-    {
-        if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
-        {
-            return builders.find<StrippedDependency>();
-        }
-        else
-        {
-            return builders.at<StrippedDependency>();
-        }
-    }
-    else if constexpr (std::derived_from<StrippedDependency, ConfigurationEntry>)
-    {
-        if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
-        {
-            return registry.find<StrippedDependency>();
-        }
-        else
-        {
-            return registry.at<StrippedDependency>();
-        }
-    }
-    else
-    {
-        static_assert(false, "invalid dependency");
-    }
-}
-
-template <typename Builder_T>
+template <auto injection_T>
 struct ErasedEntryInjectionLambda {
     static auto operator()(EntryBuilderContainer& builders, Registry& registry) -> void
     {
-        [&builders,
-         &registry]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> void
+        helper(injection_T, builders, registry);
+    }
+
+    template <typename... Dependencies_T, typename Builder_T>
+    static auto helper(
+        auto (*)(Dependencies_T...)->Builder_T,
+        EntryBuilderContainer& builders,
+        Registry&              registry
+    ) -> void
+    {
+        builders.insert(
+            std::invoke(
+                injection_T,
+                fetch_dependency<Dependencies_T>(builders, registry)...
+            )
+        );
+    }
+
+    template <typename Dependency_T>
+    // ReSharper disable once CppNotAllPathsReturnValue
+    static auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry)
+        -> Dependency_T
+    {
+        using StrippedDependency = strip_dependency_t<Dependency_T>;
+
+        if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
         {
-            builders.insert(
-                Builder_T::create(fetch_dependency<Dependencies_T>(builders, registry)...)
-            );
-        }(util::arguments_of_t<decltype(Builder_T::create)>{});
+            if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
+            {
+                return builders.find<StrippedDependency>();
+            }
+            else
+            {
+                return builders.at<StrippedDependency>();
+            }
+        }
+        else if constexpr (std::derived_from<StrippedDependency, ConfigurationEntry>)
+        {
+            if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
+            {
+                return registry.find<StrippedDependency>();
+            }
+            else
+            {
+                return registry.at<StrippedDependency>();
+            }
+        }
+        else
+        {
+            static_assert(false, "invalid dependency");
+        }
     }
 };
 
@@ -151,27 +161,29 @@ auto EntryInjectionContainer::contains() const noexcept -> bool
     );
 }
 
-template <typename Builder_T, typename... Dependencies_T>
-auto EntryInjectionContainer::try_insert(   //
-    [[maybe_unused]]
-    auto (*create)(Dependencies_T...)
-        ->Builder_T
-) -> bool
+template <auto injection_T>
+auto EntryInjectionContainer::try_insert() -> bool
 {
-    if (contains<std::remove_pointer_t<decltype(create)>>())
+    using Builder = util::result_of_t<decltype(injection_T)>;
+
+    if (contains<std::remove_pointer_t<decltype(injection_T)>>())
     {
         return false;
     }
 
-    m_injections.emplace_back(ErasedEntryInjectionLambda<Builder_T>{});
-    m_builder_hashes.push_back(util::hash_u64<Builder_T>());
-    m_dependency_hashes.emplace_back(
-        std::initializer_list{ util::hash_u64<strip_dependency_t<Dependencies_T>>()... }
-    );
+    m_injections.emplace_back(ErasedEntryInjectionLambda<injection_T>{});
+    m_builder_hashes.push_back(util::hash_u64<Builder>());
+    [this]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> void
+    {
+        m_dependency_hashes.emplace_back(
+            std::initializer_list{
+                util::hash_u64<strip_dependency_t<Dependencies_T>>()... }
+        );
+    }(util::arguments_of_t<decltype(injection_T)>{});
     m_dependent_builder_hashes.emplace_back();
 
 #ifdef KILN_DEBUG
-    m_builder_names.emplace_back(util::name_of<Builder_T>());
+    m_builder_names.emplace_back(util::name_of<Builder>());
 #endif
 
     return true;
