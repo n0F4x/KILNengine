@@ -214,10 +214,12 @@ struct DefaultAnyTraits {
 export template <typename T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
+[[nodiscard]]
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 export template <decayed_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
+[[nodiscard]]
 auto reinterpret_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
 template <typename Traits_T = DefaultAnyTraits<>>
@@ -296,11 +298,6 @@ public:
         requires any_c<std::remove_cvref_t<Any_T>>
               && (std::remove_cvref_t<Any_T>::template storable<T>())
     friend auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
-
-    template <typename T, typename Any_T>
-        requires any_c<std::remove_cvref_t<Any_T>>
-              && (std::remove_cvref_t<Any_T>::template storable<T>())
-    friend auto dynamic_any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
     template <decayed_c T, typename Any_T>
         requires any_c<std::remove_cvref_t<Any_T>>

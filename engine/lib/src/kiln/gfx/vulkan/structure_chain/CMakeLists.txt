@@ -6,6 +6,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         comprehensive_feature_struct_c.ixx
         core_feature_struct_from_vulkan1x_c.ixx
         erase_physical_device_features.ixx
+        ErasedStructureChainNode.ixx
         extends_struct_c.ixx
         feature_struct_c.ixx
         filter_physical_device_features.ixx
@@ -15,5 +16,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         merge_physical_device_features.ixx
         part_of_comprehensive_feature_struct_c.ixx
         StructureChain.ixx
+        StructureChainNode.ixx
+        StructureChainNodeInterface.ixx
         vulkan1x_feature_struct_c.ixx
 )

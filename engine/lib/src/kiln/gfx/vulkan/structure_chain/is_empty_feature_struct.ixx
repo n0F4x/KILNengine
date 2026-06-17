@@ -36,7 +36,7 @@ template <feature_struct_c FeatureStruct_T>
 constexpr auto is_empty_feature_struct(const FeatureStruct_T& feature_struct) -> bool
 {
     const auto& [... members]{ feature_struct };
-    return !(is_turned_on_flag(members) || ...);
+    return (!is_turned_on_flag(members) && ...);
 }
 
 }   // namespace kiln::gfx::vulkan

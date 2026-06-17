@@ -4,6 +4,7 @@ export import kiln.util.concepts;
 export import kiln.util.containers;
 export import kiln.util.type_traits;
 
+export import kiln.util.any_cast;
 export import kiln.util.any_of;
 export import kiln.util.Bool;
 export import kiln.util.contracts;
@@ -16,6 +17,7 @@ export import kiln.util.hash;
 export import kiln.util.Lazy;
 export import kiln.util.Overloaded;
 export import kiln.util.reflection;
+export import kiln.util.reinterpret_any_cast;
 export import kiln.util.ScopeFail;
 export import kiln.util.StringLiteral;
 export import kiln.util.Strong;

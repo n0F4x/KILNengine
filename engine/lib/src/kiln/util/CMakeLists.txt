@@ -20,6 +20,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         util.cppm
+        any_cast.ixx
         any_of.ixx
         Bool.ixx
         contracts.ixx
@@ -32,6 +33,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         Lazy.ixx
         Overloaded.ixx
         reflection.ixx
+        reinterpret_any_cast.ixx
         ScopeFail.ixx
         StringLiteral.ixx
         Strong.ixx
