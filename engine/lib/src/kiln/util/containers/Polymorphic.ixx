@@ -235,6 +235,12 @@ namespace internal {
 
 class PolymorphicBase {};
 
+template <typename T, typename Interface_T, bool is_move_only_T>
+concept storable_c = interface_c<Interface_T>
+                  && std::derived_from<T, Interface_T>
+                  && ::kiln::util::storable_c<T>
+                  && (is_move_only_T || std::copyable<T>);
+
 }   // namespace internal
 
 export template <decayed_c T, typename Polymorphic_T>
@@ -267,33 +273,30 @@ public:
 
 
     Polymorphic(const Polymorphic&)
-        requires(!is_move_only());
+        requires(!is_move_only_T);
     Polymorphic(const Polymorphic&, const allocator_type& allocator)
-        requires(!is_move_only());
+        requires(!is_move_only_T);
     Polymorphic(Polymorphic&&) noexcept;
     Polymorphic(Polymorphic&&, const allocator_type& allocator);
     ~Polymorphic();
 
     template <typename U>
     explicit Polymorphic(U&& value)
-        requires(
-            !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-            && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
-            && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
-            && storable<std::remove_cvref_t<U>>()
-        );
+        requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+             && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
+             && std::constructible_from<std::remove_cvref_t<U>, U&&>
+             && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>;
     template <typename U>
     explicit Polymorphic(std::allocator_arg_t, const allocator_type& allocator, U&& value)
-        requires(
-            !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-            && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
-            && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
-            && storable<std::remove_cvref_t<U>>()
-        );
+        requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+             && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
+             && std::constructible_from<std::remove_cvref_t<U>, U&&>
+             && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>;
 
     template <typename U, typename... Args_T>
     explicit Polymorphic(std::in_place_type_t<U>, Args_T&&... args)
-        requires(std::is_constructible_v<U, Args_T && ...> && storable<U>());
+        requires std::constructible_from<U, Args_T&&...>
+              && internal::storable_c<U, Interface_T, is_move_only_T>;
     template <typename U, typename... Args_T>
     explicit Polymorphic(
         std::allocator_arg_t,
@@ -301,16 +304,17 @@ public:
         std::in_place_type_t<U>,
         Args_T&&... args
     )
-        requires(std::is_constructible_v<U, Args_T && ...> && storable<U>());
+        requires std::constructible_from<U, Args_T&&...>
+              && internal::storable_c<U, Interface_T, is_move_only_T>;
 
     auto operator=(const Polymorphic&) -> Polymorphic&
-        requires(!is_move_only());
+        requires(!is_move_only_T);
     // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
     // NOLINTNEXTLINE(*-noexcept-move-operations,*-noexcept-move,*-noexcept-move-constructor)
     auto operator=(Polymorphic&&) -> Polymorphic&
-        requires(!is_move_only());
+        requires(!is_move_only_T);
     auto operator=(Polymorphic&&) noexcept -> Polymorphic&
-        requires(is_move_only());
+        requires is_move_only_T;
 
 
     [[nodiscard]]
@@ -1432,9 +1436,7 @@ template <typename U>
 consteval auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::storable()
     -> bool
 {
-    return std::derived_from<U, Interface_T>
-        && storable_c<U>
-        && (is_move_only() || std::copyable<U>);
+    return internal::storable_c<U, Interface_T, is_move_only_T>;
 }
 
 template <
@@ -1445,7 +1447,7 @@ template <
 Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     const Polymorphic& other
 )
-    requires(!is_move_only())
+    requires(!is_move_only_T)
     : Polymorphic{ other, other.m_allocator }
 {
 }
@@ -1459,7 +1461,7 @@ Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     const Polymorphic&    other,
     const allocator_type& allocator
 )
-    requires(!is_move_only())
+    requires(!is_move_only_T)
     : m_allocator{ allocator },
       m_storage{ other.m_erase_mechanism.copy_construct(m_allocator, other.m_storage) },
       m_erase_mechanism{ other.m_erase_mechanism }
@@ -1518,12 +1520,11 @@ template <
     std::size_t alignment_T>
 template <typename U>
 Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
-    requires(
-        !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-        && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
-        && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
-        && storable<std::remove_cvref_t<U>>()
-    )
+    requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+         && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
+         && std::constructible_from<std::remove_cvref_t<U>, U&&>
+         && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>
+
     : Polymorphic{
           std::allocator_arg,
           std::pmr::get_default_resource(),
@@ -1543,12 +1544,10 @@ Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     const allocator_type& allocator,
     U&&                   value
 )
-    requires(
-        !std::is_same_v<std::remove_cvref_t<U>, Polymorphic>
-        && !util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>
-        && std::is_constructible_v<std::remove_cvref_t<U>, U &&>
-        && storable<std::remove_cvref_t<U>>()
-    )
+    requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+         && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
+         && std::constructible_from<std::remove_cvref_t<U>, U&&>
+         && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>
     : Polymorphic{
           std::allocator_arg,
           allocator,
@@ -1568,7 +1567,8 @@ Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::in_place_type_t<U> in_place_type,
     Args_T&&... args
 )
-    requires(std::is_constructible_v<U, Args_T && ...> && storable<U>())
+    requires std::constructible_from<U, Args_T&&...>
+          && internal::storable_c<U, Interface_T, is_move_only_T>
     : Polymorphic{
           std::allocator_arg,
           std::pmr::get_default_resource(),
@@ -1590,7 +1590,8 @@ Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::in_place_type_t<U> in_place_type,
     Args_T&&... args
 )
-    requires(std::is_constructible_v<U, Args_T && ...> && storable<U>())
+    requires std::constructible_from<U, Args_T&&...>
+              && internal::storable_c<U, Interface_T, is_move_only_T>
     : m_allocator{ allocator },
       m_storage{
           EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::construct(
@@ -1612,7 +1613,7 @@ template <
 auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::operator=(
     const Polymorphic& other
 ) -> Polymorphic&
-    requires(!is_move_only())
+    requires(!is_move_only_T)
 {
     if (this == &other)
     {
@@ -1635,7 +1636,7 @@ template <
 auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::operator=(
     Polymorphic&& other
 ) -> Polymorphic&
-    requires(!is_move_only())
+    requires(!is_move_only_T)
 {
     if (this == &other)
     {
@@ -1662,7 +1663,7 @@ template <
 auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::operator=(
     Polymorphic&& other
 ) noexcept -> Polymorphic&
-    requires(is_move_only())
+    requires is_move_only_T
 {
     if (this == &other)
     {
