@@ -9,6 +9,7 @@ module;
 
 export module kiln.util.LifeCycleEraseMechanism;
 
+import kiln.util.concepts.nothrow_movable;
 import kiln.util.containers.SmallBuffer;
 import kiln.util.contracts;
 import kiln.util.reflection;
@@ -17,7 +18,8 @@ import kiln.util.ScopeFail;
 namespace kiln::util {
 
 export template <typename T, std::size_t size_T, std::size_t alignment_T>
-concept uses_small_buffer_optimization_c = fits_in_small_buffer_c<T, size_T, alignment_T>;
+concept uses_small_buffer_optimization_c
+    = fits_in_small_buffer_c<T, size_T, alignment_T> && nothrow_movable_c<T>;
 
 export template <bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 class LifeCycleEraseMechanism;

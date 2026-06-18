@@ -293,8 +293,8 @@ TEST_CASE("util::Any")
             };
         };
 
-        CountingResource                       memory_resource;
-        const BasicAny<DefaultAnyTraits<true>> any{
+        CountingResource     memory_resource;
+        const BasicAny<true> any{
             std::allocator_arg,
             &memory_resource,
             std::in_place_type<Container>,
