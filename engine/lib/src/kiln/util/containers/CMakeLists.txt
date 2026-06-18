@@ -13,4 +13,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         MoveOnlyFunction.ixx
         OptionalRef.ixx
         Polymorphic.ixx
+        SmallBuffer.ixx
 )

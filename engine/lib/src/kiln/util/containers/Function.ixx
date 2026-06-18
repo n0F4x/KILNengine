@@ -1,157 +1,211 @@
 module;
 
+#include <concepts>
 #include <cstddef>
+#include <format>
 #include <functional>
 #include <type_traits>
 #include <utility>
 
-#include "kiln/util/no_unique_address.hpp"
+#include "kiln/util/contract_macros.hpp"
 
 export module kiln.util.containers.Function;
 
+import kiln.util.concepts.decayed;
 import kiln.util.concepts.function;
-import kiln.util.concepts.is_noexcept;
 import kiln.util.concepts.specialization_of;
-import kiln.util.containers.Any;
-import kiln.util.type_traits.arguments_of;
-import kiln.util.type_traits.result_of;
-import kiln.util.type_traits.Signature;
+import kiln.util.concepts.storable;
+import kiln.util.concepts.strips_to;
+import kiln.util.containers.SmallBuffer;
+import kiln.util.contracts;
+import kiln.util.LifeCycleEraseMechanism;
+import kiln.util.reflection;
+import kiln.util.type_traits.const_like;
+import kiln.util.type_traits.forward_like;
 
 namespace kiln::util {
 
-namespace internal {
+export consteval auto default_function_size() -> std::size_t
+{
+    return 3 * sizeof(void*);
+}
 
-template <
-    bool        is_move_only_T,
-    std::size_t size_T,
-    std::size_t alignment_T,
-    typename Signature_T,
-    typename ArgumentList_T>
-struct FunctionTraits;
-
-}   // namespace internal
+export consteval auto default_function_alignment() -> std::size_t
+{
+    return alignof(std::max_align_t);
+}
 
 export template <
     function_c  Signature_T,
     bool        is_move_only_T = false,
-    std::size_t size_T         = 3 * sizeof(void*),
-    std::size_t alignment_T    = sizeof(void*)>
-using Function = BasicAny<typename internal::FunctionTraits<
-    is_move_only_T,
-    size_T,
-    alignment_T,
-    Signature_T,
-    arguments_of_t<Signature_T>>::AnyTraits>;
+    std::size_t size_T         = default_function_size(),
+    std::size_t alignment_T    = default_function_alignment()>
+class Function;
 
-export using util::any_cast;
+namespace internal {
+
+class FunctionBase {};
+
+template <typename T, typename Signature_T>
+constexpr bool callable_with_qualifiers_v = false;
+
+template <std::size_t size_T, std::size_t alignment_T>
+using Storage = SmallBuffer<std::max(size_T, sizeof(void*)), alignment_T>;
+
+template <typename T, typename Function_T>
+concept storable_c = decayed_c<T>
+                  && util::storable_c<T>
+                  && callable_with_qualifiers_v<T, typename Function_T::Signature>
+                  // TODO: use std::copyable when lambdas become copy assignable
+                  && (Function_T::is_move_only() || std::copy_constructible<T>);
+
+}   // namespace internal
+
+export template <decayed_c T, typename Function_T>
+    requires std::derived_from<std::remove_cvref_t<Function_T>, internal::FunctionBase>
+          && internal::storable_c<T, std::remove_cvref_t<Function_T>>
+[[nodiscard]]
+constexpr auto any_cast(Function_T&& function) -> forward_like_t<T, Function_T>;
+
+export template <decayed_c T, typename Function_T>
+    requires std::derived_from<std::remove_cvref_t<Function_T>, internal::FunctionBase>
+[[nodiscard]]
+constexpr auto reinterpret_any_cast(Function_T&& function)
+    -> forward_like_t<T, Function_T>;
+
+#ifdef KILN_TEMP_CONST
+  #error KILN_TEMP_CONST should not be defined
+#endif
+#ifdef KILN_TEMP_REF
+  #error KILN_TEMP_REF should not be defined
+#endif
+#ifdef KILN_TEMP_IS_NOEXCEPT
+  #error KILN_TEMP_IS_NOEXCEPT should not be defined
+#endif
+#ifdef KILN_TEMP_NAMESPACE
+  #error KILN_TEMP_NAMESPACE should not be defined
+#endif
+
+#define KILN_TEMP_NAMESPACE   internal_spec
+#define KILN_TEMP_IS_NOEXCEPT false
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_noexcept
+#define KILN_TEMP_IS_NOEXCEPT true
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_ref
+#define KILN_TEMP_REF         &
+#define KILN_TEMP_IS_NOEXCEPT false
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_ref_noexcept
+#define KILN_TEMP_REF         &
+#define KILN_TEMP_IS_NOEXCEPT true
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_refref
+#define KILN_TEMP_REF         &&
+#define KILN_TEMP_IS_NOEXCEPT false
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_refref_noexcept
+#define KILN_TEMP_REF         &&
+#define KILN_TEMP_IS_NOEXCEPT true
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_const
+#define KILN_TEMP_CONST       const
+#define KILN_TEMP_IS_NOEXCEPT false
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_const_noexcept
+#define KILN_TEMP_CONST       const
+#define KILN_TEMP_IS_NOEXCEPT true
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_const_ref
+#define KILN_TEMP_CONST       const
+#define KILN_TEMP_REF         &
+#define KILN_TEMP_IS_NOEXCEPT false
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_const_ref_noexcept
+#define KILN_TEMP_CONST       const
+#define KILN_TEMP_REF         &
+#define KILN_TEMP_IS_NOEXCEPT true
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_const_refref
+#define KILN_TEMP_CONST       const
+#define KILN_TEMP_REF         &&
+#define KILN_TEMP_IS_NOEXCEPT false
+#include "Function.impl.hpp"
+
+#define KILN_TEMP_NAMESPACE   internal_spec_const_refref_noexcept
+#define KILN_TEMP_CONST       const
+#define KILN_TEMP_REF         &&
+#define KILN_TEMP_IS_NOEXCEPT true
+#include "Function.impl.hpp"
+
+// ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
+// NOLINTNEXTLINE(*-noexcept-swap)
+export template <
+    typename Signature_T,
+    bool        is_move_only_T,
+    std::size_t size_T,
+    std::size_t alignment_T>
+auto swap(
+    Function<Signature_T, is_move_only_T, size_T, alignment_T>& lhs,
+    Function<Signature_T, is_move_only_T, size_T, alignment_T>& rhs
+) -> void;
 
 }   // namespace kiln::util
 
-namespace kiln::util::internal {
+namespace kiln::util {
 
-template <typename T>
-using ensure_reference_t = std::conditional_t<std::is_reference_v<T>, T, T&>;
-
-template <
-    bool        is_move_only_T,
-    std::size_t size_T,
-    std::size_t alignment_T,
-    typename Signature_T,
-    template <typename...> typename ArgumentList_T,
-    typename... FArgs_T>
-struct FunctionTraits<
-    is_move_only_T,
-    size_T,
-    alignment_T,
-    Signature_T,
-    ArgumentList_T<FArgs_T...>>   //
+template <decayed_c T, typename Function_T>
+    requires std::derived_from<std::remove_cvref_t<Function_T>, internal::FunctionBase>
+          && internal::storable_c<T, std::remove_cvref_t<Function_T>>
+constexpr auto any_cast(Function_T&& function) -> forward_like_t<T, Function_T>
 {
-    using Result = result_of_t<Signature_T>;
+    PRECOND(
+        function.Function::m_erase_mechanism.type_hash() == util::hash_u64<T>(),
+        std::format(
+            "`Function` has type {}, but requested type is {}",
+            function.Function::m_erase_mechanism.type_name(),
+            util::name_of<T>()
+        )
+    );
 
-    template <typename Any_T>
-    using invoke_qualified_self_t
-        = ensure_reference_t<typename Signature<Signature_T>::template mimic_t<Any_T>>;
+    return std::forward_like<Function_T>(
+        *static_cast<const_like_t<T, Function_T>*>(
+            function.Function::m_erase_mechanism.address_of(function.Function::m_storage)
+        )   //
+    );
+}
 
-    consteval static auto is_noexcept() noexcept -> bool
-    {
-        return is_noexcept_c<Signature_T>;
-    }
+template <decayed_c T, typename Function_T>
+    requires std::derived_from<std::remove_cvref_t<Function_T>, internal::FunctionBase>
+constexpr auto reinterpret_any_cast(Function_T&& function)
+    -> forward_like_t<T, Function_T>
+{
+    return std::forward_like<Function_T>(
+        *static_cast<const_like_t<T, Function_T>*>(
+            function.Function::m_erase_mechanism.address_of(function.Function::m_storage)
+        )   //
+    );
+}
 
-    template <typename T>
-    consteval static auto mimics_qualifiers() noexcept -> bool
-    {
-        return Signature<Signature_T>::template mimics_qualifiers<T>;
-    }
+// ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
+// NOLINTNEXTLINE(*-noexcept-swap)
+template <typename Signature_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
+auto swap(
+    Function<Signature_T, is_move_only_T, size_T, alignment_T>& lhs,
+    Function<Signature_T, is_move_only_T, size_T, alignment_T>& rhs
+) -> void
+{
+    lhs.swap(rhs);
+}
 
-    template <typename Any_T>
-    struct VTable {
-        using CallFunc
-            = auto(invoke_qualified_self_t<Any_T>, FArgs_T...) noexcept(is_noexcept())
-                -> Result;
-
-        std::reference_wrapper<CallFunc> call;
-
-        template <typename F>
-        struct Operations {
-            // ReSharper disable once CppNotAllPathsReturnValue
-            constexpr static auto call(
-                invoke_qualified_self_t<Any_T> that,
-                FArgs_T... args
-            ) noexcept(is_noexcept()) -> Result
-            {
-                return std::invoke(
-                    any_cast<std::decay_t<F>>(
-                        std::forward<invoke_qualified_self_t<Any_T>>(that)
-                    ),
-                    std::forward<FArgs_T>(args)...
-                );
-            }
-
-            constexpr static VTable vtable{
-                .call = call,
-            };
-        };
-    };
-
-    template <typename Any_T>
-    class Interface {
-    public:
-        constexpr explicit Interface(const AnyExtraVTableAccessor& extra_vtable_accessor)
-            : m_extra_vtable{ extra_vtable_accessor }
-        {
-        }
-
-        template <typename Self_T>
-            requires std::convertible_to<
-                Self_T&&,
-                invoke_qualified_self_t<std::remove_cvref_t<Self_T>>>
-        constexpr auto operator()(this Self_T&& self, FArgs_T... args) noexcept(
-            is_noexcept()
-        ) -> Result
-        {
-            return self.Interface::m_extra_vtable(self).call(
-                static_cast<invoke_qualified_self_t<Any_T>>(self),
-                std::forward<FArgs_T>(args)...
-            );
-        }
-
-    private:
-        [[kiln_no_unique_address]]
-        AnyExtraVTableAccessor m_extra_vtable;
-    };
-
-    template <typename F>
-    struct Policy {
-        using Mimicked = Signature<Signature_T>::template mimic_t<std::decay_t<F>>;
-
-        constexpr static bool value
-            = is_noexcept_c<Signature_T>
-                ? std::is_nothrow_invocable_r_v<Result, Mimicked, FArgs_T...>
-                : std::is_invocable_r_v<Result, Mimicked, FArgs_T...>;
-    };
-
-    using AnyTraits
-        = DefaultAnyTraits<is_move_only_T, size_T, alignment_T, Policy, Interface, VTable>;
-};
-
-}   // namespace kiln::util::internal
+}   // namespace kiln::util

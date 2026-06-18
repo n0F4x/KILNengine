@@ -31,6 +31,7 @@ target_sources(${PROJECT_NAME} PUBLIC
         FunctionWrapper.ixx
         hash.ixx
         Lazy.ixx
+        LifeCycleEraseMechanism.ixx
         Overloaded.ixx
         reflection.ixx
         reinterpret_any_cast.ixx

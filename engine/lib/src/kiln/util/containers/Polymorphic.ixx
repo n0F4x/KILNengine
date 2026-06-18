@@ -17,6 +17,7 @@ export module kiln.util.containers.Polymorphic;
 import kiln.util.concepts.decayed;
 import kiln.util.concepts.nothrow_movable;
 import kiln.util.concepts.specialization_of;
+import kiln.util.concepts.strips_to;
 import kiln.util.concepts.storable;
 import kiln.util.contracts;
 import kiln.util.reflection;
@@ -265,10 +266,14 @@ public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
+    [[nodiscard]]
     consteval static auto is_move_only() -> bool;
+    [[nodiscard]]
     consteval static auto size() -> std::size_t;
+    [[nodiscard]]
     consteval static auto alignment() -> std::size_t;
     template <typename U>
+    [[nodiscard]]
     consteval static auto storable() -> bool;
 
 
@@ -282,13 +287,13 @@ public:
 
     template <typename U>
     explicit Polymorphic(U&& value)
-        requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+        requires(!strips_to_c<U, Polymorphic>)
              && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
              && std::constructible_from<std::remove_cvref_t<U>, U&&>
              && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>;
     template <typename U>
     explicit Polymorphic(std::allocator_arg_t, const allocator_type& allocator, U&& value)
-        requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+        requires(!strips_to_c<U, Polymorphic>)
              && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
              && std::constructible_from<std::remove_cvref_t<U>, U&&>
              && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>;
@@ -1520,7 +1525,7 @@ template <
     std::size_t alignment_T>
 template <typename U>
 Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
-    requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+    requires(!strips_to_c<U, Polymorphic>)
          && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
          && std::constructible_from<std::remove_cvref_t<U>, U&&>
          && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>
@@ -1544,7 +1549,7 @@ Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     const allocator_type& allocator,
     U&&                   value
 )
-    requires(!std::same_as<std::remove_cvref_t<U>, Polymorphic>)
+    requires(!strips_to_c<U, Polymorphic>)
          && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
          && std::constructible_from<std::remove_cvref_t<U>, U&&>
          && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>

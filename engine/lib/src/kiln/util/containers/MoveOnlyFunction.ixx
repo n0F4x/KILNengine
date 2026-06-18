@@ -11,8 +11,8 @@ namespace kiln::util {
 
 export template <
     function_c  Signature_T,
-    std::size_t size_T      = 3 * sizeof(void*),
-    std::size_t alignment_T = sizeof(void*)>
+    std::size_t size_T      = default_function_size(),
+    std::size_t alignment_T = default_function_alignment()>
 using MoveOnlyFunction = Function<Signature_T, true, size_T, alignment_T>;
 
 export using util::any_cast;

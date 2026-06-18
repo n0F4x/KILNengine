@@ -211,7 +211,7 @@ struct DefaultAnyTraits {
     };
 };
 
-export template <typename T, typename Any_T>
+export template <decayed_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 [[nodiscard]]
@@ -229,16 +229,19 @@ class BasicAny final
       AssertAnyTraits<typename Traits_T::template type<BasicAny<Traits_T>>>   //
 {
 public:
+    using allocator_type = std::pmr::polymorphic_allocator<>;
     using Traits         = Traits_T::template type<BasicAny>;
     using InterfaceMixin = Traits::InterfaceMixin;
 
-    // required for interfacing with the standard
-    using allocator_type = std::pmr::polymorphic_allocator<>;
 
+    [[nodiscard]]
     consteval static auto is_move_only() -> bool;
+    [[nodiscard]]
     consteval static auto size() -> std::size_t;
+    [[nodiscard]]
     consteval static auto alignment() -> std::size_t;
     template <typename T>
+    [[nodiscard]]
     consteval static auto storable() -> bool;
 
 
@@ -265,8 +268,7 @@ public:
 
     template <typename T>
     constexpr explicit BasicAny(T&& value)
-        requires(!strips_to_c<T, BasicAny>)   //
-             && (!strips_to_c<T, std::allocator_arg_t>)
+        requires(!strips_to_c<T, BasicAny>)
              && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
              && (storable<std::decay_t<T>>());
@@ -277,8 +279,7 @@ public:
         const allocator_type& allocator,
         T&&                   value
     )
-        requires(!strips_to_c<T, BasicAny>)   //
-             && (!strips_to_c<T, std::allocator_arg_t>)
+        requires(!strips_to_c<T, BasicAny>)
              && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
              && (storable<std::decay_t<T>>());
@@ -289,12 +290,11 @@ public:
     auto operator=(BasicAny&&) noexcept -> BasicAny&;
 
 
-    // required for interfacing with the standard
     [[nodiscard]]
-    auto get_allocator() const -> allocator_type;
+    auto get_allocator() const noexcept -> allocator_type;
 
 
-    template <typename T, typename Any_T>
+    template <decayed_c T, typename Any_T>
         requires any_c<std::remove_cvref_t<Any_T>>
               && (std::remove_cvref_t<Any_T>::template storable<T>())
     friend auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
@@ -489,7 +489,7 @@ struct Operations<T, Traits_T> {
     {
         std::unique_ptr<T, Deleter> handle{
             allocator.new_object<T>(std::forward<Args_T>(args)...),
-            Deleter{ allocator }   //
+            Deleter{ allocator }
         };
 
         out.template emplace<void*>(handle.release());
@@ -583,7 +583,7 @@ struct Operations<T, Traits_T> {
 
 }   // namespace internal
 
-template <typename T, typename Any_T>
+template <decayed_c T, typename Any_T>
     requires any_c<std::remove_cvref_t<Any_T>>
           && (std::remove_cvref_t<Any_T>::template storable<T>())
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
@@ -748,10 +748,9 @@ constexpr BasicAny<Traits_T>::BasicAny(
 template <typename Traits_T>
 template <typename T>
 constexpr BasicAny<Traits_T>::BasicAny(T&& value)
-    requires(!strips_to_c<T, BasicAny>)   //
-         && (!strips_to_c<T, std::allocator_arg_t>)
+    requires(!strips_to_c<T, BasicAny>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
-         && std::constructible_from<std::decay_t<T>, T&&>   //
+         && std::constructible_from<std::decay_t<T>, T&&>
          && (storable<std::decay_t<T>>())
     : BasicAny{
           std::allocator_arg,
@@ -768,10 +767,9 @@ constexpr BasicAny<Traits_T>::BasicAny(
     const allocator_type& allocator,
     T&&                   value
 )
-    requires(!strips_to_c<T, BasicAny>)   //
-         && (!strips_to_c<T, std::allocator_arg_t>)
+    requires(!strips_to_c<T, BasicAny>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
-         && std::constructible_from<std::decay_t<T>, T&&>   //
+         && std::constructible_from<std::decay_t<T>, T&&>
          && (storable<std::decay_t<T>>())
     : BasicAny{
           std::allocator_arg,
@@ -837,7 +835,7 @@ auto BasicAny<Traits_T>::operator=(BasicAny&& other) noexcept -> BasicAny&
 }
 
 template <typename Traits_T>
-auto BasicAny<Traits_T>::get_allocator() const -> allocator_type
+auto BasicAny<Traits_T>::get_allocator() const noexcept -> allocator_type
 {
     return m_allocator;
 }
