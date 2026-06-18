@@ -82,6 +82,13 @@ class AnyBase {};
 export template <typename T>
 concept any_c = std::derived_from<T, internal::AnyBase>;
 
+export template <typename T, typename Any_T>
+concept storable_in_any_c = any_c<Any_T>
+                         && storable_c<T>
+                         && decayed_c<T>
+                         && (Any_T::is_move_only() || std::copyable<T>)
+                         && Any_T::Traits::template meets_custom_requirements<T>();
+
 export template <typename Any_T>
 class DefaultAnyInterfaceMixin;
 
@@ -212,8 +219,7 @@ struct DefaultAnyTraits {
 };
 
 export template <decayed_c T, typename Any_T>
-    requires any_c<std::remove_cvref_t<Any_T>>
-          && (std::remove_cvref_t<Any_T>::template storable<T>())
+    requires storable_in_any_c<T, std::remove_cvref_t<Any_T>>
 [[nodiscard]]
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
@@ -240,9 +246,6 @@ public:
     consteval static auto size() -> std::size_t;
     [[nodiscard]]
     consteval static auto alignment() -> std::size_t;
-    template <typename T>
-    [[nodiscard]]
-    consteval static auto storable() -> bool;
 
 
     constexpr BasicAny(const BasicAny&, const allocator_type& allocator = {})
@@ -254,7 +257,7 @@ public:
     template <typename T, typename... Args_T>
         requires std::constructible_from<T, Args_T&&...>
     constexpr explicit BasicAny(std::in_place_type_t<T>, Args_T&&... args)
-        requires(storable<T>());
+        requires storable_in_any_c<T, BasicAny>;
 
     template <typename T, typename... Args_T>
         requires std::constructible_from<T, Args_T&&...>
@@ -264,14 +267,14 @@ public:
         std::in_place_type_t<T>,
         Args_T&&... args
     )
-        requires(storable<T>());
+        requires storable_in_any_c<T, BasicAny>;
 
     template <typename T>
     constexpr explicit BasicAny(T&& value)
         requires(!strips_to_c<T, BasicAny>)
              && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
-             && (storable<std::decay_t<T>>());
+             && storable_in_any_c<std::decay_t<T>, BasicAny>;
 
     template <typename T>
     constexpr explicit BasicAny(
@@ -282,7 +285,7 @@ public:
         requires(!strips_to_c<T, BasicAny>)
              && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
-             && (storable<std::decay_t<T>>());
+             && storable_in_any_c<std::decay_t<T>, BasicAny>;
 
 
     auto operator=(const BasicAny&) -> BasicAny&
@@ -295,8 +298,7 @@ public:
 
 
     template <decayed_c T, typename Any_T>
-        requires any_c<std::remove_cvref_t<Any_T>>
-              && (std::remove_cvref_t<Any_T>::template storable<T>())
+        requires storable_in_any_c<T, std::remove_cvref_t<Any_T>>
     friend auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>;
 
     template <decayed_c T, typename Any_T>
@@ -584,8 +586,7 @@ struct Operations<T, Traits_T> {
 }   // namespace internal
 
 template <decayed_c T, typename Any_T>
-    requires any_c<std::remove_cvref_t<Any_T>>
-          && (std::remove_cvref_t<Any_T>::template storable<T>())
+    requires storable_in_any_c<T, std::remove_cvref_t<Any_T>>
 auto any_cast(Any_T&& any) -> forward_like_t<T, Any_T>
 {
 #ifdef __clang__
@@ -661,16 +662,6 @@ consteval auto BasicAny<Traits_T>::alignment() -> std::size_t
 }
 
 template <typename Traits_T>
-template <typename T>
-consteval auto BasicAny<Traits_T>::storable() -> bool
-{
-    return storable_c<T>
-        && decayed_c<T>
-        && (is_move_only() || std::copy_constructible<T>)
-        && Traits::template meets_custom_requirements<T>();
-}
-
-template <typename Traits_T>
 constexpr BasicAny<Traits_T>::BasicAny(
     const BasicAny&       other,
     const allocator_type& allocator
@@ -714,7 +705,7 @@ constexpr BasicAny<Traits_T>::BasicAny(
     std::in_place_type_t<T> in_place_type,
     Args_T&&... args
 )
-    requires(storable<T>())
+    requires storable_in_any_c<T, BasicAny>
     : BasicAny{
           std::allocator_arg,
           allocator_type{},
@@ -733,7 +724,7 @@ constexpr BasicAny<Traits_T>::BasicAny(
     std::in_place_type_t<T>,
     Args_T&&... args
 )
-    requires(storable<T>())
+    requires storable_in_any_c<T, BasicAny>
     : InterfaceMixin{ AnyExtraVTableAccessor{} },
       m_allocator{ allocator },
       m_vtable{ &internal::Operations<T, Traits>::vtable }
@@ -751,7 +742,7 @@ constexpr BasicAny<Traits_T>::BasicAny(T&& value)
     requires(!strips_to_c<T, BasicAny>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
          && std::constructible_from<std::decay_t<T>, T&&>
-         && (storable<std::decay_t<T>>())
+         && storable_in_any_c<std::decay_t<T>, BasicAny>
     : BasicAny{
           std::allocator_arg,
           allocator_type{},
@@ -770,7 +761,7 @@ constexpr BasicAny<Traits_T>::BasicAny(
     requires(!strips_to_c<T, BasicAny>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
          && std::constructible_from<std::decay_t<T>, T&&>
-         && (storable<std::decay_t<T>>())
+         && storable_in_any_c<std::decay_t<T>, BasicAny>
     : BasicAny{
           std::allocator_arg,
           allocator,

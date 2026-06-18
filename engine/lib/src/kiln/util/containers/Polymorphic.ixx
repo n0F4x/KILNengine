@@ -58,8 +58,8 @@ public:
         alignas(alignment_T) std::array<std::byte, size_T> small_buffer;
     };
 
-    template <typename U>
-    constexpr explicit EraseMechanism(std::in_place_type_t<U>) noexcept;
+    template <typename T>
+    constexpr explicit EraseMechanism(std::in_place_type_t<T>) noexcept;
 
     [[nodiscard]]
     auto copy_construct(
@@ -88,12 +88,12 @@ public:
     auto drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) const
         -> void;
 
-    template <typename U, typename... Args_T>
+    template <typename T, typename... Args_T>
     [[nodiscard]]
     static auto construct(
         std::allocator_arg_t,
         std::pmr::polymorphic_allocator<>& allocator,
-        std::in_place_type_t<U>,
+        std::in_place_type_t<T>,
         Args_T&&... args
     ) -> Storage;
 
@@ -144,11 +144,11 @@ public:
         Interface_T* handle;
     };
 
-    template <typename U>
-    constexpr explicit EraseMechanism(std::in_place_type_t<U>) noexcept
+    template <typename T>
+    constexpr explicit EraseMechanism(std::in_place_type_t<T>) noexcept
         requires(!is_move_only_T);
-    template <typename U>
-    constexpr explicit EraseMechanism(std::in_place_type_t<U>) noexcept
+    template <typename T>
+    constexpr explicit EraseMechanism(std::in_place_type_t<T>) noexcept
         requires(is_move_only_T);
 
     [[nodiscard]]
@@ -168,20 +168,20 @@ public:
         requires(!is_move_only_T);
     [[nodiscard]]
     static auto move_construct(
-        std::pmr::polymorphic_allocator<>&       destination_allocator,
+        const std::pmr::polymorphic_allocator<>& destination_allocator,
         const std::pmr::polymorphic_allocator<>& source_allocator,
         Storage&&                                source_storage
     ) noexcept -> Storage
-        requires(is_move_only_T);
+        requires is_move_only_T;
     static auto drop(std::pmr::polymorphic_allocator<>& allocator, Storage& storage)
         -> void;
 
-    template <typename U, typename... Args_T>
+    template <typename T, typename... Args_T>
     [[nodiscard]]
     static auto construct(
         std::allocator_arg_t,
         std::pmr::polymorphic_allocator<>& allocator,
-        std::in_place_type_t<U>,
+        std::in_place_type_t<T>,
         Args_T&&... args
     ) -> Storage;
 
@@ -208,11 +208,11 @@ public:
     auto type_name() const -> std::string_view;
 
     constexpr static auto swap(
-        std::pmr::polymorphic_allocator<>& lhs_allocator,
-        Storage&                           lhs_storage,
-        std::pmr::polymorphic_allocator<>& rhs_allocator,
-        Storage&                           rhs_storage,
-        const EraseMechanism&              rhs_erase_mechanism
+        const std::pmr::polymorphic_allocator<>& lhs_allocator,
+        Storage&                                 lhs_storage,
+        const std::pmr::polymorphic_allocator<>& rhs_allocator,
+        Storage&                                 rhs_storage,
+        const EraseMechanism&                    rhs_erase_mechanism
     ) -> void;
     static auto release(std::pmr::polymorphic_allocator<>& allocator, Storage& storage)
         -> void;
@@ -236,17 +236,17 @@ namespace internal {
 
 class PolymorphicBase {};
 
-template <typename T, typename Interface_T, bool is_move_only_T>
-concept storable_c = interface_c<Interface_T>
-                  && std::derived_from<T, Interface_T>
-                  && ::kiln::util::storable_c<T>
-                  && (is_move_only_T || std::copyable<T>);
-
 }   // namespace internal
 
+export template <typename T, typename Polymorphic_T>
+concept storable_in_polymorphic_c
+    = std::derived_from<Polymorphic_T, internal::PolymorphicBase>
+   && std::derived_from<T, typename Polymorphic_T::InterfaceType>
+   && ::kiln::util::storable_c<T>
+   && (Polymorphic_T::is_move_only() || std::copyable<T>);
+
 export template <decayed_c T, typename Polymorphic_T>
-    requires std::derived_from<std::remove_cvref_t<Polymorphic_T>, internal::PolymorphicBase>
-          && (std::remove_cvref_t<Polymorphic_T>::template storable<T>())
+    requires storable_in_polymorphic_c<T, std::remove_cvref_t<Polymorphic_T>>
 [[nodiscard]]
 auto any_cast(Polymorphic_T&& polymorphic) -> forward_like_t<T, Polymorphic_T>;
 
@@ -263,6 +263,7 @@ export template <
     std::size_t alignment_T>
 class Polymorphic : public internal::PolymorphicBase {
 public:
+    using InterfaceType  = Interface_T;
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
@@ -272,9 +273,6 @@ public:
     consteval static auto size() -> std::size_t;
     [[nodiscard]]
     consteval static auto alignment() -> std::size_t;
-    template <typename U>
-    [[nodiscard]]
-    consteval static auto storable() -> bool;
 
 
     Polymorphic(const Polymorphic&)
@@ -285,32 +283,32 @@ public:
     Polymorphic(Polymorphic&&, const allocator_type& allocator);
     ~Polymorphic();
 
-    template <typename U>
-    explicit Polymorphic(U&& value)
-        requires(!strips_to_c<U, Polymorphic>)
-             && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
-             && std::constructible_from<std::remove_cvref_t<U>, U&&>
-             && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>;
-    template <typename U>
-    explicit Polymorphic(std::allocator_arg_t, const allocator_type& allocator, U&& value)
-        requires(!strips_to_c<U, Polymorphic>)
-             && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
-             && std::constructible_from<std::remove_cvref_t<U>, U&&>
-             && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>;
+    template <typename T>
+    explicit Polymorphic(T&& value)
+        requires(!strips_to_c<T, Polymorphic>)
+             && (!util::specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+             && std::constructible_from<std::remove_cvref_t<T>, T&&>
+             && storable_in_polymorphic_c<std::remove_cvref_t<T>, Polymorphic>;
+    template <typename T>
+    explicit Polymorphic(std::allocator_arg_t, const allocator_type& allocator, T&& value)
+        requires(!strips_to_c<T, Polymorphic>)
+             && (!util::specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+             && std::constructible_from<std::remove_cvref_t<T>, T&&>
+             && storable_in_polymorphic_c<std::remove_cvref_t<T>, Polymorphic>;
 
-    template <typename U, typename... Args_T>
-    explicit Polymorphic(std::in_place_type_t<U>, Args_T&&... args)
-        requires std::constructible_from<U, Args_T&&...>
-              && internal::storable_c<U, Interface_T, is_move_only_T>;
-    template <typename U, typename... Args_T>
+    template <typename T, typename... Args_T>
+    explicit Polymorphic(std::in_place_type_t<T>, Args_T&&... args)
+        requires std::constructible_from<T, Args_T&&...>
+              && storable_in_polymorphic_c<T, Polymorphic>;
+    template <typename T, typename... Args_T>
     explicit Polymorphic(
         std::allocator_arg_t,
         const allocator_type& allocator,
-        std::in_place_type_t<U>,
+        std::in_place_type_t<T>,
         Args_T&&... args
     )
-        requires std::constructible_from<U, Args_T&&...>
-              && internal::storable_c<U, Interface_T, is_move_only_T>;
+        requires std::constructible_from<T, Args_T&&...>
+              && storable_in_polymorphic_c<T, Polymorphic>;
 
     auto operator=(const Polymorphic&) -> Polymorphic&
         requires(!is_move_only_T);
@@ -342,8 +340,7 @@ public:
 
 
     template <decayed_c T, typename Polymorphic_T>
-        requires std::derived_from<std::remove_cvref_t<Polymorphic_T>, PolymorphicBase>
-              && (std::remove_cvref_t<Polymorphic_T>::template storable<T>())
+        requires storable_in_polymorphic_c<T, std::remove_cvref_t<Polymorphic_T>>
     friend auto any_cast(Polymorphic_T&& polymorphic) -> forward_like_t<T, Polymorphic_T>;
 
     template <decayed_c T, typename Polymorphic_T>
@@ -418,7 +415,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable 
     using ReleaseFunc
         = auto(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) -> void;
 
-    template <typename U>
+    template <typename T>
     struct Operations;
 
 
@@ -441,13 +438,13 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable 
 
 template <typename Interface_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
     requires(size_T != 0)
-template <typename U>
+template <typename T>
 struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable::Operations {
     constexpr static auto uses_small_buffer() noexcept -> bool
     {
-        return sizeof(U) <= size_T
-            && alignment_T % alignof(U) == 0
-            && nothrow_movable_c<U>;
+        return sizeof(T) <= size_T
+            && alignment_T % alignof(T) == 0
+            && nothrow_movable_c<T>;
     }
 
     template <typename... Args_T>
@@ -460,13 +457,13 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         if constexpr (uses_small_buffer())
         {
             allocator.construct(
-                static_cast<U*>(storage.small_buffer.data()),
+                static_cast<T*>(storage.small_buffer.data()),
                 std::forward<Args_T>(args)...
             );
         }
         else
         {
-            storage.handle = allocator.new_object<U>(std::forward<Args_T>(args)...);
+            storage.handle = allocator.new_object<T>(std::forward<Args_T>(args)...);
         }
     }
 
@@ -481,7 +478,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
             create_at(
                 allocator,
                 destination_storage,
-                *static_cast<const U*>(source_storage.small_buffer.data())
+                *static_cast<const T*>(source_storage.small_buffer.data())
             );
         }
         else
@@ -495,7 +492,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
             create_at(
                 allocator,
                 destination_storage,
-                static_cast<const U&>(*source_storage.handle)
+                static_cast<const T&>(*source_storage.handle)
             );
         }
     }
@@ -508,8 +505,8 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         if constexpr (uses_small_buffer())
         {
             std::construct_at(
-                static_cast<U*>(destination_storage.small_buffer.data()),
-                std::move(*static_cast<U*>(source_storage.small_buffer.data()))
+                static_cast<T*>(destination_storage.small_buffer.data()),
+                std::move(*static_cast<T*>(source_storage.small_buffer.data()))
             );
         }
         else
@@ -528,8 +525,8 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         if constexpr (uses_small_buffer())
         {
             destination_allocator.construct(
-                static_cast<U*>(destination_storage.small_buffer.data()),
-                std::move(*static_cast<U*>(source_storage.small_buffer.data()))
+                static_cast<T*>(destination_storage.small_buffer.data()),
+                std::move(*static_cast<T*>(source_storage.small_buffer.data()))
             );
         }
         else
@@ -566,13 +563,13 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
     {
         if constexpr (uses_small_buffer())
         {
-            std::destroy_at(static_cast<U*>(storage.small_buffer.data()));
+            std::destroy_at(static_cast<T*>(storage.small_buffer.data()));
         }
         else
         {
             if (storage.handle != nullptr)
             {
-                allocator.delete_object(static_cast<U*>(storage.handle));
+                allocator.delete_object(static_cast<T*>(storage.handle));
             }
         }
     }
@@ -588,17 +585,17 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         {
             if (destination_erase_mechanism.type_hash() == type_hash())
             {
-                *static_cast<U*>(destination_storage.small_buffer.data())
-                    = *static_cast<U*>(source_storage.small_buffer.data());
+                *static_cast<T*>(destination_storage.small_buffer.data())
+                    = *static_cast<T*>(source_storage.small_buffer.data());
                 return;
             }
 
-            U new_object{ *static_cast<U*>(source_storage.small_buffer.data()) };
+            T new_object{ *static_cast<T*>(source_storage.small_buffer.data()) };
 
             destination_erase_mechanism.drop(destination_allocator, destination_storage);
 
             destination_allocator.construct(
-                static_cast<U*>(destination_storage.small_buffer.data()),
+                static_cast<T*>(destination_storage.small_buffer.data()),
                 new_object
             );
         }
@@ -608,16 +605,16 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
                 && destination_storage.handle != nullptr
                 && source_storage.handle != nullptr)
             {
-                static_cast<U&>(*destination_storage.handle)
-                    = static_cast<const U&>(*source_storage.handle);
+                static_cast<T&>(*destination_storage.handle)
+                    = static_cast<const T&>(*source_storage.handle);
                 return;
             }
 
             Interface_T* const new_object
                 = source_storage.handle == nullptr
                     ? nullptr
-                    : destination_allocator.new_object<U>(
-                          static_cast<const U&>(*source_storage.handle)
+                    : destination_allocator.new_object<T>(
+                          static_cast<const T&>(*source_storage.handle)
                       );
             const ScopeFail new_object_guard{
                 [&] noexcept -> void
@@ -688,13 +685,13 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
     [[nodiscard]]
     constexpr static auto type_hash() -> uint64_t
     {
-        return util::hash_u64<U>();
+        return util::hash_u64<T>();
     }
 
     [[nodiscard]]
     constexpr static auto type_name() -> std::string_view
     {
-        return util::name_of<U>();
+        return util::name_of<T>();
     }
 
     constexpr static auto swap(
@@ -710,8 +707,8 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
             if (type_hash() == rhs_erase_mechanism.type_hash())
             {
                 std::swap(
-                    *static_cast<U*>(lhs_storage.small_buffer.data()),
-                    *static_cast<U*>(rhs_storage.small_buffer.data())
+                    *static_cast<T*>(lhs_storage.small_buffer.data()),
+                    *static_cast<T*>(rhs_storage.small_buffer.data())
                 );
             }
             else
@@ -733,8 +730,8 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
                 };
 
                 std::construct_at(
-                    static_cast<U*>(rhs_storage.small_buffer.data()),
-                    std::move(*static_cast<U*>(lhs_storage.small_buffer.data()))
+                    static_cast<T*>(rhs_storage.small_buffer.data()),
+                    std::move(*static_cast<T*>(lhs_storage.small_buffer.data()))
                 );
 
                 rhs_erase_mechanism.move_construct_at(lhs_storage, std::move(tmp));
@@ -778,7 +775,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         {
             if (storage.handle != nullptr)
             {
-                allocator.delete_object(static_cast<U*>(storage.handle));
+                allocator.delete_object(static_cast<T*>(storage.handle));
                 storage.handle = nullptr;
             }
         }
@@ -836,7 +833,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::VTable {
     using TypeHashFunc = auto() -> uint64_t;
     using TypeNameFunc = auto() -> std::string_view;
 
-    template <typename U>
+    template <typename T>
     struct Operations;
 
 
@@ -852,7 +849,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::DiagnosticVT
     using TypeHashFunc = auto() -> uint64_t;
     using TypeNameFunc = auto() -> std::string_view;
 
-    template <typename U>
+    template <typename T>
     struct Operations;
 
 
@@ -862,7 +859,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::DiagnosticVT
 #endif
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
-template <typename U>
+template <typename T>
 struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::VTable::Operations {
     static auto copy_construct(
         std::pmr::polymorphic_allocator<>& allocator,
@@ -879,7 +876,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::VTable::Oper
         }
 
         result.handle
-            = allocator.new_object<U>(static_cast<const U&>(*source_storage.handle));
+            = allocator.new_object<T>(static_cast<const T&>(*source_storage.handle));
         return result;
     }
 
@@ -894,16 +891,16 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::VTable::Oper
             && destination_storage.handle != nullptr
             && source_storage.handle != nullptr)
         {
-            static_cast<U&>(*destination_storage.handle)
-                = static_cast<const U&>(*source_storage.handle);
+            static_cast<T&>(*destination_storage.handle)
+                = static_cast<const T&>(*source_storage.handle);
             return;
         }
 
         Interface_T* const new_object
             = source_storage.handle == nullptr
                 ? nullptr
-                : destination_allocator.new_object<U>(
-                      static_cast<const U&>(*source_storage.handle)
+                : destination_allocator.new_object<T>(
+                      static_cast<const T&>(*source_storage.handle)
                   );
         const ScopeFail new_object_guard{
             [&] noexcept -> void
@@ -923,13 +920,13 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::VTable::Oper
     [[nodiscard]]
     constexpr static auto type_hash() -> uint64_t
     {
-        return util::hash_u64<U>();
+        return util::hash_u64<T>();
     }
 
     [[nodiscard]]
     constexpr static auto type_name() -> std::string_view
     {
-        return util::name_of<U>();
+        return util::name_of<T>();
     }
 
     constexpr static VTable vtable{
@@ -942,20 +939,20 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::VTable::Oper
 
 #ifdef KILN_DEBUG
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
-template <typename U>
+template <typename T>
 struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::DiagnosticVTable::
     Operations   //
 {
     [[nodiscard]]
     constexpr static auto type_hash() -> uint64_t
     {
-        return util::hash_u64<U>();
+        return util::hash_u64<T>();
     }
 
     [[nodiscard]]
     constexpr static auto type_name() -> std::string_view
     {
-        return util::name_of<U>();
+        return util::name_of<T>();
     }
 
     constexpr static DiagnosticVTable vtable{
@@ -967,11 +964,11 @@ struct EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::DiagnosticVT
 
 template <typename Interface_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
     requires(size_T != 0)
-template <typename U>
+template <typename T>
 constexpr EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::EraseMechanism(
-    std::in_place_type_t<U>
+    std::in_place_type_t<T>
 ) noexcept
-    : m_vtable{ VTable::template Operations<U>::vtable }
+    : m_vtable{ VTable::template Operations<T>::vtable }
 {
 }
 
@@ -1059,16 +1056,16 @@ auto EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::drop(
 
 template <typename Interface_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
     requires(size_T != 0)
-template <typename U, typename... Args_T>
+template <typename T, typename... Args_T>
 auto EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::construct(
     std::allocator_arg_t,
     std::pmr::polymorphic_allocator<>& allocator,
-    std::in_place_type_t<U>,
+    std::in_place_type_t<T>,
     Args_T&&... args
 ) -> Storage
 {
     Storage result;
-    VTable::template Operations<U>::create_at(
+    VTable::template Operations<T>::create_at(
         allocator,
         result,
         std::forward<Args_T>(args)...
@@ -1183,23 +1180,23 @@ auto EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::release(
 }
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
-template <typename U>
+template <typename T>
 constexpr EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::EraseMechanism(
-    std::in_place_type_t<U>
+    std::in_place_type_t<T>
 ) noexcept
     requires(!is_move_only_T)
-    : m_vtable{ VTable::template Operations<U>::vtable }
+    : m_vtable{ VTable::template Operations<T>::vtable }
 {
 }
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
-template <typename U>
+template <typename T>
 constexpr EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::EraseMechanism(
-    std::in_place_type_t<U>
+    std::in_place_type_t<T>
 ) noexcept
     requires(is_move_only_T)
 #ifdef KILN_DEBUG
-    : m_vtable{ DiagnosticVTable::template Operations<U>::vtable }
+    : m_vtable{ DiagnosticVTable::template Operations<T>::vtable }
 #endif
 {
 }
@@ -1240,11 +1237,11 @@ auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::move_construct
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
 auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::move_construct(
-    [[maybe_unused]] std::pmr::polymorphic_allocator<>&       destination_allocator,
+    [[maybe_unused]] const std::pmr::polymorphic_allocator<>& destination_allocator,
     [[maybe_unused]] const std::pmr::polymorphic_allocator<>& source_allocator,
     Storage&&                                                 source_storage
 ) noexcept -> Storage
-    requires(is_move_only_T)
+    requires is_move_only_T
 {
     PRECOND(destination_allocator == source_allocator);
     return Storage{ .handle = std::exchange(source_storage.handle, nullptr) };
@@ -1263,16 +1260,16 @@ auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::drop(
 }
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
-template <typename U, typename... Args_T>
+template <typename T, typename... Args_T>
 auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::construct(
     std::allocator_arg_t,
     std::pmr::polymorphic_allocator<>& allocator,
-    std::in_place_type_t<U>,
+    std::in_place_type_t<T>,
     Args_T&&... args
 ) -> Storage
 {
     return Storage{
-        .handle = allocator.new_object<U>(std::forward<Args_T>(args)...),
+        .handle = allocator.new_object<T>(std::forward<Args_T>(args)...),
     };
 }
 
@@ -1345,10 +1342,10 @@ auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::type_name() co
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
 constexpr auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::swap(
-    [[maybe_unused]] std::pmr::polymorphic_allocator<>& lhs_allocator,
-    Storage&                                            lhs_storage,
-    [[maybe_unused]] std::pmr::polymorphic_allocator<>& rhs_allocator,
-    Storage&                                            rhs_storage,
+    [[maybe_unused]] const std::pmr::polymorphic_allocator<>& lhs_allocator,
+    Storage&                                                  lhs_storage,
+    [[maybe_unused]] const std::pmr::polymorphic_allocator<>& rhs_allocator,
+    Storage&                                                  rhs_storage,
     const EraseMechanism&
 ) -> void
 {
@@ -1370,8 +1367,7 @@ auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::release(
 }
 
 template <decayed_c T, typename Polymorphic_T>
-    requires std::derived_from<std::remove_cvref_t<Polymorphic_T>, internal::PolymorphicBase>
-          && (std::remove_cvref_t<Polymorphic_T>::template storable<T>())
+    requires storable_in_polymorphic_c<T, std::remove_cvref_t<Polymorphic_T>>
 auto any_cast(Polymorphic_T&& polymorphic) -> forward_like_t<T, Polymorphic_T>
 {
     PRECOND(
@@ -1430,18 +1426,6 @@ consteval auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::al
     -> std::size_t
 {
     return alignment_T;
-}
-
-template <
-    interface_c Interface_T,
-    bool        is_move_only_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-template <typename U>
-consteval auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::storable()
-    -> bool
-{
-    return internal::storable_c<U, Interface_T, is_move_only_T>;
 }
 
 template <
@@ -1523,17 +1507,17 @@ template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-template <typename U>
-Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(U&& value)
-    requires(!strips_to_c<U, Polymorphic>)
-         && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
-         && std::constructible_from<std::remove_cvref_t<U>, U&&>
-         && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>
+template <typename T>
+Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(T&& value)
+    requires(!strips_to_c<T, Polymorphic>)
+         && (!util::specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+         && std::constructible_from<std::remove_cvref_t<T>, T&&>
+         && storable_in_polymorphic_c<std::remove_cvref_t<T>, Polymorphic>
 
     : Polymorphic{
           std::allocator_arg,
           std::pmr::get_default_resource(),
-          std::forward<U>(value),
+          std::forward<T>(value),
       }
 {
 }
@@ -1543,21 +1527,21 @@ template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-template <typename U>
+template <typename T>
 Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::allocator_arg_t,
     const allocator_type& allocator,
-    U&&                   value
+    T&&                   value
 )
-    requires(!strips_to_c<U, Polymorphic>)
-         && (!util::specialization_of_c<std::remove_cvref_t<U>, std::in_place_type_t>)
-         && std::constructible_from<std::remove_cvref_t<U>, U&&>
-         && internal::storable_c<std::remove_cvref_t<U>, Interface_T, is_move_only_T>
+    requires(!strips_to_c<T, Polymorphic>)
+         && (!util::specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
+         && std::constructible_from<std::remove_cvref_t<T>, T&&>
+         && storable_in_polymorphic_c<std::remove_cvref_t<T>, Polymorphic>
     : Polymorphic{
           std::allocator_arg,
           allocator,
-          std::in_place_type<std::remove_cvref_t<U>>,
-          std::forward<U>(value),
+          std::in_place_type<std::remove_cvref_t<T>>,
+          std::forward<T>(value),
       }
 {
 }
@@ -1567,13 +1551,13 @@ template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-template <typename U, typename... Args_T>
+template <typename T, typename... Args_T>
 Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
-    std::in_place_type_t<U> in_place_type,
+    std::in_place_type_t<T> in_place_type,
     Args_T&&... args
 )
-    requires std::constructible_from<U, Args_T&&...>
-          && internal::storable_c<U, Interface_T, is_move_only_T>
+    requires std::constructible_from<T, Args_T&&...>
+          && storable_in_polymorphic_c<T, Polymorphic>
     : Polymorphic{
           std::allocator_arg,
           std::pmr::get_default_resource(),
@@ -1588,15 +1572,15 @@ template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-template <typename U, typename... Args_T>
+template <typename T, typename... Args_T>
 Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
     std::allocator_arg_t,
     const allocator_type&   allocator,
-    std::in_place_type_t<U> in_place_type,
+    std::in_place_type_t<T> in_place_type,
     Args_T&&... args
 )
-    requires std::constructible_from<U, Args_T&&...>
-              && internal::storable_c<U, Interface_T, is_move_only_T>
+    requires std::constructible_from<T, Args_T&&...>
+              && storable_in_polymorphic_c<T, Polymorphic>
     : m_allocator{ allocator },
       m_storage{
           EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::construct(
@@ -1606,7 +1590,7 @@ Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::Polymorphic(
               std::forward<Args_T>(args)...
           )   //
       },
-      m_erase_mechanism{ std::in_place_type<U> }
+      m_erase_mechanism{ std::in_place_type<T> }
 {
 }
 

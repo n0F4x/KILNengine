@@ -52,18 +52,19 @@ constexpr bool callable_with_qualifiers_v = false;
 template <std::size_t size_T, std::size_t alignment_T>
 using Storage = SmallBuffer<std::max(size_T, sizeof(void*)), alignment_T>;
 
-template <typename T, typename Function_T>
-concept storable_c = decayed_c<T>
-                  && util::storable_c<T>
-                  && callable_with_qualifiers_v<T, typename Function_T::Signature>
-                  // TODO: use std::copyable when lambdas become copy assignable
-                  && (Function_T::is_move_only() || std::copy_constructible<T>);
-
 }   // namespace internal
 
+export template <typename T, typename Function_T>
+concept storable_in_function_c
+    = std::derived_from<Function_T, internal::FunctionBase>
+   && decayed_c<T>
+   && util::storable_c<T>
+   && internal::callable_with_qualifiers_v<T, typename Function_T::Signature>
+   // TODO: use std::copyable when lambdas become copy assignable
+   && (Function_T::is_move_only() || std::copy_constructible<T>);
+
 export template <decayed_c T, typename Function_T>
-    requires std::derived_from<std::remove_cvref_t<Function_T>, internal::FunctionBase>
-          && internal::storable_c<T, std::remove_cvref_t<Function_T>>
+    requires storable_in_function_c<T, std::remove_cvref_t<Function_T>>
 [[nodiscard]]
 constexpr auto any_cast(Function_T&& function) -> forward_like_t<T, Function_T>;
 
@@ -165,8 +166,7 @@ auto swap(
 namespace kiln::util {
 
 template <decayed_c T, typename Function_T>
-    requires std::derived_from<std::remove_cvref_t<Function_T>, internal::FunctionBase>
-          && internal::storable_c<T, std::remove_cvref_t<Function_T>>
+    requires storable_in_function_c<T, std::remove_cvref_t<Function_T>>
 constexpr auto any_cast(Function_T&& function) -> forward_like_t<T, Function_T>
 {
     PRECOND(

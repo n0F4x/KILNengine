@@ -109,9 +109,6 @@ public:
     consteval static auto size() -> std::size_t;
     [[nodiscard]]
     consteval static auto alignment() -> std::size_t;
-    template <typename T>
-    [[nodiscard]]
-    consteval static auto storable() -> bool;
 
 
     constexpr Function(const Function&, const allocator_type& allocator = {})
@@ -123,7 +120,7 @@ public:
     template <decayed_c T, typename... Args_T>
         requires std::constructible_from<T, Args_T&&...>
     constexpr explicit Function(std::in_place_type_t<T>, Args_T&&... args)
-        requires internal::storable_c<T, Function>;
+        requires storable_in_function_c<T, Function>;
 
     template <decayed_c T, typename... Args_T>
         requires std::constructible_from<T, Args_T&&...>
@@ -133,14 +130,14 @@ public:
         std::in_place_type_t<T>,
         Args_T&&... args
     )
-        requires internal::storable_c<T, Function>;
+        requires storable_in_function_c<T, Function>;
 
     template <typename T>
     constexpr explicit Function(T&& value)
         requires(!strips_to_c<T, Function>)
              && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
-             && internal::storable_c<std::decay_t<T>, Function>;
+             && storable_in_function_c<std::decay_t<T>, Function>;
 
     template <typename T>
     constexpr explicit Function(
@@ -151,7 +148,7 @@ public:
         requires(!strips_to_c<T, Function>)
              && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
              && std::constructible_from<std::decay_t<T>, T&&>
-             && internal::storable_c<std::decay_t<T>, Function>;
+             && storable_in_function_c<std::decay_t<T>, Function>;
 
 
     constexpr auto operator=(const Function&) -> Function&
@@ -177,8 +174,7 @@ public:
 
 
     template <decayed_c T, typename Function_T>
-        requires std::derived_from<std::remove_cvref_t<Function_T>, FunctionBase>
-              && internal::storable_c<T, std::remove_cvref_t<Function_T>>
+        requires storable_in_function_c<T, std::remove_cvref_t<Function_T>>
     friend constexpr auto any_cast(Function_T&& function)
         -> forward_like_t<T, Function_T>;
 
@@ -240,22 +236,6 @@ consteval auto Function<
     alignment_T>::alignment() -> std::size_t
 {
     return alignment_T;
-}
-
-template <
-    typename Result_T,
-    typename... FArgs_T,
-    bool        is_move_only_T,
-    std::size_t size_T,
-    std::size_t alignment_T>
-template <typename T>
-consteval auto Function<
-    auto(FArgs_T...) KILN_TEMP_CONST_REF noexcept(KILN_TEMP_IS_NOEXCEPT)->Result_T,
-    is_move_only_T,
-    size_T,
-    alignment_T>::storable() -> bool
-{
-    return internal::storable_c<T, Function>;
 }
 
 template <
@@ -344,7 +324,7 @@ constexpr Function<
     is_move_only_T,
     size_T,
     alignment_T>::Function(std::in_place_type_t<T> in_place_type, Args_T&&... args)
-    requires internal::storable_c<T, Function>
+    requires storable_in_function_c<T, Function>
     : Function{
           std::allocator_arg,
           std::pmr::get_default_resource(),
@@ -373,7 +353,7 @@ constexpr Function<
         const std::in_place_type_t<T> in_place_type,
         Args_T&&... args
     )
-    requires internal::storable_c<T, Function>
+    requires storable_in_function_c<T, Function>
     : m_allocator{ allocator },
       m_erase_mechanism{ std::type_identity<T>{} },
       m_invoke{ std::type_identity<T>{} },
@@ -403,7 +383,7 @@ constexpr Function<
     requires(!strips_to_c<T, Function>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
          && std::constructible_from<std::decay_t<T>, T&&>
-         && internal::storable_c<std::decay_t<T>, Function>
+         && storable_in_function_c<std::decay_t<T>, Function>
     : Function{
           std::allocator_arg,
           std::pmr::get_default_resource(),
@@ -427,7 +407,7 @@ constexpr Function<
     requires(!strips_to_c<T, Function>)
          && (!specialization_of_c<std::remove_cvref_t<T>, std::in_place_type_t>)
          && std::constructible_from<std::decay_t<T>, T&&>
-         && internal::storable_c<std::decay_t<T>, Function>
+         && storable_in_function_c<std::decay_t<T>, Function>
     : Function{
           std::allocator_arg,
           allocator,

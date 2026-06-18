@@ -23,7 +23,7 @@ import kiln.util.type_traits.const_like;
 namespace kiln::util {
 
 export template <typename T, typename Any_T>
-concept basic_generic_stack_item_c = Any_T::template storable<T>();
+concept basic_generic_stack_item_c = storable_in_any_c<T, Any_T>;
 
 export template <typename T, typename Any_T>
 concept decays_to_basic_generic_stack_item_c

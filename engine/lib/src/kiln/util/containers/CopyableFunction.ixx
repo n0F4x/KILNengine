@@ -9,6 +9,8 @@ import kiln.util.containers.Function;
 
 namespace kiln::util {
 
+export using util::storable_in_function_c;
+
 export template <
     function_c  Signature_T,
     std::size_t size_T      = default_function_size(),
