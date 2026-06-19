@@ -229,24 +229,6 @@ struct Context::MainThread {
     FixedSPSCQueue<Task> work_queue{ max_enqueued_items };
 };
 
-auto Context::run_main_thread_loop(
-    const std::atomic_bool& running,
-    MainThread&             main_thread
-) -> void
-{
-    while (running)
-    {
-        main_thread.wsi_engine.wait_events();
-
-        for (std::optional<MainThread::Task> task{ main_thread.work_queue.try_pop() };
-             task.has_value();
-             task = main_thread.work_queue.try_pop())
-        {
-            std::move (*task)(main_thread);
-        }
-    }
-}
-
 auto Context::get_allocator() const noexcept -> allocator_type
 {
     return m_wsi_event_buffer.get_allocator();
@@ -289,58 +271,6 @@ auto Context::run(
     run_main_thread_loop(running, main_thread);
 
     render_thread.join();
-}
-
-auto Context::create_window(const kiln::app::Config& config, MainThread& main_thread)
-    -> kiln::wsi::WindowProxy
-{
-    std::promise<kiln::wsi::WindowProxy> window_promise;
-
-    [[maybe_unused]]
-    const bool success = main_thread.work_queue.try_push(
-        MainThread::Task{
-            [title = config.app_name(),
-             &window_promise](const MainThread& u_main_thread) -> void
-            {
-                const kiln::util::ScopeFail failure_guard{
-                    [&window_promise, &u_main_thread] noexcept -> void
-                    {
-                        window_promise.set_value(
-                            kiln::wsi::WindowProxy{
-                                u_main_thread.wsi_engine.context(),
-                                kiln::wsi::WindowHandle{ nullptr },
-                            }
-                        );
-                    },
-                };
-
-                constexpr static kiln::wsi::WindowedWindowSettings screen_settings{
-                    .content_size{ .width = 1'280, .height = 720 }
-                };
-
-                const kiln::wsi::WindowHandle window_handle{
-                    u_main_thread.wsi_engine.create_window(title, screen_settings)
-                };
-                kiln::wsi::set_cursor_mode(
-                    u_main_thread.wsi_engine.context(),
-                    window_handle,
-                    kiln::wsi::CursorMode::eDisabledRaw
-                );
-
-                window_promise.set_value(
-                    kiln::wsi::WindowProxy{
-                        u_main_thread.wsi_engine.context(),
-                        window_handle,
-                    }
-                );
-            },
-        }
-    );
-    assert(success);
-
-    main_thread.wsi_engine.post_empty_event();
-
-    return window_promise.get_future().get();
 }
 
 auto Context::run_main_worker(
@@ -423,6 +353,58 @@ auto Context::run_main_worker(
     );
 
     render_device.logical_device().waitIdle();
+}
+
+auto Context::create_window(const kiln::app::Config& config, MainThread& main_thread)
+    -> kiln::wsi::WindowProxy
+{
+    std::promise<kiln::wsi::WindowProxy> window_promise;
+
+    [[maybe_unused]]
+    const bool success = main_thread.work_queue.try_push(
+        MainThread::Task{
+            [title = config.app_name(),
+             &window_promise](const MainThread& u_main_thread) -> void
+            {
+                const kiln::util::ScopeFail failure_guard{
+                    [&window_promise, &u_main_thread] noexcept -> void
+                    {
+                        window_promise.set_value(
+                            kiln::wsi::WindowProxy{
+                                u_main_thread.wsi_engine.context(),
+                                kiln::wsi::WindowHandle{ nullptr },
+                            }
+                        );
+                    },
+                };
+
+                constexpr static kiln::wsi::WindowedWindowSettings screen_settings{
+                    .content_size{ .width = 1'280, .height = 720 }
+                };
+
+                const kiln::wsi::WindowHandle window_handle{
+                    u_main_thread.wsi_engine.create_window(title, screen_settings)
+                };
+                kiln::wsi::set_cursor_mode(
+                    u_main_thread.wsi_engine.context(),
+                    window_handle,
+                    kiln::wsi::CursorMode::eDisabledRaw
+                );
+
+                window_promise.set_value(
+                    kiln::wsi::WindowProxy{
+                        u_main_thread.wsi_engine.context(),
+                        window_handle,
+                    }
+                );
+            },
+        }
+    );
+    assert(success);
+
+    main_thread.wsi_engine.post_empty_event();
+
+    return window_promise.get_future().get();
 }
 
 auto Context::run_render_loop(
@@ -571,6 +553,24 @@ auto Context::run_render_loop(
             limit_fps && frame_duration < target_frame_duration)
         {
             std::this_thread::sleep_for(target_frame_duration - frame_duration);
+        }
+    }
+}
+
+auto Context::run_main_thread_loop(
+    const std::atomic_bool& running,
+    MainThread&             main_thread
+) -> void
+{
+    while (running)
+    {
+        main_thread.wsi_engine.wait_events();
+
+        for (std::optional<MainThread::Task> task{ main_thread.work_queue.try_pop() };
+             task.has_value();
+             task = main_thread.work_queue.try_pop())
+        {
+            std::move (*task)(main_thread);
         }
     }
 }
