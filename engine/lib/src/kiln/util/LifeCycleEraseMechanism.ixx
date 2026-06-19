@@ -29,15 +29,24 @@ namespace internal {
 template <std::size_t size_T, std::size_t alignment_T>
 using Storage = SmallBuffer<std::max(size_T, sizeof(void*)), alignment_T>;
 
-template <std::size_t size_T, std::size_t alignment_T>
+template <bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
 struct EmbeddedVTable {
     using DropFunc = auto(
         std::pmr::polymorphic_allocator<>& allocator,
         Storage<size_T, alignment_T>&      storage
     ) -> void;
+    using SwapFunc = auto(
+        std::pmr::polymorphic_allocator<>& lhs_allocator,
+        Storage<size_T, alignment_T>&      lhs_storage,
+        std::pmr::polymorphic_allocator<>& rhs_allocator,
+        Storage<size_T, alignment_T>&      rhs_storage,
+        const LifeCycleEraseMechanism<is_move_only_T, size_T, alignment_T>&
+            rhs_erase_mechanism
+    ) -> void;
 
 
     std::reference_wrapper<DropFunc> drop;
+    std::reference_wrapper<SwapFunc> swap;
 };
 
 template <bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
@@ -126,7 +135,7 @@ public:
     ) const -> void;
 
 private:
-    internal::EmbeddedVTable<size_T, alignment_T> m_embedded_vtable;
+    internal::EmbeddedVTable<is_move_only_T, size_T, alignment_T> m_embedded_vtable;
     std::reference_wrapper<
         const internal::IndirectVTable<is_move_only_T, size_T, alignment_T>>
         m_indirect_vtable;
@@ -167,15 +176,7 @@ struct IndirectVTable {
     using TypeHashFunc        = auto() -> uint64_t;
     using TypeNameFunc        = auto() -> std::string_view;
     using UsesSmallBufferFunc = auto() -> bool;
-    using SwapFunc            = auto(
-        std::pmr::polymorphic_allocator<>& lhs_allocator,
-        Storage<size_T, alignment_T>&      lhs_storage,
-        std::pmr::polymorphic_allocator<>& rhs_allocator,
-        Storage<size_T, alignment_T>&      rhs_storage,
-        const LifeCycleEraseMechanism<is_move_only_T, size_T, alignment_T>&
-            rhs_erase_mechanism
-    ) -> void;
-    using ReleaseFunc = auto(
+    using ReleaseFunc         = auto(
         std::pmr::polymorphic_allocator<>& allocator,
         Storage<size_T, alignment_T>&      storage
     ) -> void;
@@ -191,7 +192,6 @@ struct IndirectVTable {
     std::reference_wrapper<TypeHashFunc>        type_hash;
     std::reference_wrapper<TypeNameFunc>        type_name;
     std::reference_wrapper<UsesSmallBufferFunc> uses_small_buffer;
-    std::reference_wrapper<SwapFunc>            swap;
     std::reference_wrapper<ReleaseFunc>         reset;
 };
 
@@ -581,10 +581,11 @@ struct Operations {
 
     [[nodiscard]]
     constexpr static auto make_embedded_vtable() noexcept
-        -> EmbeddedVTable<size_T, alignment_T>
+        -> EmbeddedVTable<is_move_only_T, size_T, alignment_T>
     {
-        return EmbeddedVTable<size_T, alignment_T>{
+        return EmbeddedVTable<is_move_only_T, size_T, alignment_T>{
             .drop = drop,
+            .swap = swap,
         };
     }
 
@@ -624,8 +625,7 @@ struct Operations {
         .type_hash                         = type_hash,
         .type_name                         = type_name,
         .uses_small_buffer                 = uses_small_buffer,
-        .swap                              = swap,
-        .reset                           = reset,
+        .reset                             = reset,
     };
 };
 
@@ -807,7 +807,7 @@ constexpr auto LifeCycleEraseMechanism<is_move_only_T, size_T, alignment_T>::swa
     const LifeCycleEraseMechanism&          rhs_erase_mechanism
 ) const -> void
 {
-    m_indirect_vtable.get()
+    m_embedded_vtable
         .swap(lhs_allocator, lhs_storage, rhs_allocator, rhs_storage, rhs_erase_mechanism);
 }
 

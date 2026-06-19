@@ -26,6 +26,9 @@ struct Dummy {
 
 TEST_CASE("kiln::util::Function")
 {
+    STATIC_REQUIRE(std::has_single_bit(sizeof(Function<void()>)));
+    STATIC_REQUIRE(std::has_single_bit(alignof(Function<void()>)));
+
     SECTION("construct from function")
     {
         Function<void()>{ throwing_function };

@@ -90,7 +90,7 @@ concept storable_in_any_c = any_c<Any_T>
 
 export consteval auto default_any_size() -> std::size_t
 {
-    return 3 * sizeof(void*);
+    return 5 * sizeof(void*);
 }
 
 export consteval auto default_any_alignment() -> std::size_t

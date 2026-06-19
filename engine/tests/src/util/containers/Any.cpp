@@ -1,4 +1,5 @@
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <memory_resource>
 #include <type_traits>
@@ -48,6 +49,9 @@ TEST_CASE("util::Any")
 
     constexpr static Value value{ 2 };
     constexpr static Value other_value{ 3 };
+
+    STATIC_REQUIRE(std::has_single_bit(sizeof(Any)));
+    STATIC_REQUIRE(std::has_single_bit(alignof(Any)));
 
     SECTION("in_place construct")
     {
