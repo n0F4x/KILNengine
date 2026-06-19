@@ -120,7 +120,7 @@ public:
         internal::Storage<size_T, alignment_T>& rhs_storage,
         const LifeCycleEraseMechanism&          rhs_erase_mechanism
     ) const -> void;
-    constexpr auto release(
+    constexpr auto reset(
         std::pmr::polymorphic_allocator<>&      allocator,
         internal::Storage<size_T, alignment_T>& storage
     ) const -> void;
@@ -192,7 +192,7 @@ struct IndirectVTable {
     std::reference_wrapper<TypeNameFunc>        type_name;
     std::reference_wrapper<UsesSmallBufferFunc> uses_small_buffer;
     std::reference_wrapper<SwapFunc>            swap;
-    std::reference_wrapper<ReleaseFunc>         release;
+    std::reference_wrapper<ReleaseFunc>         reset;
 };
 
 template <typename T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
@@ -560,13 +560,13 @@ struct Operations {
         }
     }
 
-    constexpr static auto release(
+    constexpr static auto reset(
         std::pmr::polymorphic_allocator<>& allocator,
         Storage<size_T, alignment_T>&      storage
     ) -> void
     {
         /*
-         * Small buffer release is no-op. It will destroy at drop.
+         * Small buffer reset is no-op. It will destroy at drop.
          */
 
         if constexpr (!uses_small_buffer_optimization_c<T, size_T, alignment_T>)
@@ -625,7 +625,7 @@ struct Operations {
         .type_name                         = type_name,
         .uses_small_buffer                 = uses_small_buffer,
         .swap                              = swap,
-        .release                           = release,
+        .reset                           = reset,
     };
 };
 
@@ -812,12 +812,12 @@ constexpr auto LifeCycleEraseMechanism<is_move_only_T, size_T, alignment_T>::swa
 }
 
 template <bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
-constexpr auto LifeCycleEraseMechanism<is_move_only_T, size_T, alignment_T>::release(
+constexpr auto LifeCycleEraseMechanism<is_move_only_T, size_T, alignment_T>::reset(
     std::pmr::polymorphic_allocator<>&      allocator,
     internal::Storage<size_T, alignment_T>& storage
 ) const -> void
 {
-    m_indirect_vtable.get().release(allocator, storage);
+    m_indirect_vtable.get().reset(allocator, storage);
 }
 
 }   // namespace kiln::util

@@ -190,7 +190,7 @@ private:
     internal::Storage<size_T, alignment_T>                                  m_storage;
 
 
-    auto release() -> void;
+    auto reset() -> void;
 };
 
 template <
@@ -462,7 +462,7 @@ constexpr auto Function<
     }
 
     swap(other);
-    other.release();
+    other.reset();
 
     return *this;
 }
@@ -492,7 +492,7 @@ constexpr auto Function<
     }
 
     swap(other);
-    other.release();
+    other.reset();
 
     return *this;
 }
@@ -562,9 +562,9 @@ auto Function<
     auto(FArgs_T...) KILN_TEMP_CONST_REF noexcept(KILN_TEMP_IS_NOEXCEPT)->Result_T,
     is_move_only_T,
     size_T,
-    alignment_T>::release() -> void
+    alignment_T>::reset() -> void
 {
-    m_erase_mechanism.release(m_allocator, m_storage);
+    m_erase_mechanism.reset(m_allocator, m_storage);
 }
 
 template <typename T, typename Result_T, typename... Args_T>

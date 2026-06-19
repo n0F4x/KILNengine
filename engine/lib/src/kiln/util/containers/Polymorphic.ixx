@@ -128,7 +128,7 @@ public:
         Storage&                           rhs_storage,
         const EraseMechanism&              rhs_erase_mechanism
     ) const -> void;
-    auto release(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) const
+    auto reset(std::pmr::polymorphic_allocator<>& allocator, Storage& storage) const
         -> void;
 
 private:
@@ -214,7 +214,7 @@ public:
         Storage&                                 rhs_storage,
         const EraseMechanism&                    rhs_erase_mechanism
     ) -> void;
-    static auto release(std::pmr::polymorphic_allocator<>& allocator, Storage& storage)
+    static auto reset(std::pmr::polymorphic_allocator<>& allocator, Storage& storage)
         -> void;
 
 private:
@@ -355,7 +355,7 @@ private:
     EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T> m_erase_mechanism;
 
 
-    auto release() -> void;
+    auto reset() -> void;
 };
 
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
@@ -433,7 +433,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable 
     std::reference_wrapper<TypeNameFunc>         type_name;
     std::reference_wrapper<UsesSmallBufferFunc>  uses_small_buffer;
     std::reference_wrapper<SwapFunc>             swap;
-    std::reference_wrapper<ReleaseFunc>          release;
+    std::reference_wrapper<ReleaseFunc>          reset;
 };
 
 template <typename Interface_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
@@ -762,13 +762,13 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         }
     }
 
-    constexpr static auto release(
+    constexpr static auto reset(
         std::pmr::polymorphic_allocator<>& allocator,
         Storage&                           storage
     ) -> void
     {
         /*
-         * Small buffer release is no-op. It will destroy at drop.
+         * Small buffer reset is no-op. It will destroy at drop.
          */
 
         if constexpr (!uses_small_buffer())
@@ -815,7 +815,7 @@ struct EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::VTable:
         .type_name         = type_name,
         .uses_small_buffer = uses_small_buffer,
         .swap              = swap,
-        .release           = release,
+        .reset           = reset,
     };
 };
 
@@ -1171,12 +1171,12 @@ constexpr auto EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>:
 
 template <typename Interface_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
     requires(size_T != 0)
-auto EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::release(
+auto EraseMechanism<Interface_T, is_move_only_T, size_T, alignment_T>::reset(
     std::pmr::polymorphic_allocator<>& allocator,
     Storage&                           storage
 ) const -> void
 {
-    m_vtable.get().release(allocator, storage);
+    m_vtable.get().reset(allocator, storage);
 }
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
@@ -1354,7 +1354,7 @@ constexpr auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::swap
 }
 
 template <typename Interface_T, bool is_move_only_T, std::size_t alignment_T>
-auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::release(
+auto EraseMechanism<Interface_T, is_move_only_T, 0, alignment_T>::reset(
     std::pmr::polymorphic_allocator<>& allocator,
     Storage&                           storage
 ) -> void
@@ -1639,7 +1639,7 @@ auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::operator=(
     }
 
     swap(other);
-    other.release();
+    other.reset();
 
     return *this;
 }
@@ -1660,7 +1660,7 @@ auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::operator=(
     }
 
     swap(other);
-    other.release();
+    other.reset();
 
     return *this;
 }
@@ -1745,9 +1745,9 @@ template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::release() -> void
+auto Polymorphic<Interface_T, is_move_only_T, size_T, alignment_T>::reset() -> void
 {
-    m_erase_mechanism.release(m_allocator, m_storage);
+    m_erase_mechanism.reset(m_allocator, m_storage);
 }
 
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
