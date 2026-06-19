@@ -26,10 +26,10 @@ import kiln.util.concepts.function_pointer;
 import kiln.util.concepts.specialization_of;
 import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
-import kiln.util.for_each;
 import kiln.util.reflection;
 import kiln.util.type_traits.arguments_of;
 import kiln.util.type_traits.result_of;
+import kiln.util.TypeList;
 
 namespace kiln::app {
 
@@ -232,10 +232,10 @@ auto BuildDirectorBase::build_entry() const -> void
 template <typename Builder_T>
 auto BuildDirectorBase::resolve_build_dependencies() const -> void
 {
-    util::for_each(
-        util::arguments_of_t<decltype(&Builder_T::build)>{},
-        [&]<typename Dependency_T> -> void { resolve_dependency<Dependency_T>(); }
-    );
+    [&]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> void
+    {
+        (resolve_dependency<Dependencies_T>(), ...);
+    }(util::arguments_of_t<decltype(&Builder_T::build)>{});
 }
 
 template <typename Dependency_T>
