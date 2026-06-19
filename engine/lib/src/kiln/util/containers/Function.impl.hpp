@@ -22,15 +22,15 @@
 namespace KILN_TEMP_NAMESPACE {
 
 template <typename T, typename Result_T, typename... Args_T>
-using IsCallable = std::conditional_t<
+constexpr static bool callable_with_noexcept_v = std::conditional_t<
     KILN_TEMP_IS_NOEXCEPT,
     std::is_nothrow_invocable_r<Result_T, T, Args_T...>,
-    std::is_invocable_r<Result_T, T, Args_T...>>;
+    std::is_invocable_r<Result_T, T, Args_T...>>::value;
 
 template <typename T, typename Result_T, typename... Args_T>
-constexpr static bool callable_with_qualifiers_v = std::conjunction_v<
-    IsCallable<T KILN_TEMP_INVOKE_QUALS, Result_T, Args_T...>,
-    IsCallable<T KILN_TEMP_CONST_REF, Result_T, Args_T...>>;
+constexpr static bool callable_with_qualifiers_v
+    = callable_with_noexcept_v<T KILN_TEMP_INVOKE_QUALS, Result_T, Args_T...>
+   && callable_with_noexcept_v<T KILN_TEMP_CONST_REF, Result_T, Args_T...>;
 
 template <std::size_t size_T, std::size_t alignment_T, typename Result_T, typename... Args_T>
 class Invoker {

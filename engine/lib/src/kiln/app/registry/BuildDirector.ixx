@@ -24,7 +24,6 @@ import kiln.app.registry.represents_entry_builder_dependency_c;
 import kiln.app.registry.represents_entry_dependency_c;
 import kiln.util.concepts.function_pointer;
 import kiln.util.concepts.specialization_of;
-import kiln.util.concepts.type_list_all_of;
 import kiln.util.containers.OptionalRef;
 import kiln.util.contracts;
 import kiln.util.for_each;
@@ -51,9 +50,9 @@ protected:
     auto reset() noexcept -> void;
 
     template <auto injection_T>
-    auto try_insert_injection() const -> bool;
+    auto try_insert_injection() const -> bool;   // NOLINT(*-use-nodiscard)
     template <typename Builder_T>
-    auto try_emplace_builder() const -> bool;
+    auto try_emplace_builder() const -> bool;    // NOLINT(*-use-nodiscard)
 
     template <typename EntryBuilder_T>
     auto build_builder() const -> void;
@@ -71,18 +70,22 @@ private:
     Registry*                m_registry{};
 };
 
-template <typename T>
-struct RepresentsEntryBuilderDependencyConcept {
-    constexpr static bool value = represents_entry_builder_dependency_c<T>;
+template <typename EntryBuilder_T, typename FuncPtr_T>
+struct IsEntryBuilderMakerFunctionPointer {
+    constexpr static bool value{ false };
+};
+
+template <typename EntryBuilder_T, typename... Args_T, bool is_noexcept_T>
+struct IsEntryBuilderMakerFunctionPointer<
+    EntryBuilder_T,
+    auto (*)(Args_T...) noexcept(is_noexcept_T)->EntryBuilder_T>   //
+{
+    constexpr static bool value{ (represents_entry_builder_dependency_c<Args_T> && ...) };
 };
 
 template <typename T, typename EntryBuilder_T>
 concept entry_builder_maker_function_pointer_c
-    = util::function_pointer_c<T>
-   && util::type_list_all_of_c<
-          util::arguments_of_t<T>,
-          RepresentsEntryBuilderDependencyConcept>
-   && std::same_as<util::result_of_t<T>, EntryBuilder_T>;
+    = IsEntryBuilderMakerFunctionPointer<EntryBuilder_T, T>::value;
 
 template <entry_builder_c EntryBuilder_T>
 class BuildDirector<EntryBuilder_T> : public BuildDirectorBase {
@@ -106,16 +109,21 @@ template <typename T, typename Entry_T>
 concept builds_entry_c
     = entry_builder_c<T> && std::same_as<util::result_of_t<decltype(&T::build)>, Entry_T>;
 
-template <typename T>
-struct RepresentsEntryDependencyConcept {
-    constexpr static bool value = represents_entry_dependency_c<T>;
+template <typename Entry_T, typename FuncPtr_T>
+struct IsEntryMakerFunctionPointer {
+    constexpr static bool value{ false };
+};
+
+template <typename Entry_T, typename... Args_T, bool is_noexcept_T>
+struct IsEntryMakerFunctionPointer<
+    Entry_T,
+    auto (*)(Args_T...) noexcept(is_noexcept_T)->Entry_T>   //
+{
+    constexpr static bool value{ (represents_entry_dependency_c<Args_T> && ...) };
 };
 
 template <typename T, typename Entry_T>
-concept entry_maker_function_pointer_c
-    = util::function_pointer_c<T>
-   && util::type_list_all_of_c<util::arguments_of_t<T>, RepresentsEntryDependencyConcept>
-   && std::same_as<util::result_of_t<T>, Entry_T>;
+concept entry_maker_function_pointer_c = IsEntryMakerFunctionPointer<Entry_T, T>::value;
 
 template <entry_c Entry_T>
 class BuildDirector<Entry_T> : public BuildDirectorBase {

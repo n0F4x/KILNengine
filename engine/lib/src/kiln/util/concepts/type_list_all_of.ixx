@@ -1,7 +1,3 @@
-module;
-
-#include <type_traits>
-
 export module kiln.util.concepts.type_list_all_of;
 
 import kiln.util.concepts.type_list;
@@ -11,14 +7,15 @@ namespace kiln::util {
 namespace internal {
 
 template <typename, template <typename> typename>
-struct TypeListAllOf : std::false_type {};
+struct TypeListAllOf;
 
 template <
     template <typename...> typename TypeList_T,
     typename... Ts,
     template <typename> typename Predicate_T>
-struct TypeListAllOf<TypeList_T<Ts...>, Predicate_T>
-    : std::conjunction<Predicate_T<Ts>...> {};
+struct TypeListAllOf<TypeList_T<Ts...>, Predicate_T> {
+    constexpr static bool value{ (Predicate_T<Ts>::value && ...) };
+};
 
 }   // namespace internal
 
