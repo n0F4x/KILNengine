@@ -190,7 +190,7 @@ private:
     internal::Storage<size_T, alignment_T>                                  m_storage;
 
 
-    auto reset() -> void;
+    constexpr auto reset() -> void;
 };
 
 template <
@@ -558,7 +558,7 @@ template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-auto Function<
+constexpr auto Function<
     auto(FArgs_T...) KILN_TEMP_CONST_REF noexcept(KILN_TEMP_IS_NOEXCEPT)->Result_T,
     is_move_only_T,
     size_T,

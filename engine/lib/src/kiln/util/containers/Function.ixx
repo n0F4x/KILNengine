@@ -156,7 +156,7 @@ export template <
     bool        is_move_only_T,
     std::size_t size_T,
     std::size_t alignment_T>
-auto swap(
+constexpr auto swap(
     Function<Signature_T, is_move_only_T, size_T, alignment_T>& lhs,
     Function<Signature_T, is_move_only_T, size_T, alignment_T>& rhs
 ) -> void;
@@ -178,10 +178,15 @@ constexpr auto any_cast(Function_T&& function) -> forward_like_t<T, Function_T>
         )
     );
 
+    auto* const address{
+        function.Function::m_erase_mechanism.address_of(function.Function::m_storage)
+    };
+
+    PRECOND(address != nullptr);
+
     return std::forward_like<Function_T>(
-        *static_cast<const_like_t<T, Function_T>*>(
-            function.Function::m_erase_mechanism.address_of(function.Function::m_storage)
-        )   //
+        // ReSharper disable once CppDFANullDereference
+        *static_cast<const_like_t<T, std::remove_reference_t<Function_T>>*>(address)
     );
 }
 
@@ -190,17 +195,22 @@ template <decayed_c T, typename Function_T>
 constexpr auto reinterpret_any_cast(Function_T&& function)
     -> forward_like_t<T, Function_T>
 {
+    auto* const address{
+        function.Function::m_erase_mechanism.address_of(function.Function::m_storage)
+    };
+
+    PRECOND(address != nullptr);
+
     return std::forward_like<Function_T>(
-        *static_cast<const_like_t<T, Function_T>*>(
-            function.Function::m_erase_mechanism.address_of(function.Function::m_storage)
-        )   //
+        // ReSharper disable once CppDFANullDereference
+        *reinterpret_cast<const_like_t<T, std::remove_reference_t<Function_T>>*>(address)
     );
 }
 
 // ReSharper disable once CppSpecialFunctionWithoutNoexceptSpecification
 // NOLINTNEXTLINE(*-noexcept-swap)
 template <typename Signature_T, bool is_move_only_T, std::size_t size_T, std::size_t alignment_T>
-auto swap(
+constexpr auto swap(
     Function<Signature_T, is_move_only_T, size_T, alignment_T>& lhs,
     Function<Signature_T, is_move_only_T, size_T, alignment_T>& rhs
 ) -> void
