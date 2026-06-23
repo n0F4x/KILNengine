@@ -5,13 +5,13 @@ from conan.tools.cmake import CMakeToolchain, CMake, cmake_layout, CMakeDeps
 from conan.tools.scm import Version
 
 
-class DataDrivenGameEngineRecipe(ConanFile):
+class KilnRecipe(ConanFile):
     name = "kiln-engine"
     version = "0.0.0"
     package_type = "library"
 
     # Optional metadata
-    url = "https://github.com/nutellis/KILNengine"
+    url = "https://github.com/n0f4x/KILNengine"
 
     # Binary configuration
     settings = "os", "compiler", "build_type", "arch"
