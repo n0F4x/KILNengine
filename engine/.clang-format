@@ -106,8 +106,8 @@ EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: Always
 EnumTrailingComma: Insert
 FixNamespaceComments: true
-ForEachMacros: [ 'RANGES_FOR', 'FOREACH' ]
-IfMacros: [ 'IF' ]
+ForEachMacros: [ ]
+IfMacros: [ ]
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex: '^<windows\.h>'
