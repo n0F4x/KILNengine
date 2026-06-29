@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.command.GraphicsCommandBuffer;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::renderer {
 

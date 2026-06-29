@@ -33,10 +33,8 @@ find_package(VulkanHeaders CONFIG REQUIRED)
 get_target_property(VulkanHeaders_INCLUDE_DIRS Vulkan::Headers INTERFACE_INCLUDE_DIRECTORIES)
 add_library(VulkanCppModule)
 target_compile_features(VulkanCppModule PUBLIC cxx_std_20)
-target_sources(VulkanCppModule PUBLIC
-        FILE_SET CXX_MODULES
-        BASE_DIRS ${VulkanHeaders_INCLUDE_DIRS}
-        FILES ${VulkanHeaders_INCLUDE_DIRS}/vulkan/vulkan.cppm
+target_compile_definitions(VulkanCppModule PRIVATE
+        VULKAN_HPP_CXX_MODULE_EXPERIMENTAL_WARNING
 )
 target_compile_definitions(VulkanCppModule PUBLIC
         VK_NO_PROTOTYPES

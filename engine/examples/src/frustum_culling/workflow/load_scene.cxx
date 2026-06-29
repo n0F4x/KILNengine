@@ -16,7 +16,7 @@ module;
 
 module examples.frustum_culling.workflow.load_scene;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.memory.Allocator;
 import kiln.gfx.renderer.memory.Buffer;

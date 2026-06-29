@@ -1,6 +1,6 @@
 export module kiln.gfx.vulkan.DebugMessenger;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.app.registry.BuildableEntry;
 import kiln.app.registry.BuildDirector;

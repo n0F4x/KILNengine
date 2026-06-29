@@ -11,7 +11,7 @@ module;
 
 module kiln.wsi.window_functions;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.contracts;
 import kiln.util.Lazy;

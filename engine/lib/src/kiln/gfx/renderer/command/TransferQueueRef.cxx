@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.command.TransferQueueRef;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.contracts;
 

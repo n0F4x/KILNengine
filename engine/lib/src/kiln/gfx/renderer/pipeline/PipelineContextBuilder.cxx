@@ -1,6 +1,6 @@
 module kiln.gfx.renderer.pipeline.PipelineContextBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.pipeline.PipelineContext;

@@ -9,7 +9,7 @@ module;
 
 export module kiln.gfx.vulkan.InstanceBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.app.registry.BuildableEntryBuilder;
 import kiln.app.registry.BuildDirector;

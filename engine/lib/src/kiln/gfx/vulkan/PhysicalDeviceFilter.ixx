@@ -8,7 +8,7 @@ module;
 
 export module kiln.gfx.vulkan.PhysicalDeviceFilter;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;

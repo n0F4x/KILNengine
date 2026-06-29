@@ -8,6 +8,7 @@ module kiln.gfx.renderer.presentation.RenderSurface;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.presentation.Swapchain;
+import kiln.gfx.vulkan.result.check_result;
 
 namespace kiln::gfx::renderer {
 
@@ -37,7 +38,7 @@ RenderSurface::RenderSurface(
     : m_surface{ std::move(surface) },
       m_device_ref{ device },
       m_surface_format{
-          pick_surface_format(device.physical_device().getSurfaceFormatsKHR(m_surface))
+          pick_surface_format(vulkan::check_result(device.physical_device().getSurfaceFormatsKHR(m_surface)))
       },
       m_number_of_frames_in_flight{ number_of_frames_in_flight },
       m_vsync{ vsync }

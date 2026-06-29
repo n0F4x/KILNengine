@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.command.CommandPoolBase;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.vulkan.result.check_result;

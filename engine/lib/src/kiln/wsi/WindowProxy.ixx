@@ -11,7 +11,7 @@ module;
 
 export module kiln.wsi.WindowProxy;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.Bool;
 import kiln.util.StringLiteral;

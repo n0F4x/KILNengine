@@ -5,7 +5,7 @@ module;
 
 export module kiln.wsi.Size;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::wsi {
 

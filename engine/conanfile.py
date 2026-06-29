@@ -98,7 +98,7 @@ class KilnRecipe(ConanFile):
         self.requires("magic_enum/0.9.7", transitive_headers=True)
         self.requires("fmt/12.1.0", transitive_headers=True)
         self.requires("spdlog/1.17.0", transitive_headers=True)
-        self.requires("vulkan-headers/1.4.313.0", transitive_headers=True)
+        self.requires("vulkan-headers/1.4.350.0", transitive_headers=True)
         self.requires("vulkan-memory-allocator/3.3.0", transitive_headers=True)
         self.requires("glm/1.0.1", transitive_headers=True)
         self.requires("glfw/3.4", transitive_headers=True)

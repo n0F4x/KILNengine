@@ -6,7 +6,7 @@ module;
 
 export module kiln.gfx.renderer.command.CommandPoolBase;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.CommandPoolFlags;
 import kiln.gfx.renderer.device.Device;

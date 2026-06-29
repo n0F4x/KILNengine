@@ -1,6 +1,6 @@
 export module kiln.gfx.vulkan.extension_inspection.try_promote_extension_to_vulkan1x;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.extension_inspection.extension_is_promoted_to_vulkan1x;
 import kiln.util.StringLiteral;

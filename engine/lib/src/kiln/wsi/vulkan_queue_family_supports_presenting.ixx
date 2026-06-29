@@ -4,7 +4,7 @@ module;
 
 export module kiln.wsi.vulkan_queue_family_supports_presenting;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.wsi.Context;

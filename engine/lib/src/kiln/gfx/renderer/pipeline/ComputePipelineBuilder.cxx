@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.pipeline.ComputePipelineBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.pipeline.ComputePipeline;

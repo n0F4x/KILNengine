@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.command.Queue;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.check_result;
 
@@ -21,13 +21,11 @@ Queue::Queue(
       m_index{ index },
       m_supports_presentation{ device.queue_family(family_index).supports_presentation() },
       m_queue{
-          vulkan::check_result(
-              device.logical_device().getQueue2(
-                  vk::DeviceQueueInfo2{
-                      .queueFamilyIndex = family_index.underlying(),
-                      .queueIndex       = index,
-                  }
-              )   //
+          device.logical_device().getQueue2(
+              vk::DeviceQueueInfo2{
+                  .queueFamilyIndex = family_index.underlying(),
+                  .queueIndex       = index,
+              }
           ),
       }
 {

@@ -2,7 +2,7 @@
     "version": "0.5",
     "requires": [
         "vulkan-memory-allocator/3.3.0#5393b5bc9a6b8a2fb9612df877706608%1761667136.618",
-        "vulkan-headers/1.4.313.0#025959bb82ad571fde2cc4de1823ce67%1778774703.404",
+        "vulkan-headers/1.4.350.0#40281e91ad8723fb102e36396da35409%1778774701.016",
         "spdlog/1.17.0#bcbaaf7147bda6ad24ffbd1ac3d7142c%1767636069.964",
         "simdjson/3.13.0#cb9047537c259c8d78e1c7a03d44e923%1755520675.22",
         "opengl/system#cfcf523b9d2bad75cbf377f56562634c%1762526044.744",

@@ -6,7 +6,7 @@ module;
 
 module kiln.gfx.renderer.command.PresentQueueRef;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.result.TypedResultCode;

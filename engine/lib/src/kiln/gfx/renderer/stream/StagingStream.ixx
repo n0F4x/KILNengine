@@ -6,7 +6,7 @@ module;
 
 export module kiln.gfx.renderer.stream.StagingStream;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.SubmitInfo;
 import kiln.gfx.renderer.command.TransferCommandBuffer;

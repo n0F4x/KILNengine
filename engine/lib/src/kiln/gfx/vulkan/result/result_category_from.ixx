@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.result.result_category_from;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.ResultCategory;
 

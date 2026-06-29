@@ -1,6 +1,6 @@
 module kiln.gfx.renderer.memory.AllocatorBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuilder;

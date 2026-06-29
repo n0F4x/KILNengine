@@ -8,11 +8,10 @@ module;
 
 module kiln.gfx.renderer.pipeline.GraphicsPipelineBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.pipeline.ShaderModule;
-import kiln.gfx.vulkan.format.traits;
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;
 
@@ -73,17 +72,16 @@ auto GraphicsPipelineBuilder::build(const Device& device) const -> GraphicsPipel
         .scissorCount  = 1,
     };
 
-    const static vk::PipelineRasterizationStateCreateInfo
-        rasterization_state_create_info{
-            .cullMode = m_cull_mode,
-            .lineWidth = 1.f,
-        };
+    static const vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
+        .cullMode  = m_cull_mode,
+        .lineWidth = 1.f,
+    };
 
     constexpr static vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
         .rasterizationSamples = vk::SampleCountFlagBits::e1,
     };
 
-    const bool depth_enabled{ vulkan::has_depth_component(m_depth_format) };
+    const bool depth_enabled{ vk::hasDepthComponent(m_depth_format) };
     const vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
         .depthTestEnable       = depth_enabled,
         .depthWriteEnable      = depth_enabled,

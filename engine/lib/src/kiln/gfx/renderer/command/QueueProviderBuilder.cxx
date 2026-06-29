@@ -14,7 +14,7 @@ module;
 
 module kiln.gfx.renderer.command.QueueProviderBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueType;

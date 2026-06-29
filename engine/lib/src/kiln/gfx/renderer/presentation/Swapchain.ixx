@@ -7,7 +7,7 @@ module;
 
 export module kiln.gfx.renderer.presentation.Swapchain;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.PresentQueueRef;
 import kiln.gfx.renderer.device.Device;

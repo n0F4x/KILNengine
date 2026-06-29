@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.renderer.command.ComputeCommandBuffer;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.TransferCommandBuffer;
 import kiln.gfx.renderer.pipeline.ComputePipeline;

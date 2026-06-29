@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.renderer.memory.Allocation;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.memory.MemoryTypeID;
 

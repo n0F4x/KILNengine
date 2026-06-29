@@ -10,11 +10,12 @@ module;
 
 module kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.contracts;
 
 import kiln.gfx.vulkan.extension_inspection.try_promote_extension_to_vulkan1x;
+import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.structure_chain.merge_physical_device_features;
 import kiln.gfx.vulkan.structure_chain.erase_physical_device_features;
 import kiln.gfx.vulkan.structure_chain.StructureChain;
@@ -80,7 +81,7 @@ auto PhysicalDeviceCapabilities::supported_by(
     }
 
     const std::vector<vk::ExtensionProperties> supported_extension_properties{
-        physical_device.enumerateDeviceExtensionProperties()
+        check_result(physical_device.enumerateDeviceExtensionProperties())
     };
     if (std::ranges::any_of(
             m_extension_names,
@@ -157,8 +158,9 @@ auto PhysicalDeviceCapabilities::upgrade_version(const uint32_t new_version) -> 
     }
 }
 
-auto PhysicalDeviceCapabilities::insert_extension(const util::StringLiteral extension_name)
-    -> void
+auto PhysicalDeviceCapabilities::insert_extension(
+    const util::StringLiteral extension_name
+) -> void
 {
     if (m_version >= vk::ApiVersion11)
     {
@@ -376,8 +378,9 @@ auto PhysicalDeviceCapabilities::erase_extension(const util::StringLiteral exten
     std::erase(m_extension_names, extension_name);
 }
 
-auto PhysicalDeviceCapabilities::erase_features(const vk::PhysicalDeviceFeatures& features)
-    -> void
+auto PhysicalDeviceCapabilities::erase_features(
+    const vk::PhysicalDeviceFeatures& features
+) -> void
 {
     m_features.erase_features(features);
 }

@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.result.TypedResultCode;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::vulkan {
 

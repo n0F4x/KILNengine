@@ -1,6 +1,6 @@
 export module kiln.gfx.vulkan.context;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::vulkan {
 

@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.QueueInfo;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.QueueFamilyIndex;
 

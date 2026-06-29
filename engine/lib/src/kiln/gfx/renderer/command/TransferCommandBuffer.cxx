@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.command.TransferCommandBuffer;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.util.contracts;

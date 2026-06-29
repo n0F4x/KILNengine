@@ -5,7 +5,7 @@ module;
 
 export module kiln.gfx.vulkan.format.to_string;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.Lazy;
 

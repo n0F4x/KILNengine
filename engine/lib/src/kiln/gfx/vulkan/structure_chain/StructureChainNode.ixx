@@ -6,7 +6,7 @@ module;
 
 export module kiln.gfx.vulkan.structure_chain.StructureChainNode;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.structure_chain.core_feature_struct_from_vulkan1x_c;
 import kiln.gfx.vulkan.structure_chain.erase_physical_device_features;

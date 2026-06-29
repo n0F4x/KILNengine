@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.presentation.PresentationContextBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.DeviceBuilder;
 import kiln.gfx.renderer.presentation.PresentationContext;

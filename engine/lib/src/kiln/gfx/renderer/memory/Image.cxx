@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.renderer.memory.Image;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::renderer {
 

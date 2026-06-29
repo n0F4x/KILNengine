@@ -6,7 +6,7 @@ module;
 
 export module examples.frustum_culling.workflow.load_scene;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.device.Device;

@@ -10,7 +10,7 @@ module;
 
 export module kiln.gfx.renderer.pipeline.ColorAttachment;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::renderer {
 

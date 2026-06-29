@@ -4,7 +4,7 @@ module;
 
 export module kiln.wsi.window_functions;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.wsi.Context;
 import kiln.wsi.CursorMode;

@@ -5,7 +5,7 @@ module;
 
 export module examples.frustum_culling.workflow.Renderer;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.ComputeCommandBuffer;
 import kiln.gfx.renderer.command.ComputeCommandPool;

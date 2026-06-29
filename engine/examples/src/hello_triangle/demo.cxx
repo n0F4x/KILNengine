@@ -9,7 +9,7 @@ module;
 
 module examples.hello_triangle;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln;
 

@@ -1,6 +1,7 @@
 module;
 
 #include <algorithm>
+#include <cstdint>
 #include <memory_resource>
 
 #include "kiln/util/contract_macros.hpp"
@@ -19,7 +20,7 @@ auto InstanceBuilderPrecondition::check_version_support(const vk::raii::Context&
     -> bool
 {
     return context.getDispatcher()->vkEnumerateInstanceVersion != nullptr
-        && context.enumerateInstanceVersion() >= minimum_version();
+        && check_result(context.enumerateInstanceVersion()) >= minimum_version();
 }
 
 InstanceBuilderPrecondition::InstanceBuilderPrecondition(
@@ -151,7 +152,7 @@ auto InstanceBuilder::require_minimum_version(const uint32_t version) -> void
         return;
     }
 
-    PRECOND(version <= m_context.get().enumerateInstanceVersion());
+    PRECOND(version <= check_result(m_context.get().enumerateInstanceVersion()));
 
     m_minimum_version = version;
 }
@@ -160,7 +161,7 @@ auto InstanceBuilder::enable_layer(const util::StringLiteral layer_name) -> void
 {
     PRECOND(
         std::ranges::any_of(
-            m_context.get().enumerateInstanceLayerProperties(),
+            check_result(m_context.get().enumerateInstanceLayerProperties()),
             [layer_name](const char* const present_layer_name) -> bool
             {
                 return layer_name
@@ -186,7 +187,7 @@ auto InstanceBuilder::enable_extension(util::StringLiteral extension_name) -> vo
 {
     PRECOND(
         std::ranges::any_of(
-            m_context.get().enumerateInstanceExtensionProperties(),
+            check_result(m_context.get().enumerateInstanceExtensionProperties()),
             [extension_name](const char* const supported_extension) -> bool
             {
                 return extension_name
@@ -213,7 +214,8 @@ auto InstanceBuilder::enable_extension_if_available(
 ) -> bool
 {
     if (const std::vector<vk::ExtensionProperties> extension_properties{
-            m_context.get().enumerateInstanceExtensionProperties() };
+            check_result(m_context.get().enumerateInstanceExtensionProperties()),
+        };
         std::ranges::none_of(
             extension_properties,
             [extension_name](const char* const supported_extension) -> bool

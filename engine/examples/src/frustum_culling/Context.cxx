@@ -15,7 +15,7 @@ module;
 
 module examples.frustum_culling.Context;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.app.memory.MemoryArena;
 import kiln.app.registry.BuildableEntryBuilder;

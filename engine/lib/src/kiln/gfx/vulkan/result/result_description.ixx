@@ -1,6 +1,6 @@
 export module kiln.gfx.vulkan.result.result_description;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.StringLiteral;
 

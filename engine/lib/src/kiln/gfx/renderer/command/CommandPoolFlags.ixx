@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.renderer.command.CommandPoolFlags;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.EnumMask;
 

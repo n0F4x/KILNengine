@@ -1,6 +1,6 @@
 export module kiln.gfx.renderer.memory.Buffer;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.memory.Allocation;
 

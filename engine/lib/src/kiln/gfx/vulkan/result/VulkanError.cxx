@@ -9,7 +9,7 @@ module;
 
 module kiln.gfx.vulkan.result.VulkanError;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.format.to_string;
 import kiln.gfx.vulkan.result.result_category_from;

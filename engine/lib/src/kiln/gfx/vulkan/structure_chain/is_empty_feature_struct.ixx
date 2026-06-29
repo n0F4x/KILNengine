@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.structure_chain.is_empty_feature_struct;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
 

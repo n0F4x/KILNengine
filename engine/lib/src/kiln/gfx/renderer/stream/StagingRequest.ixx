@@ -8,7 +8,7 @@ module;
 
 export module kiln.gfx.renderer.stream.StagingRequest;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.LazyCopy;

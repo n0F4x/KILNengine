@@ -8,7 +8,7 @@ module;
 
 export module kiln.gfx.renderer.pipeline.GraphicsPipelineBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.pipeline.GraphicsPipeline;

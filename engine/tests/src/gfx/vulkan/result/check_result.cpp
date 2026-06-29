@@ -10,7 +10,7 @@ import kiln.gfx.vulkan.result.TypedResultCode;
 import kiln.gfx.vulkan.result.VulkanError;
 import kiln.util.contracts;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::vulkan {
 

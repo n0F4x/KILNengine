@@ -5,7 +5,7 @@ module;
 
 export module kiln.gfx.renderer.command.QueueProviderBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.app.registry.BuildableEntryBuilder;
 import kiln.app.registry.BuildDirector;

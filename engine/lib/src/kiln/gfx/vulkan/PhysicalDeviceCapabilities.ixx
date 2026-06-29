@@ -7,7 +7,7 @@ module;
 
 export module kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.structure_chain.core_feature_struct_from_vulkan1x_c;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;

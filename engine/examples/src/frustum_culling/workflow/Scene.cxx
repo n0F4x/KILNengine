@@ -7,7 +7,7 @@ module;
 
 module examples.frustum_culling.workflow.Scene;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.check_result;
 import kiln.util.contracts;

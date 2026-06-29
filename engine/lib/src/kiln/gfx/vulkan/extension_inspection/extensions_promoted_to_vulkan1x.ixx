@@ -5,7 +5,7 @@ module;
 
 export module kiln.gfx.vulkan.extension_inspection.extensions_promoted_to_vulkan1x;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.StringLiteral;
 

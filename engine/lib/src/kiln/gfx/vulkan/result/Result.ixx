@@ -9,7 +9,7 @@ module;
 
 export module kiln.gfx.vulkan.result.Result;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.make_typed_result_code_variant;
 import kiln.gfx.vulkan.result.result_category_from;
@@ -63,9 +63,9 @@ public:
 
     template <typename Self_T>
     [[nodiscard]]
-    auto value(this Self_T&& self) -> util::forward_like_t<Value_T, Self_T>
+    auto operator*(this Self_T&& self) -> util::forward_like_t<Value_T, Self_T>
     {
-        return std::forward_like<Self_T>(*self.m_value);
+        return std::forward_like<Self_T>(*self.Result::m_value);
     }
 
     [[nodiscard]]

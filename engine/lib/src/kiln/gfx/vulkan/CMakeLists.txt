@@ -6,7 +6,6 @@ add_subdirectory(structure_chain)
 target_sources(${PROJECT_NAME} PRIVATE
         Bundle.cxx
         DebugMessenger.cxx
-        global_definitions.cpp
         Instance.cxx
         InstanceBuilder.cxx
         PhysicalDeviceCapabilities.cxx

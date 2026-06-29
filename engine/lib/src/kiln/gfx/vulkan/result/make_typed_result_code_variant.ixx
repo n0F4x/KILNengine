@@ -6,7 +6,7 @@ module;
 
 export module kiln.gfx.vulkan.result.make_typed_result_code_variant;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.TypedResultCode;
 import kiln.util.contracts;

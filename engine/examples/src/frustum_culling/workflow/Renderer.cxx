@@ -19,7 +19,7 @@ module;
 
 module examples.frustum_culling.workflow.Renderer;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.CommandBufferBase;
 import kiln.gfx.renderer.command.CommandPoolFlags;

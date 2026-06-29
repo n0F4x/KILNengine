@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.structure_chain.StructureChainNodeInterface;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::vulkan {
 

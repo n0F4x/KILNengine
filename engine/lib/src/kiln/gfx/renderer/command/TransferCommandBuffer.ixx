@@ -1,6 +1,6 @@
 export module kiln.gfx.renderer.command.TransferCommandBuffer;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.CommandBufferBase;
 import kiln.gfx.renderer.memory.BufferRegion;

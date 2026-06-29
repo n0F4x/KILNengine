@@ -7,7 +7,7 @@ module;
 
 module kiln.gfx.renderer.pipeline.RenderPass;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.pipeline.ColorAttachment;
 import kiln.gfx.renderer.pipeline.DepthAttachment;

@@ -12,7 +12,7 @@ module;
 
 export module kiln.gfx.vulkan.structure_chain.StructureChain;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.structure_chain.erase_physical_device_features;
 import kiln.gfx.vulkan.structure_chain.ErasedStructureChainNode;

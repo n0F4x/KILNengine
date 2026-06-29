@@ -4,7 +4,7 @@ module;
 
 module kiln.gfx.vulkan.Instance;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.InstanceBuilder;

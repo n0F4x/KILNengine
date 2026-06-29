@@ -7,11 +7,9 @@ module;
 #include <variant>
 #include <vector>
 
-#include "kiln/util/contract_macros.hpp"
-
 module kiln.gfx.renderer.presentation.Swapchain;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.result.check_result;
 import kiln.gfx.vulkan.result.Result;
@@ -80,16 +78,11 @@ auto create_swapchain(
     const Swapchain*                  old_swapchain
 ) -> vk::raii::SwapchainKHR
 {
-    // TODO: remove this PRECOND after
-    // https://github.com/KhronosGroup/Vulkan-Hpp/issues/2410
-    PRECOND(
-        device.logical_device().getDispatcher()->vkCreateSwapchainKHR != nullptr,
-        "VK_KHR_SWAPCHAIN_EXTENSION_NAME was not enabled"
-    );
-
     const vk::PresentModeKHR present_mode{
         pick_present_mode(
-            device.physical_device().getSurfacePresentModesKHR(surface),
+            vulkan::check_result(
+                device.physical_device().getSurfacePresentModesKHR(surface)   //
+            ),
             vsync
         )   //
     };
@@ -164,7 +157,9 @@ Swapchain::Swapchain(
     const Swapchain*            old_swapchain
 )
     : m_surface_capabilities{
-          device.physical_device().getSurfaceCapabilitiesKHR(surface)
+          vulkan::check_result(
+              device.physical_device().getSurfaceCapabilitiesKHR(surface)
+          ),
       },
       m_extent{
           pick_swap_extent(framebuffer_size, m_surface_capabilities),
@@ -181,7 +176,7 @@ Swapchain::Swapchain(
               old_swapchain
           )   //
       },
-      m_swapchain_images{ m_swapchain.getImages() },
+      m_swapchain_images{ vulkan::check_result(m_swapchain.getImages()) },
       m_swapchain_image_views{
           create_swapchain_image_views(
               device.logical_device(),
@@ -228,31 +223,29 @@ auto Swapchain::acquire_next_image_index(
         return std::nullopt;
     }
 
-    uint32_t image_index;
-
-    const std::variant vulkan_result
+    const vulkan::Result<
+        uint32_t,
+        vk::Result::eSuccess,
+        vk::Result::eSuboptimalKHR,
+        vk::Result::eErrorOutOfDateKHR>
+        image_index_result
         = vulkan::check_result<vk::Result::eSuboptimalKHR, vk::Result::eErrorOutOfDateKHR>(
-            // TODO: use C++ method when it handles out of date result
-            m_swapchain.getDispatcher()->vkAcquireNextImageKHR(
-                m_swapchain.getDevice(),
-                *m_swapchain,
+            m_swapchain.acquireNextImage(
                 std::numeric_limits<uint64_t>::max(),
-                signal_semaphore.transform(&vk::raii::Semaphore::operator*)
-                    .value_or(vk::Semaphore{}),
-                fence.transform(&vk::raii::Fence::operator*).value_or(vk::Fence{}),
-                &image_index
+                signal_semaphore.has_value() ? *signal_semaphore : vk::Semaphore{},
+                fence.has_value() ? *fence : vk::Fence{}
             )
         );
 
     if (std::holds_alternative<vulkan::TypedResultCode<vk::Result::eErrorOutOfDateKHR>>(
-            vulkan_result
+            image_index_result.result_code()
         ))
     {
         m_out_dated = true;
         return std::nullopt;
     }
 
-    return image_index;
+    return *image_index_result;
 }
 
 auto Swapchain::present(

@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.structure_chain.vulkan1x_feature_struct_c;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::vulkan {
 

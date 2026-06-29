@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.renderer.command.GraphicsQueueRef;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.command.GraphicsCommandBuffer;
 import kiln.gfx.renderer.command.Queue;

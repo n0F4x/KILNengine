@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.vulkan.structure_chain.erase_physical_device_features;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.structure_chain.comprehensive_feature_struct_c;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;

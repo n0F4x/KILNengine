@@ -4,7 +4,7 @@ module;
 
 export module kiln.gfx.renderer.pipeline.GraphicsPipeline;
 
-import vulkan_hpp;
+import vulkan;
 
 namespace kiln::gfx::renderer {
 

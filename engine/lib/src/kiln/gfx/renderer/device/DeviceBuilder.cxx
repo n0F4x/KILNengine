@@ -8,7 +8,7 @@ module;
 
 module kiln.gfx.renderer.device.DeviceBuilder;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.device.DeviceBuildFailedError;
@@ -133,7 +133,8 @@ auto DeviceBuilder::build(
     };
 
     for (const std::vector<vk::ExtensionProperties> supported_extension_properties{
-             physical_device.enumerateDeviceExtensionProperties() };
+             vulkan::check_result(physical_device.enumerateDeviceExtensionProperties()),
+         };
          const util::StringLiteral optional_extension :
          m_optional_capabilities.extensions())
     {

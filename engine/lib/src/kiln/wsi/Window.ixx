@@ -4,7 +4,7 @@ module;
 
 export module kiln.wsi.Window;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.StringLiteral;
 import kiln.wsi.Context;

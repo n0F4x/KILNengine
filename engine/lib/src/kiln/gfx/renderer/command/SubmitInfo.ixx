@@ -5,7 +5,7 @@ module;
 
 export module kiln.gfx.renderer.command.SubmitInfo;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.util.containers.OptionalRef;
 

@@ -1,6 +1,6 @@
 export module kiln.gfx.vulkan.structure_chain.ErasedStructureChainNode;
 
-import vulkan_hpp;
+import vulkan;
 
 import kiln.gfx.vulkan.structure_chain.StructureChainNodeInterface;
 import kiln.util.concepts.naked;
