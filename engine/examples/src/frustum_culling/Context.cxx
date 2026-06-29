@@ -101,7 +101,13 @@ public:
             vk::PhysicalDeviceVulkan14Features{ .maintenance5 = vk::True }
         );
 
+        device_builder.enable_extension(vk::KHRMaintenance9ExtensionName);
+        device_builder.enable_features(
+            vk::PhysicalDeviceMaintenance9FeaturesKHR{ .maintenance9 = vk::True }
+        );
+
         queue_provider_builder.require_queue(kiln::gfx::renderer::QueueType::eGraphics);
+        queue_provider_builder.require_queue(kiln::gfx::renderer::QueueType::eCompute);
 
         return ContextBuilder{};
     }

@@ -38,6 +38,8 @@ target_compile_definitions(VulkanCppModule PRIVATE
 )
 target_compile_definitions(VulkanCppModule PUBLIC
         VK_NO_PROTOTYPES
+        VK_USE_PLATFORM_WIN32_KHR
+        NOMINMAX
         VULKAN_HPP_ASSERT_ON_RESULT=void
         VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
         VULKAN_HPP_NO_EXCEPTIONS
@@ -45,6 +47,14 @@ target_compile_definitions(VulkanCppModule PUBLIC
         VULKAN_HPP_NO_SETTERS
         VULKAN_HPP_NO_SPACESHIP_OPERATOR
 )
+if (WIN32)
+    target_compile_definitions(VulkanCppModule PUBLIC
+            VK_USE_PLATFORM_WIN32_KHR
+    )
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+            NOMINMAX  # window.h defines min and max macros
+    )
+endif ()
 target_link_libraries(VulkanCppModule PUBLIC Vulkan::Headers)
 target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Headers)
 target_link_libraries(${PROJECT_NAME} PUBLIC $<BUILD_LOCAL_INTERFACE:VulkanCppModule>)

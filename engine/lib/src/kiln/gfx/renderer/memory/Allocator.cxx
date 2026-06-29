@@ -172,8 +172,7 @@ auto vma_allocator_create_flags(
 
     if (std::ranges::contains(
             device_capabilities.extensions(),
-            // TODO: use vk::KHRExternalMemoryWin32ExtensionName
-            util::StringLiteral{ "VK_KHR_external_memory_win32" }
+            util::StringLiteral{ vk::KHRExternalMemoryWin32ExtensionName }
         ))
     {
         flags |= VMA_ALLOCATOR_CREATE_KHR_EXTERNAL_MEMORY_WIN32_BIT;
