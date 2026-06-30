@@ -6,7 +6,7 @@ module;
 
 export module kiln.util.reflection;
 
-import kiln.util.hash;
+import kiln.util.algorithms.hash;
 
 namespace kiln::util {
 

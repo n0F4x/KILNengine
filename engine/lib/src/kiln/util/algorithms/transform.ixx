@@ -3,7 +3,7 @@ module;
 #include <functional>
 #include <tuple>
 
-export module kiln.util.transform;
+export module kiln.util.algorithms.transform;
 
 import kiln.util.TypeList;
 

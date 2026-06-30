@@ -24,25 +24,25 @@ public:
     }
 
     [[nodiscard]]
-    consteval static auto engine_name() -> util::StringLiteral
+    consteval static auto engine_name() noexcept -> util::StringLiteral
     {
         return config::engine_name();
     }
 
     [[nodiscard]]
-    constexpr static auto engine_version() -> const config::Version&
+    constexpr static auto engine_version() noexcept -> const config::Version&
     {
         return config::engine_version();
     }
 
     [[nodiscard]]
-    constexpr auto app_name() const -> util::StringLiteral
+    constexpr auto app_name() const noexcept -> util::StringLiteral
     {
         return m_app_name;
     }
 
     [[nodiscard]]
-    constexpr auto app_version() const -> const config::Version&
+    constexpr auto app_version() const noexcept -> const config::Version&
     {
         return m_app_version;
     }

@@ -32,7 +32,7 @@ public:
     auto build() && -> App;
 
 private:
-    MemoryArena         m_arena;
+    MemoryArena     m_arena;
     RegistryBuilder m_registry_builder;
 };
 
@@ -71,9 +71,7 @@ auto Builder::build() && -> App
         m_arena.make_transient_resource()
     };
 
-    Registry registry{
-        std::move(m_registry_builder).build(transient_memory_resource)
-    };
+    Registry registry{ std::move(m_registry_builder).build(transient_memory_resource) };
 
     return App{ std::move(m_arena), std::move(registry) };
 }

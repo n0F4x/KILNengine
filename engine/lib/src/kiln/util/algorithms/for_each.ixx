@@ -3,7 +3,7 @@ module;
 #include <functional>
 #include <utility>
 
-export module kiln.util.for_each;
+export module kiln.util.algorithms.for_each;
 
 import kiln.util.TypeList;
 

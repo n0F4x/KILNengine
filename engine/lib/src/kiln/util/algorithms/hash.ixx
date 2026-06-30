@@ -3,7 +3,7 @@ module;
 #include <cstdint>
 #include <string_view>
 
-export module kiln.util.hash;
+export module kiln.util.algorithms.hash;
 
 namespace kiln::util {
 

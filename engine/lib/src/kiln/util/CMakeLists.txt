@@ -1,3 +1,4 @@
+add_subdirectory(algorithms)
 add_subdirectory(concepts)
 add_subdirectory(containers)
 add_subdirectory(type_traits)
@@ -21,15 +22,12 @@ target_sources(${PROJECT_NAME} PUBLIC
         FILES
         util.cppm
         any_cast.ixx
-        any_of.ixx
         Bool.ixx
         contracts.ixx
         Deleter.ixx
         Dummy.ixx
         EnumMask.ixx
-        for_each.ixx
         FunctionWrapper.ixx
-        hash.ixx
         Lazy.ixx
         LifeCycleEraseMechanism.ixx
         Overloaded.ixx
@@ -38,6 +36,5 @@ target_sources(${PROJECT_NAME} PUBLIC
         ScopeFail.ixx
         StringLiteral.ixx
         Strong.ixx
-        transform.ixx
         TypeList.ixx
 )

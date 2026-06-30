@@ -2,7 +2,7 @@ module;
 
 #include <functional>
 
-export module kiln.util.any_of;
+export module kiln.util.algorithms.any_of;
 
 import kiln.util.TypeList;
 
