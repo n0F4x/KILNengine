@@ -7,7 +7,7 @@ import kiln.util.containers.OptionalRef;
 
 namespace kiln::util {
 
-TEST_CASE("util::OptionalRef")
+TEST_CASE("kiln::util::OptionalRef")
 {
     SECTION("transform")
     {

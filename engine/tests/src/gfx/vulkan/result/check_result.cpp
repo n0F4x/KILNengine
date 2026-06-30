@@ -14,7 +14,7 @@ import vulkan;
 
 namespace kiln::gfx::vulkan {
 
-TEST_CASE("gfx::vulkan::check_result")
+TEST_CASE("kiln::gfx::vulkan::check_result")
 {
     SECTION("vk::Result")
     {

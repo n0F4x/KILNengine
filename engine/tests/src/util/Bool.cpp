@@ -7,7 +7,7 @@ import kiln.util.containers.OptionalRef;
 
 namespace kiln::util {
 
-TEST_CASE("util::Bool")
+TEST_CASE("kiln::util::Bool")
 {
     SECTION("transform to std::optional")
     {

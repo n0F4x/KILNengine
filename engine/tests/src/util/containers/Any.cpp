@@ -13,7 +13,7 @@ import kiln.util.Deleter;
 
 namespace kiln::util {
 
-TEST_CASE("util::Any")
+TEST_CASE("kiln::util::Any")
 {
     class Value {
     public:

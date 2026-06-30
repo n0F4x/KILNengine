@@ -8,7 +8,7 @@ auto function() -> void {}
 
 }   // namespace
 
-TEST_CASE("util::Overloaded")
+TEST_CASE("kiln::util::Overloaded")
 {
     SECTION("construct from lambda")
     {

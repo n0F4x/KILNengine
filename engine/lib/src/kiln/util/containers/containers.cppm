@@ -10,3 +10,4 @@ export import kiln.util.containers.MoveOnlyAny;
 export import kiln.util.containers.MoveOnlyFunction;
 export import kiln.util.containers.OptionalRef;
 export import kiln.util.containers.Polymorphic;
+export import kiln.util.containers.Tuple;
