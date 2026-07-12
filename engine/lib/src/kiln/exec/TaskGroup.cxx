@@ -32,7 +32,7 @@ auto TaskGroup::reserve(const size_t size) -> void
     m_tasks.reserve(size);
 }
 
-auto TaskGroup::push(Task&& task) -> void
+auto TaskGroup::push(Task<void>&& task) -> void
 {
     m_tasks.push_back(std::move(task));
 }

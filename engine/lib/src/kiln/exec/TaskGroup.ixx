@@ -29,14 +29,14 @@ public:
 
 
     auto reserve(std::size_t size) -> void;
-    auto push(Task&& task) -> void;
+    auto push(Task<void>&& task) -> void;
 
 
     [[nodiscard]]
-    auto build() && -> Task;
+    auto build() && -> Task<void>;
 
 private:
-    std::pmr::vector<Task> m_tasks;
+    std::pmr::vector<Task<void>> m_tasks;
 };
 
 }   // namespace kiln::exec
