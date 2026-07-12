@@ -35,6 +35,13 @@ public:
         reg::Registry& registry
     );
 
+    explicit Task(util::MoveOnlyFunction<void()>&& func);
+    explicit Task(
+        std::allocator_arg_t,
+        const allocator_type&            allocator,
+        util::MoveOnlyFunction<void()>&& func
+    );
+
 
     [[nodiscard]]
     auto get_allocator() const noexcept -> allocator_type;
@@ -115,6 +122,26 @@ Task<Result_T>::Task(
             m_access_patterns.push_back(access.access_pattern);
         }
     }
+}
+
+template <typename Result_T>
+Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func)
+    : m_accessed_types{ func.get_allocator() },
+      m_access_patterns{ func.get_allocator() },
+      m_invoke{ std::move(func) }
+{
+}
+
+template <typename Result_T>
+Task<Result_T>::Task(
+    std::allocator_arg_t,
+    const allocator_type&            allocator,
+    util::MoveOnlyFunction<void()>&& func
+)
+    : Task{
+          util::MoveOnlyFunction<void()>{ std::move(func), allocator }
+}
+{
 }
 
 template <typename Result_T>

@@ -5,6 +5,8 @@ module;
 
 module kiln.exec.TaskGroup;
 
+import kiln.util.containers.MoveOnlyFunction;
+
 namespace kiln::exec {
 
 TaskGroup::TaskGroup(TaskGroup&& other, const allocator_type& allocator)
@@ -35,6 +37,21 @@ auto TaskGroup::reserve(const size_t size) -> void
 auto TaskGroup::push(Task<void>&& task) -> void
 {
     m_tasks.push_back(std::move(task));
+}
+
+auto TaskGroup::build() && -> Task<void>
+{
+    return Task<void>{
+        util::MoveOnlyFunction<void()>{
+                                       [tasks = std::move(m_tasks)] mutable -> void
+            {
+                for (Task<void>& task : tasks)
+                {
+                    task();
+                }
+            },   //
+        }
+    };
 }
 
 }   // namespace kiln::exec
