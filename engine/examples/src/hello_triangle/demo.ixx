@@ -14,9 +14,9 @@ namespace demo {
 
 export class Context;
 
-auto describe_build(kiln::app::BuildDirector<Context>& build_director) -> void;
+auto describe_build(kiln::reg::BuildDirector<Context>& build_director) -> void;
 
-export class Context : public kiln::app::BuildableEntry<Context, describe_build> {
+export class Context : public kiln::reg::BuildableEntry<Context, describe_build> {
 public:
     // required for interfacing with the standard
     using allocator_type = std::pmr::polymorphic_allocator<>;

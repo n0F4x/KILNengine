@@ -9,19 +9,19 @@ export module kiln.gfx.renderer.device.Device;
 
 import vulkan;
 
-import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueFamilyInfo;
+import kiln.reg.BuildableEntry;
+import kiln.reg.BuildDirector;
 
 namespace kiln::gfx::renderer {
 
 export class Device;
 
-auto describe_build(app::BuildDirector<Device>& build_director) -> void;
+auto describe_build(reg::BuildDirector<Device>& build_director) -> void;
 
-class Device : public app::BuildableEntry<Device, describe_build> {
+class Device : public reg::BuildableEntry<Device, describe_build> {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 

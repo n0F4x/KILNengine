@@ -1,4 +1,5 @@
-add_subdirectory(hello_app)
-add_subdirectory(hello_triangle)
-add_subdirectory(hello_kiln)
 add_subdirectory(frustum_culling)
+add_subdirectory(hello_app)
+add_subdirectory(hello_exec)
+add_subdirectory(hello_kiln)
+add_subdirectory(hello_triangle)

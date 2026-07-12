@@ -8,8 +8,8 @@ export module examples.frustum_culling.Context;
 
 import kiln.app.App;
 import kiln.app.config.Config;
-import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.BuildDirector;
+import kiln.reg.BuildableEntry;
+import kiln.reg.BuildDirector;
 import kiln.event.EventBuffer;
 import kiln.event.EventRecorder;
 import kiln.gfx.renderer.command.QueueProvider;
@@ -27,9 +27,9 @@ namespace demo {
 
 export class Context;
 
-auto describe_builder(kiln::app::BuildDirector<Context>& build_director) -> void;
+auto describe_builder(kiln::reg::BuildDirector<Context>& build_director) -> void;
 
-export class Context : public kiln::app::BuildableEntry<Context, describe_builder> {
+export class Context : public kiln::reg::BuildableEntry<Context, describe_builder> {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 

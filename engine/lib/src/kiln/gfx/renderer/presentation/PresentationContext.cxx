@@ -1,12 +1,11 @@
 module kiln.gfx.renderer.presentation.PresentationContext;
 
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.presentation.PresentationContextBuilder;
+import kiln.reg.BuildDirector;
 
 namespace kiln::gfx::renderer {
 
-auto describe_build(app::BuildDirector<PresentationContext>& build_director)
-    -> void
+auto describe_build(reg::BuildDirector<PresentationContext>& build_director) -> void
 {
     build_director.use_builder<PresentationContextBuilder>();
 }

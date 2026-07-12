@@ -11,9 +11,9 @@ export module kiln.gfx.vulkan.InstanceBuilder;
 
 import vulkan;
 
-import kiln.app.registry.BuildableEntryBuilder;
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.vulkan.Instance;
+import kiln.reg.BuildableEntryBuilder;
+import kiln.reg.BuildDirector;
 import kiln.util.StringLiteral;
 
 namespace kiln::gfx::vulkan {
@@ -31,7 +31,7 @@ struct InstanceBuilderPrecondition {
 
 export class InstanceBuilder;
 
-auto describe_build(app::BuildDirector<InstanceBuilder>& build_director) -> void;
+auto describe_build(reg::BuildDirector<InstanceBuilder>& build_director) -> void;
 
 struct CreateInfo {
     std::optional<util::StringLiteral> engine_name;
@@ -42,7 +42,7 @@ struct CreateInfo {
 
 export class InstanceBuilder
     : InstanceBuilderPrecondition,
-      public app::BuildableEntryBuilder<InstanceBuilder, describe_build>   //
+      public reg::BuildableEntryBuilder<InstanceBuilder, describe_build>   //
 {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;

@@ -71,7 +71,7 @@ QueueProviderPrecondition::QueueProviderPrecondition(
     }
 }
 
-auto describe_build(app::BuildDirector<QueueProvider>& build_director) -> void
+auto describe_build(reg::BuildDirector<QueueProvider>& build_director) -> void
 {
     build_director.use_builder<QueueProviderBuilder>();
 }

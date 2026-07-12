@@ -50,7 +50,7 @@ auto make_allocator_builder(
     return AllocatorBuilder{};
 }
 
-auto describe_build(app::BuildDirector<AllocatorBuilder>& build_director) -> void
+auto describe_build(reg::BuildDirector<AllocatorBuilder>& build_director) -> void
 {
     build_director.use_function<make_allocator_builder>();
 }

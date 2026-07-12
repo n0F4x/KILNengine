@@ -18,7 +18,7 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-auto describe_build(app::BuildDirector<Device>& build_director) -> void
+auto describe_build(reg::BuildDirector<Device>& build_director) -> void
 {
     build_director.use_builder<DeviceBuilder>();
 }

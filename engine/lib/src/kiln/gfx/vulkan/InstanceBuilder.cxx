@@ -64,7 +64,7 @@ auto make_instance_builder(app::MemoryArena& memory_arena, const app::Config& co
     };
 }
 
-auto describe_build(app::BuildDirector<InstanceBuilder>& build_director) -> void
+auto describe_build(reg::BuildDirector<InstanceBuilder>& build_director) -> void
 {
     build_director.use_function<make_instance_builder>();
 }

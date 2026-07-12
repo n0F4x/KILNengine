@@ -17,10 +17,10 @@ namespace demo {
 
 class ContextBuilder;
 
-auto describe_injection(kiln::app::BuildDirector<ContextBuilder>& build_director) -> void;
+auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director) -> void;
 
 class ContextBuilder
-    : public kiln::app::BuildableEntryBuilder<ContextBuilder, describe_injection> {
+    : public kiln::reg::BuildableEntryBuilder<ContextBuilder, describe_injection> {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
@@ -58,12 +58,12 @@ public:
     }
 };
 
-auto describe_injection(kiln::app::BuildDirector<ContextBuilder>& build_director) -> void
+auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director) -> void
 {
     build_director.use_function<ContextBuilder::create>();
 }
 
-auto describe_build(kiln::app::BuildDirector<Context>& build_director) -> void
+auto describe_build(kiln::reg::BuildDirector<Context>& build_director) -> void
 {
     build_director.use_builder<ContextBuilder>();
 }

@@ -1,10 +1,10 @@
 export module kiln.gfx.renderer.device.DeviceBuildFailedError;
 
-import kiln.app.registry.EntryBuilderFailedError;
+import kiln.reg.EntryBuilderFailedError;
 
 namespace kiln::gfx::renderer {
 
-export class DeviceBuildFailedError : public app::EntryBuilderFailedError {
+export class DeviceBuildFailedError : public reg::EntryBuilderFailedError {
 public:
     using EntryBuilderFailedError::EntryBuilderFailedError;
 };

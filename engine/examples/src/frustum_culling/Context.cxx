@@ -18,8 +18,6 @@ module examples.frustum_culling.Context;
 import vulkan;
 
 import kiln.app.memory.MemoryArena;
-import kiln.app.registry.BuildableEntryBuilder;
-import kiln.app.registry.BuildDirector;
 import kiln.event.Timestamp;
 import kiln.gfx.asset.gltf.Parser;
 import kiln.gfx.renderer.command.Queue;
@@ -32,6 +30,8 @@ import kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.InstanceBuilder;
 import kiln.gfx.vulkan.result.check_result;
+import kiln.reg.BuildableEntryBuilder;
+import kiln.reg.BuildDirector;
 import kiln.util.containers.MoveOnlyFunction;
 import kiln.util.contracts;
 import kiln.util.Lazy;
@@ -64,10 +64,10 @@ namespace demo {
 
 class ContextBuilder;
 
-auto describe_injection(kiln::app::BuildDirector<ContextBuilder>& build_director) -> void;
+auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director) -> void;
 
 class ContextBuilder
-    : public kiln::app::BuildableEntryBuilder<ContextBuilder, describe_injection> {
+    : public kiln::reg::BuildableEntryBuilder<ContextBuilder, describe_injection> {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
@@ -136,7 +136,7 @@ public:
     }
 };
 
-auto describe_injection(kiln::app::BuildDirector<ContextBuilder>& build_director) -> void
+auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director) -> void
 {
     build_director.use_function<ContextBuilder::create>();
 }
@@ -156,7 +156,7 @@ auto select_staging_queue(
     }
 }
 
-auto describe_builder(kiln::app::BuildDirector<Context>& build_director) -> void
+auto describe_builder(kiln::reg::BuildDirector<Context>& build_director) -> void
 {
     build_director.use_builder<ContextBuilder>();
 }

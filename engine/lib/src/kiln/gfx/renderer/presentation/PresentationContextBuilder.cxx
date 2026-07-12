@@ -48,7 +48,7 @@ auto make_presentation_context_builder(
     return PresentationContextBuilder{};
 }
 
-auto describe_build(app::BuildDirector<PresentationContextBuilder>& build_director)
+auto describe_build(reg::BuildDirector<PresentationContextBuilder>& build_director)
     -> void
 {
     build_director.use_function<make_presentation_context_builder>();

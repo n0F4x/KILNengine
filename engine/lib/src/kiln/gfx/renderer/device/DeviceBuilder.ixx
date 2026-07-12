@@ -8,8 +8,6 @@ export module kiln.gfx.renderer.device.DeviceBuilder;
 import vulkan;
 
 import kiln.app.memory.MemoryArena;
-import kiln.app.registry.BuildableEntryBuilder;
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.command.QueueProviderBuilder;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.Instance;
@@ -17,6 +15,8 @@ import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.PhysicalDeviceFilter;
 import kiln.gfx.vulkan.QueueFamilyInfo;
 import kiln.gfx.vulkan.structure_chain.feature_struct_c;
+import kiln.reg.BuildableEntryBuilder;
+import kiln.reg.BuildDirector;
 import kiln.util.StringLiteral;
 import kiln.wsi.Context;
 
@@ -24,10 +24,10 @@ namespace kiln::gfx::renderer {
 
 export class DeviceBuilder;
 
-auto describe_build(app::BuildDirector<DeviceBuilder>& build_director) -> void;
+auto describe_build(reg::BuildDirector<DeviceBuilder>& build_director) -> void;
 
 export class DeviceBuilder
-    : public app::BuildableEntryBuilder<DeviceBuilder, describe_build> {
+    : public reg::BuildableEntryBuilder<DeviceBuilder, describe_build> {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 

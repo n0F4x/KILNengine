@@ -15,8 +15,6 @@ export module kiln.gfx.renderer.command.QueueProvider;
 
 import vulkan;
 
-import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.command.ComputeQueueRef;
 import kiln.gfx.renderer.command.GraphicsQueueRef;
 import kiln.gfx.renderer.command.TransferQueueRef;
@@ -24,6 +22,8 @@ import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueRef;
 import kiln.gfx.renderer.command.QueueRefBase;
 import kiln.gfx.renderer.command.QueueType;
+import kiln.reg.BuildableEntry;
+import kiln.reg.BuildDirector;
 
 namespace kiln::gfx::renderer {
 
@@ -48,10 +48,10 @@ public:
 
 export class QueueProvider;
 
-auto describe_build(app::BuildDirector<QueueProvider>& build_director) -> void;
+auto describe_build(reg::BuildDirector<QueueProvider>& build_director) -> void;
 
 class QueueProvider : private QueueProviderPrecondition,
-                      public app::BuildableEntry<QueueProvider, describe_build> {
+                      public reg::BuildableEntry<QueueProvider, describe_build> {
 public:
     using QueueIndices = QueueIndices;
 

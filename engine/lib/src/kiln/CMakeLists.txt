@@ -3,6 +3,7 @@ add_subdirectory(config)
 add_subdirectory(event)
 add_subdirectory(exec)
 add_subdirectory(gfx)
+add_subdirectory(reg)
 add_subdirectory(util)
 add_subdirectory(wsi)
 

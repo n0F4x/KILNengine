@@ -24,7 +24,7 @@ import kiln.util.StringLiteral;
 
 namespace kiln::gfx::renderer {
 
-auto describe_build(app::BuildDirector<Allocator>& build_director) -> void
+auto describe_build(reg::BuildDirector<Allocator>& build_director) -> void
 {
     build_director.use_builder<AllocatorBuilder>();
 }

@@ -23,7 +23,7 @@ auto make_device_builder(app::MemoryArena& memory_arena) -> DeviceBuilder
     return DeviceBuilder{ memory_arena.pool_allocator() };
 }
 
-auto describe_build(app::BuildDirector<DeviceBuilder>& build_director) -> void
+auto describe_build(reg::BuildDirector<DeviceBuilder>& build_director) -> void
 {
     build_director.use_function<make_device_builder>();
 }

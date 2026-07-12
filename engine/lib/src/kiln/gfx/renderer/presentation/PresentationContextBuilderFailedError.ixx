@@ -1,11 +1,11 @@
 export module kiln.gfx.renderer.presentation.PresentationContextBuilderFailedError;
 
-import kiln.app.registry.EntryBuilderFailedError;
+import kiln.reg.EntryBuilderFailedError;
 
 namespace kiln::gfx::renderer {
 
 export class PresentationContextBuilderFailedError
-    : public app::EntryBuilderFailedError   //
+    : public reg::EntryBuilderFailedError   //
 {
 public:
     using EntryBuilderFailedError::EntryBuilderFailedError;

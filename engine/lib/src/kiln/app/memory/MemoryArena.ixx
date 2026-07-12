@@ -5,11 +5,11 @@ module;
 
 export module kiln.app.memory.MemoryArena;
 
-import kiln.app.registry.ConfigurationEntry;
+import kiln.reg.ConfigurationEntry;
 
 namespace kiln::app {
 
-export class MemoryArena : public ConfigurationEntry {
+export class MemoryArena : public reg::ConfigurationEntry {
 public:
     class Builder;
 

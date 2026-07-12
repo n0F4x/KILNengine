@@ -7,14 +7,14 @@ export module kiln.gfx.renderer.command.QueueProviderBuilder;
 
 import vulkan;
 
-import kiln.app.registry.BuildableEntryBuilder;
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.command.QueueProvider;
 import kiln.gfx.renderer.command.QueueType;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.vulkan.Instance;
 import kiln.gfx.vulkan.PhysicalDeviceFilter;
 import kiln.gfx.vulkan.QueueFamilyInfo;
+import kiln.reg.BuildableEntryBuilder;
+import kiln.reg.BuildDirector;
 import kiln.util.EnumMask;
 import kiln.wsi.Context;
 
@@ -22,10 +22,10 @@ namespace kiln::gfx::renderer {
 
 export class QueueProviderBuilder;
 
-auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) -> void;
+auto describe_build(reg::BuildDirector<QueueProviderBuilder>& build_director) -> void;
 
 export class QueueProviderBuilder
-    : public app::BuildableEntryBuilder<QueueProviderBuilder, describe_build> {
+    : public reg::BuildableEntryBuilder<QueueProviderBuilder, describe_build> {
 public:
     auto require_queue(QueueType type) -> void;
     auto request_queue(QueueType type) -> void;

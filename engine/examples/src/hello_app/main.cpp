@@ -1,13 +1,14 @@
 #include <cstdio>
 
 import kiln.app;
+import kiln.reg;
 import kiln.util.containers.OptionalRef;
 
-struct GraphicsSystemIntegration : kiln::app::EntryBase {};
+struct GraphicsSystemIntegration : kiln::reg::EntryBase {};
 
 template <typename Entry_T>
 struct BuildDescriber {
-    constexpr static auto operator()(kiln::app::BuildDirector<Entry_T>& build_director)
+    constexpr static auto operator()(kiln::reg::BuildDirector<Entry_T>& build_director)
         -> void
     {
         build_director.template use_builder<typename Entry_T::Builder>();
@@ -17,7 +18,7 @@ struct BuildDescriber {
 template <typename EntryBuilder_T>
 struct BuilderBuildDescriber {
     constexpr static auto operator()(
-        kiln::app::BuildDirector<EntryBuilder_T>& build_director
+        kiln::reg::BuildDirector<EntryBuilder_T>& build_director
     ) -> void
     {
         build_director.template use_function<EntryBuilder_T::create>();
@@ -25,13 +26,13 @@ struct BuilderBuildDescriber {
 };
 
 struct WindowSystem
-    : kiln::app::BuildableEntry<WindowSystem, BuildDescriber<WindowSystem>{}> {
+    : kiln::reg::BuildableEntry<WindowSystem, BuildDescriber<WindowSystem>{}> {
     struct Builder;
 
     GraphicsSystemIntegration* graphics_system{};
 };
 
-struct WindowSystem::Builder : kiln::app::EntryBuilderBase {
+struct WindowSystem::Builder : kiln::reg::EntryBuilderBase {
     bool graphics_support_requested = false;
 
     auto build(
@@ -47,7 +48,7 @@ struct WindowSystem::Builder : kiln::app::EntryBuilderBase {
 };
 
 struct RenderSystem
-    : kiln::app::BuildableEntry<RenderSystem, BuildDescriber<RenderSystem>{}>   //
+    : kiln::reg::BuildableEntry<RenderSystem, BuildDescriber<RenderSystem>{}>   //
 {
     struct Builder;
 
@@ -56,7 +57,7 @@ struct RenderSystem
 };
 
 struct RenderSystem::Builder
-    : kiln::app::BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}>   //
+    : kiln::reg::BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}>   //
 {
     static auto create(
         const kiln::util::OptionalRef<WindowSystem::Builder> window_builder

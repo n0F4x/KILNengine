@@ -51,7 +51,7 @@ auto make_builder(vulkan::InstanceBuilder& instance_builder, DeviceBuilder& devi
     return QueueProviderBuilder{};
 }
 
-auto describe_build(app::BuildDirector<QueueProviderBuilder>& build_director) -> void
+auto describe_build(reg::BuildDirector<QueueProviderBuilder>& build_director) -> void
 {
     build_director.use_function<make_builder>();
 }

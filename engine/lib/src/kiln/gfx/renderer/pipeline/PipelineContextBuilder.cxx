@@ -24,7 +24,7 @@ auto make_pipeline_context_builder(DeviceBuilder& device_builder)
     return PipelineContextBuilder{};
 }
 
-auto describe_build(app::BuildDirector<PipelineContextBuilder>& build_director) -> void
+auto describe_build(reg::BuildDirector<PipelineContextBuilder>& build_director) -> void
 {
     build_director.use_function<make_pipeline_context_builder>();
 }

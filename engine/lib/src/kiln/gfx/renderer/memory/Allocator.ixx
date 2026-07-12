@@ -13,8 +13,6 @@ export module kiln.gfx.renderer.memory.Allocator;
 
 import vulkan;
 
-import kiln.app.registry.BuildableEntry;
-import kiln.app.registry.BuildDirector;
 import kiln.gfx.renderer.device.Device;
 import kiln.gfx.renderer.memory.Allocation;
 import kiln.gfx.renderer.memory.Buffer;
@@ -22,14 +20,16 @@ import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.gfx.vulkan.Instance;
+import kiln.reg.BuildableEntry;
+import kiln.reg.BuildDirector;
 
 namespace kiln::gfx::renderer {
 
 export class Allocator;
 
-auto describe_build(app::BuildDirector<Allocator>& build_director) -> void;
+auto describe_build(reg::BuildDirector<Allocator>& build_director) -> void;
 
-class Allocator : public app::BuildableEntry<Allocator, describe_build> {
+class Allocator : public reg::BuildableEntry<Allocator, describe_build> {
 public:
     Allocator(
         const vulkan::Instance& instance,

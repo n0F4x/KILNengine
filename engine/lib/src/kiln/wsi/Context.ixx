@@ -4,13 +4,13 @@ module;
 
 export module kiln.wsi.Context;
 
-import kiln.app.registry.ConfigurationEntry;
+import kiln.reg.ConfigurationEntry;
 import kiln.util.type_traits.const_like;
 import kiln.wsi.error.handle_glfw_error;
 
 namespace kiln::wsi {
 
-export class Context : public app::ConfigurationEntry  {
+export class Context : public reg::ConfigurationEntry  {
 public:
     Context();
     Context(const Context&);

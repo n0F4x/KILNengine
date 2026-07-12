@@ -4,15 +4,15 @@ module;
 
 export module kiln.app.config.Config;
 
-import kiln.app.registry.ConfigurationEntry;
 import kiln.config.engine_name;
 import kiln.config.engine_version;
 import kiln.config.Version;
+import kiln.reg.ConfigurationEntry;
 import kiln.util.StringLiteral;
 
 namespace kiln::app {
 
-export class Config : public ConfigurationEntry {
+export class Config : public reg::ConfigurationEntry {
 public:
     constexpr explicit Config(
         const util::StringLiteral app_name    = "",
