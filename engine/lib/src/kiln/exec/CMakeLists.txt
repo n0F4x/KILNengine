@@ -8,9 +8,10 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         exec.cppm
-        access_pattern_of.ixx
+        Access.ixx
         accessor_c.ixx
         AccessPattern.ixx
         Ref.ixx
         Task.ixx
+        TaskGroup.ixx
 )

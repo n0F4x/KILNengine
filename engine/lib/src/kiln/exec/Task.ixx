@@ -1,15 +1,14 @@
 module;
 
 #include <cstdint>
-#include <flat_map>
 #include <memory_resource>
+#include <span>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 export module kiln.exec.Task;
 
-import kiln.exec.access_pattern_of;
+import kiln.exec.Access;
 import kiln.exec.accessor_c;
 import kiln.exec.AccessPattern;
 import kiln.reg.Registry;
@@ -19,13 +18,6 @@ import kiln.util.reflection;
 namespace kiln::exec {
 
 export class Task {
-    using Accesses = std::flat_map<
-        uint64_t,
-        AccessPattern,
-        std::less<>,
-        std::pmr::vector<uint64_t>,
-        std::pmr::vector<AccessPattern>>;
-
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
@@ -47,14 +39,17 @@ public:
     auto get_allocator() const noexcept -> allocator_type;
 
     [[nodiscard]]
-    auto accesses() const noexcept -> const Accesses&;
+    auto accessed_types() const noexcept -> std::span<const uint64_t>;
+    [[nodiscard]]
+    auto access_patterns() const noexcept -> std::span<const AccessPattern>;
 
 
     auto operator()() -> void;
 
 private:
-    Accesses                       m_accesses;
-    util::MoveOnlyFunction<void()> m_invoke;
+    std::pmr::vector<uint64_t>      m_accessed_types;
+    std::pmr::vector<AccessPattern> m_access_patterns;
+    util::MoveOnlyFunction<void()>  m_invoke;
 };
 
 }   // namespace kiln::exec
@@ -74,15 +69,8 @@ Task::Task(
     auto (&func)(Accessors_T...)->void,
     reg::Registry& registry
 )
-    : m_accesses{
-          {
-           std::pair{
-                  util::hash_u64<std::remove_cvref_t<Accessors_T>>(),
-                  access_pattern_of<std::remove_cvref_t<Accessors_T>>,
-              }...,
-           },
-          allocator
-},
+    : m_accessed_types{ allocator },
+      m_access_patterns{ allocator },
       m_invoke{
           [func,
            ... accessors = provide_accessor(
@@ -94,6 +82,28 @@ Task::Task(
           },
       }
 {
+    const std::array<std::span<const Access>, sizeof...(Accessors_T)> accesses{
+        accesses_of(std::type_identity<std::remove_cvref_t<Accessors_T>>{})...
+    };
+
+    std::size_t access_count{};
+    for (const std::span<const Access> individual_accesses : accesses)
+    {
+        access_count += individual_accesses.size();
+    }
+
+    m_accessed_types.reserve(access_count);
+    m_access_patterns.reserve(access_count);
+
+    for (const std::span<const Access> individual_accesses : accesses)
+    {
+        // ReSharper disable once CppUseStructuredBinding
+        for (const Access& access : individual_accesses)
+        {
+            m_accessed_types.push_back(access.type_hash);
+            m_access_patterns.push_back(access.access_pattern);
+        }
+    }
 }
 
 }   // namespace kiln::exec
