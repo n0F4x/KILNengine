@@ -2,6 +2,7 @@ module;
 
 #include <cstdint>
 #include <memory_resource>
+#include <ranges>
 #include <span>
 #include <type_traits>
 #include <vector>
@@ -12,6 +13,7 @@ import kiln.exec.Access;
 import kiln.exec.accessor_c;
 import kiln.exec.AccessPattern;
 import kiln.reg.Registry;
+import kiln.util.concepts.ranges.input_range_of;
 import kiln.util.containers.MoveOnlyFunction;
 import kiln.util.reflection;
 
@@ -35,11 +37,16 @@ public:
         reg::Registry& registry
     );
 
-    explicit Task(util::MoveOnlyFunction<void()>&& func);
+    template <util::input_range_of_c<Access> Accesses_T>
+        requires std::ranges::sized_range<Accesses_T>
+    explicit Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses);
+    template <util::input_range_of_c<Access> Accesses_T>
+        requires std::ranges::sized_range<Accesses_T>
     explicit Task(
         std::allocator_arg_t,
         const allocator_type&            allocator,
-        util::MoveOnlyFunction<void()>&& func
+        util::MoveOnlyFunction<void()>&& func,
+        Accesses_T&&                     accesses
     );
 
 
@@ -125,21 +132,39 @@ Task<Result_T>::Task(
 }
 
 template <typename Result_T>
-Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func)
+template <util::input_range_of_c<Access> Accesses_T>
+    requires std::ranges::sized_range<Accesses_T>
+Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses)
     : m_accessed_types{ func.get_allocator() },
       m_access_patterns{ func.get_allocator() },
       m_invoke{ std::move(func) }
 {
+    const std::size_t access_count{
+        static_cast<std::size_t>(std::ranges::size(accesses))
+    };
+
+    m_accessed_types.reserve(access_count);
+    m_access_patterns.reserve(access_count);
+
+    for (const Access& access : accesses)
+    {
+        m_accessed_types.push_back(access.type_hash);
+        m_access_patterns.push_back(access.access_pattern);
+    }
 }
 
 template <typename Result_T>
+template <util::input_range_of_c<Access> Accesses_T>
+    requires std::ranges::sized_range<Accesses_T>
 Task<Result_T>::Task(
     std::allocator_arg_t,
     const allocator_type&            allocator,
-    util::MoveOnlyFunction<void()>&& func
+    util::MoveOnlyFunction<void()>&& func,
+    Accesses_T&&                     accesses
 )
     : Task{
-          util::MoveOnlyFunction<void()>{ std::move(func), allocator }
+          util::MoveOnlyFunction<void()>{ std::move(func), allocator },
+          std::forward<Accesses_T>(accesses)
 }
 {
 }

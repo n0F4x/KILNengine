@@ -33,7 +33,16 @@ public:
 
 
     [[nodiscard]]
-    auto build() && -> Task<void>;
+    auto build(
+        std::pmr::memory_resource& transient_memory_resource
+        = *std::pmr::get_default_resource()
+    ) && -> Task<void>;
+    [[nodiscard]]
+    auto build(
+        const Task<void>::allocator_type& allocator,
+        std::pmr::memory_resource&        transient_memory_resource
+        = *std::pmr::get_default_resource()
+    ) && -> Task<void>;
 
 private:
     std::pmr::vector<Task<void>> m_tasks;

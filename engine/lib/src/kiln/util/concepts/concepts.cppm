@@ -1,5 +1,7 @@
 export module kiln.util.concepts;
 
+export import kiln.util.concepts.ranges;
+
 export import kiln.util.concepts.contained_exactly_once;
 export import kiln.util.concepts.decayed;
 export import kiln.util.concepts.function;
