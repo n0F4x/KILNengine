@@ -77,27 +77,27 @@ auto TaskGroup::build(
     std::pmr::memory_resource&        transient_memory_resource
 ) && -> Task<void>
 {
-    std::pmr::vector<uint64_t>      accessed_types{ &transient_memory_resource };
+    std::pmr::vector<uint64_t>      accessed_resource_ids{ &transient_memory_resource };
     std::pmr::vector<AccessPattern> access_patterns{ &transient_memory_resource };
 
     for (const Task<void>& task : m_tasks)
     {
-        for (const auto [accessed_type, access_pattern] :
-             std::views::zip(task.accessed_types(), task.access_patterns()))
+        for (const auto [accessed_resource_id, access_pattern] :
+             std::views::zip(task.accessed_resource_ids(), task.access_patterns()))
         {
-            const auto type_iter{
-                std::ranges::lower_bound(accessed_types, accessed_type)
+            const auto resource_id_iter{
+                std::ranges::lower_bound(accessed_resource_ids, accessed_resource_id)
             };
             const auto access_pattern_iter{
                 std::next(
                     access_patterns.begin(),
-                    std::distance(accessed_types.begin(), type_iter)
+                    std::distance(accessed_resource_ids.begin(), resource_id_iter)
                 ),
             };
 
-            if (type_iter == accessed_types.cend() or *type_iter != accessed_type)
+            if (resource_id_iter == accessed_resource_ids.cend() or *resource_id_iter != accessed_resource_id)
             {
-                accessed_types.insert(type_iter, accessed_type);
+                accessed_resource_ids.insert(resource_id_iter, accessed_resource_id);
                 access_patterns.insert(access_pattern_iter, access_pattern);
             }
             else
@@ -113,12 +113,12 @@ auto TaskGroup::build(
         make_func(allocator, std::move(m_tasks)),
         std::views::transform(
             // TODO: use `std::views::indices`
-            std::views::iota(0uz, accessed_types.size()),
+            std::views::iota(0uz, accessed_resource_ids.size()),
             [&](const std::size_t index) -> Access
             {
                 return Access{
                     .access_pattern = access_patterns[index],
-                    .type_hash      = accessed_types[index],
+                    .resource_id      = accessed_resource_ids[index],
                 };
             }
         ),

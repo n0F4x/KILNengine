@@ -45,8 +45,8 @@ constexpr auto accesses_of(std::type_identity<Ref<T>>) noexcept -> std::span<con
                .access_pattern = std::is_const_v<T>   //
                                 ? AccessPattern::eRead
                                 : AccessPattern::eWrite,
-               .type_hash      = util::hash_u64<std::remove_const_t<T>>(),
-               }
+               .resource_id    = util::hash_u64<std::remove_const_t<T>>(),
+               },
     };
 
     return std::span{ accesses };

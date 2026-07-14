@@ -10,7 +10,7 @@ namespace kiln::exec {
 
 export struct Access {
     AccessPattern access_pattern;
-    uint64_t      type_hash;
+    uint64_t      resource_id;
 };
 
 }   // namespace kiln::exec
