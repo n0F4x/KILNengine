@@ -25,12 +25,12 @@ public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
-    Task(Task&&, const allocator_type&);
+    constexpr Task(Task&&, const allocator_type&);
 
     template <decays_to_accessor_c... Accessors_T>
-    explicit Task(auto (&func)(Accessors_T...)->Result_T, reg::Registry& registry);
+    constexpr explicit Task(auto (&func)(Accessors_T...)->Result_T, reg::Registry& registry);
     template <decays_to_accessor_c... Accessors_T>
-    explicit Task(
+    constexpr explicit Task(
         std::allocator_arg_t,
         const allocator_type& allocator,
         auto (&func)(Accessors_T...)->Result_T,
@@ -39,10 +39,10 @@ public:
 
     template <util::input_range_of_c<Access> Accesses_T>
         requires std::ranges::sized_range<Accesses_T>
-    explicit Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses);
+    constexpr explicit Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses);
     template <util::input_range_of_c<Access> Accesses_T>
         requires std::ranges::sized_range<Accesses_T>
-    explicit Task(
+    constexpr explicit Task(
         std::allocator_arg_t,
         const allocator_type&            allocator,
         util::MoveOnlyFunction<void()>&& func,
@@ -51,15 +51,15 @@ public:
 
 
     [[nodiscard]]
-    auto get_allocator() const noexcept -> allocator_type;
+    constexpr auto get_allocator() const noexcept -> allocator_type;
 
     [[nodiscard]]
-    auto accessed_resource_ids() const noexcept -> std::span<const uint64_t>;
+    constexpr auto accessed_resource_ids() const noexcept -> std::span<const uint64_t>;
     [[nodiscard]]
-    auto access_patterns() const noexcept -> std::span<const AccessPattern>;
+    constexpr auto access_patterns() const noexcept -> std::span<const AccessPattern>;
 
 
-    auto operator()() -> Result_T;
+    constexpr auto operator()() -> Result_T;
 
 private:
     std::pmr::vector<uint64_t>         m_accessed_resource_ids;
@@ -72,7 +72,7 @@ private:
 namespace kiln::exec {
 
 template <typename Result_T>
-Task<Result_T>::Task(Task&& other, const allocator_type& allocator)
+constexpr Task<Result_T>::Task(Task&& other, const allocator_type& allocator)
     : m_accessed_resource_ids{ std::move(other.m_accessed_resource_ids), allocator },
       m_access_patterns{ std::move(other.m_access_patterns), allocator },
       m_invoke{ std::move(other.m_invoke), allocator }
@@ -81,14 +81,14 @@ Task<Result_T>::Task(Task&& other, const allocator_type& allocator)
 
 template <typename Result_T>
 template <decays_to_accessor_c... Accessors_T>
-Task<Result_T>::Task(auto (&func)(Accessors_T...)->Result_T, reg::Registry& registry)
+constexpr Task<Result_T>::Task(auto (&func)(Accessors_T...)->Result_T, reg::Registry& registry)
     : Task{ std::allocator_arg, std::pmr::get_default_resource(), func, registry }
 {
 }
 
 template <typename Result_T>
 template <decays_to_accessor_c... Accessors_T>
-Task<Result_T>::Task(
+constexpr Task<Result_T>::Task(
     std::allocator_arg_t,
     const allocator_type& allocator,
     auto (&func)(Accessors_T...)->Result_T,
@@ -134,7 +134,7 @@ Task<Result_T>::Task(
 template <typename Result_T>
 template <util::input_range_of_c<Access> Accesses_T>
     requires std::ranges::sized_range<Accesses_T>
-Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses)
+constexpr Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses)
     : m_accessed_resource_ids{ func.get_allocator() },
       m_access_patterns{ func.get_allocator() },
       m_invoke{ std::move(func) }
@@ -156,7 +156,7 @@ Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesse
 template <typename Result_T>
 template <util::input_range_of_c<Access> Accesses_T>
     requires std::ranges::sized_range<Accesses_T>
-Task<Result_T>::Task(
+constexpr Task<Result_T>::Task(
     std::allocator_arg_t,
     const allocator_type&            allocator,
     util::MoveOnlyFunction<void()>&& func,
@@ -170,25 +170,25 @@ Task<Result_T>::Task(
 }
 
 template <typename Result_T>
-auto Task<Result_T>::get_allocator() const noexcept -> allocator_type
+constexpr auto Task<Result_T>::get_allocator() const noexcept -> allocator_type
 {
     return m_accessed_resource_ids.get_allocator();
 }
 
 template <typename Result_T>
-auto Task<Result_T>::accessed_resource_ids() const noexcept -> std::span<const uint64_t>
+constexpr auto Task<Result_T>::accessed_resource_ids() const noexcept -> std::span<const uint64_t>
 {
     return m_accessed_resource_ids;
 }
 
 template <typename Result_T>
-auto Task<Result_T>::access_patterns() const noexcept -> std::span<const AccessPattern>
+constexpr auto Task<Result_T>::access_patterns() const noexcept -> std::span<const AccessPattern>
 {
     return m_access_patterns;
 }
 
 template <typename Result_T>
-auto Task<Result_T>::operator()() -> Result_T
+constexpr auto Task<Result_T>::operator()() -> Result_T
 {
     return m_invoke();
 }
