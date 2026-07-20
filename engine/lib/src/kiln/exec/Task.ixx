@@ -1,5 +1,6 @@
 module;
 
+#include <algorithm>
 #include <cstdint>
 #include <memory_resource>
 #include <ranges>
@@ -28,7 +29,10 @@ public:
     constexpr Task(Task&&, const allocator_type&);
 
     template <decays_to_accessor_c... Accessors_T>
-    constexpr explicit Task(auto (&func)(Accessors_T...)->Result_T, reg::Registry& registry);
+    constexpr explicit Task(
+        auto (&func)(Accessors_T...)->Result_T,
+        reg::Registry& registry
+    );
     template <decays_to_accessor_c... Accessors_T>
     constexpr explicit Task(
         std::allocator_arg_t,
@@ -43,6 +47,23 @@ public:
     template <util::input_range_of_c<Access> Accesses_T>
         requires std::ranges::sized_range<Accesses_T>
     constexpr explicit Task(
+        std::allocator_arg_t,
+        const allocator_type&            allocator,
+        util::MoveOnlyFunction<void()>&& func,
+        Accesses_T&&                     accesses
+    );
+
+    template <util::input_range_of_c<Access> Accesses_T>
+        requires std::ranges::sized_range<Accesses_T>
+    constexpr explicit Task(
+        std::sorted_unique_t,
+        util::MoveOnlyFunction<void()>&& func,
+        Accesses_T&&                     accesses
+    );
+    template <util::input_range_of_c<Access> Accesses_T>
+        requires std::ranges::sized_range<Accesses_T>
+    constexpr explicit Task(
+        std::sorted_unique_t,
         std::allocator_arg_t,
         const allocator_type&            allocator,
         util::MoveOnlyFunction<void()>&& func,
@@ -81,7 +102,10 @@ constexpr Task<Result_T>::Task(Task&& other, const allocator_type& allocator)
 
 template <typename Result_T>
 template <decays_to_accessor_c... Accessors_T>
-constexpr Task<Result_T>::Task(auto (&func)(Accessors_T...)->Result_T, reg::Registry& registry)
+constexpr Task<Result_T>::Task(
+    auto (&func)(Accessors_T...)->Result_T,
+    reg::Registry& registry
+)
     : Task{ std::allocator_arg, std::pmr::get_default_resource(), func, registry }
 {
 }
@@ -125,8 +149,26 @@ constexpr Task<Result_T>::Task(
         // ReSharper disable once CppUseStructuredBinding
         for (const Access& access : individual_accesses)
         {
-            m_accessed_resource_ids.push_back(access.resource_id);
-            m_access_patterns.push_back(access.access_pattern);
+            const auto resource_id_iter{
+                std::ranges::lower_bound(m_accessed_resource_ids, access.resource_id)
+            };
+            const auto access_pattern_iter{
+                std::next(
+                    m_access_patterns.begin(),
+                    std::distance(m_accessed_resource_ids.begin(), resource_id_iter)
+                ),
+            };
+
+            if (resource_id_iter == m_accessed_resource_ids.cend()
+                or *resource_id_iter != access.resource_id)
+            {
+                m_accessed_resource_ids.insert(resource_id_iter, access.resource_id);
+                m_access_patterns.insert(access_pattern_iter, access.access_pattern);
+            }
+            else
+            {
+                *access_pattern_iter |= access.access_pattern;
+            }
         }
     }
 }
@@ -134,7 +176,70 @@ constexpr Task<Result_T>::Task(
 template <typename Result_T>
 template <util::input_range_of_c<Access> Accesses_T>
     requires std::ranges::sized_range<Accesses_T>
-constexpr Task<Result_T>::Task(util::MoveOnlyFunction<void()>&& func, Accesses_T&& accesses)
+constexpr Task<Result_T>::Task(
+    util::MoveOnlyFunction<void()>&& func,
+    Accesses_T&&                     accesses
+)
+    : m_accessed_resource_ids{ func.get_allocator() },
+      m_access_patterns{ func.get_allocator() },
+      m_invoke{ std::move(func) }
+{
+    const std::size_t access_count{
+        static_cast<std::size_t>(std::ranges::size(accesses))
+    };
+
+    m_accessed_resource_ids.reserve(access_count);
+    m_access_patterns.reserve(access_count);
+
+    for (const Access& access : accesses)
+    {
+        const auto resource_id_iter{
+            std::ranges::lower_bound(m_accessed_resource_ids, access.resource_id)
+        };
+        const auto access_pattern_iter{
+            std::next(
+                m_access_patterns.begin(),
+                std::distance(m_accessed_resource_ids.begin(), resource_id_iter)
+            ),
+        };
+
+        if (resource_id_iter == m_accessed_resource_ids.cend()
+            or *resource_id_iter != access.resource_id)
+        {
+            m_accessed_resource_ids.insert(resource_id_iter, access.resource_id);
+            m_access_patterns.insert(access_pattern_iter, access.access_pattern);
+        }
+        else
+        {
+            *access_pattern_iter |= access.access_pattern;
+        }
+    }
+}
+
+template <typename Result_T>
+template <util::input_range_of_c<Access> Accesses_T>
+    requires std::ranges::sized_range<Accesses_T>
+constexpr Task<Result_T>::Task(
+    std::allocator_arg_t,
+    const allocator_type&            allocator,
+    util::MoveOnlyFunction<void()>&& func,
+    Accesses_T&&                     accesses
+)
+    : Task{
+          util::MoveOnlyFunction<void()>{ std::move(func), allocator },
+          std::forward<Accesses_T>(accesses)
+}
+{
+}
+
+template <typename Result_T>
+template <util::input_range_of_c<Access> Accesses_T>
+    requires std::ranges::sized_range<Accesses_T>
+constexpr Task<Result_T>::Task(
+    std::sorted_unique_t,
+    util::MoveOnlyFunction<void()>&& func,
+    Accesses_T&&                     accesses
+)
     : m_accessed_resource_ids{ func.get_allocator() },
       m_access_patterns{ func.get_allocator() },
       m_invoke{ std::move(func) }
@@ -157,12 +262,14 @@ template <typename Result_T>
 template <util::input_range_of_c<Access> Accesses_T>
     requires std::ranges::sized_range<Accesses_T>
 constexpr Task<Result_T>::Task(
+    std::sorted_unique_t,
     std::allocator_arg_t,
     const allocator_type&            allocator,
     util::MoveOnlyFunction<void()>&& func,
     Accesses_T&&                     accesses
 )
     : Task{
+          std::sorted_unique,
           util::MoveOnlyFunction<void()>{ std::move(func), allocator },
           std::forward<Accesses_T>(accesses)
 }
@@ -176,13 +283,15 @@ constexpr auto Task<Result_T>::get_allocator() const noexcept -> allocator_type
 }
 
 template <typename Result_T>
-constexpr auto Task<Result_T>::accessed_resource_ids() const noexcept -> std::span<const uint64_t>
+constexpr auto Task<Result_T>::accessed_resource_ids() const noexcept
+    -> std::span<const uint64_t>
 {
     return m_accessed_resource_ids;
 }
 
 template <typename Result_T>
-constexpr auto Task<Result_T>::access_patterns() const noexcept -> std::span<const AccessPattern>
+constexpr auto Task<Result_T>::access_patterns() const noexcept
+    -> std::span<const AccessPattern>
 {
     return m_access_patterns;
 }

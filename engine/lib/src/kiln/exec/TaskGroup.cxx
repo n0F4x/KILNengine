@@ -95,7 +95,8 @@ auto TaskGroup::build(
                 ),
             };
 
-            if (resource_id_iter == accessed_resource_ids.cend() or *resource_id_iter != accessed_resource_id)
+            if (resource_id_iter == accessed_resource_ids.cend()
+                or *resource_id_iter != accessed_resource_id)
             {
                 accessed_resource_ids.insert(resource_id_iter, accessed_resource_id);
                 access_patterns.insert(access_pattern_iter, access_pattern);
@@ -108,6 +109,7 @@ auto TaskGroup::build(
     }
 
     return Task<void>{
+        std::sorted_unique,
         std::allocator_arg,
         allocator,
         make_func(allocator, std::move(m_tasks)),
@@ -118,7 +120,7 @@ auto TaskGroup::build(
             {
                 return Access{
                     .access_pattern = access_patterns[index],
-                    .resource_id      = accessed_resource_ids[index],
+                    .resource_id    = accessed_resource_ids[index],
                 };
             }
         ),
