@@ -1,5 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
         SignalTree.cxx
+        WorkTree.cxx
 )
 
 target_sources(${PROJECT_NAME} PUBLIC
@@ -7,5 +8,10 @@ target_sources(${PROJECT_NAME} PUBLIC
         BASE_DIRS ${PROJECT_SOURCE_DIR}/src
         FILES
         data_structures.cppm
+        ReleaseWorkContract.ixx
         SignalTree.ixx
+        WorkContinuation.ixx
+        WorkContract.ixx
+        WorkID.ixx
+        WorkTree.ixx
 )

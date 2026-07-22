@@ -3,6 +3,7 @@ module;
 #include <bit>
 #include <cassert>
 #include <cstdint>
+#include <memory_resource>
 #include <optional>
 
 #include <tl/function_ref.hpp>
@@ -33,36 +34,41 @@ constexpr auto right_child_index_of(const uint32_t node_index) noexcept -> uint3
     return (node_index + 1) * 2;
 }
 
+SignalTreePrecondition::SignalTreePrecondition(
+    [[maybe_unused]] const uint32_t number_of_levels
+)
+{
+    PRECOND(number_of_levels >= SignalTree::minimum_number_of_levels());
+}
+
+SignalTree::SignalTree(
+    SignalTree&&                           other,
+    [[maybe_unused]] const allocator_type& allocator
+)
+    : SignalTreePrecondition{ std::move(other) },
+      m_nodes{ std::move(other.m_nodes) }
+{
+    PRECOND(other.get_allocator() == allocator);
+}
+
 SignalTree::SignalTree(const uint32_t number_of_levels)
-    : m_precondition{ number_of_levels },
-      m_nodes((0x1u << number_of_levels) - 1)
+    : SignalTree{ std::allocator_arg, std::pmr::get_default_resource(), number_of_levels }
 {
 }
 
-auto SignalTree::try_set_one(const LeafIndex leaf_index) -> bool
+SignalTree::SignalTree(
+    std::allocator_arg_t,
+    const allocator_type& allocator,
+    const uint32_t        number_of_levels
+)
+    : SignalTreePrecondition{ number_of_levels },
+      m_nodes((0x1u << number_of_levels) - 1, allocator)
 {
-    const NodeIndex node_index{ leaf_index + number_of_branches() };
-    PRECOND(node_index < m_nodes.size());
-
-    if (m_nodes[node_index].counter.exchange(1) == 1)
-    {
-        return false;
-    }
-
-    set_branch(parent_index_of(node_index));
-
-    return true;
 }
 
-auto SignalTree::try_unset_one(const TraversalStrategy strategy)
-    -> std::optional<LeafIndex>
+auto SignalTree::get_allocator() const noexcept -> allocator_type
 {
-    return try_unset_one(0, strategy);
-}
-
-auto SignalTree::try_unset_one_at(const LeafIndex leaf_index) -> bool
-{
-    return try_unset_one_at(0, leaf_index + number_of_branches());
+    return m_nodes.get_allocator();
 }
 
 auto SignalTree::full() const noexcept -> bool
@@ -90,9 +96,35 @@ auto SignalTree::number_of_nodes() const noexcept -> uint32_t
     return static_cast<uint32_t>(m_nodes.size());
 }
 
-SignalTree::Precondition::Precondition([[maybe_unused]] const uint32_t number_of_levels)
+auto SignalTree::first_leaf_index() const noexcept -> uint32_t
 {
-    PRECOND(number_of_levels >= minimum_number_of_levels());
+    return number_of_leaves() - 1;
+}
+
+auto SignalTree::try_set_one(const LeafIndex leaf_index) -> bool
+{
+    const NodeIndex node_index{ leaf_index + number_of_branches() };
+    PRECOND(node_index < m_nodes.size());
+
+    if (m_nodes[node_index].counter.exchange(1) == 1)
+    {
+        return false;
+    }
+
+    set_branch(parent_index_of(node_index));
+
+    return true;
+}
+
+auto SignalTree::try_unset_one(const TraversalStrategy strategy)
+    -> std::optional<LeafIndex>
+{
+    return try_unset_one(0, strategy);
+}
+
+auto SignalTree::try_unset_one_at(const LeafIndex leaf_index) -> bool
+{
+    return try_unset_one_at(0, leaf_index + number_of_branches());
 }
 
 auto SignalTree::set_branch(const NodeIndex node_index) -> void
