@@ -1,3 +1,4 @@
+add_subdirectory(exec)
 add_subdirectory(gfx)
 add_subdirectory(reg)
 add_subdirectory(util)

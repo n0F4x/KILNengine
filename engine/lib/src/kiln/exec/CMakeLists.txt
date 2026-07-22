@@ -1,3 +1,5 @@
+add_subdirectory(data_structures)
+
 target_sources(${PROJECT_NAME} PRIVATE
         TaskGroup.cxx
 )

@@ -1,5 +1,7 @@
 export module kiln.exec;
 
+export import kiln.exec.data_structures;
+
 export import kiln.exec.accessor_c;
 export import kiln.exec.AccessPattern;
 export import kiln.exec.Ref;
