@@ -1,15 +1,15 @@
 module;
 
-#include <concepts>
 #include <memory_resource>
 
 export module kiln.reg.RegistryBuilder;
 
-import kiln.reg.BuildableEntryBase;
 import kiln.reg.BuildDirector;
+import kiln.reg.configuration_entry_c;
 import kiln.reg.entry_c;
 import kiln.reg.EntryBuilderContainer;
 import kiln.reg.EntryInjectionContainer;
+import kiln.reg.EntryTraits;
 import kiln.reg.Registry;
 
 namespace kiln::reg {
@@ -56,9 +56,6 @@ private:
 
 namespace kiln::reg {
 
-template <typename Entry_T>
-concept buildable_entry_c = std::derived_from<Entry_T, internal::BuildableEntryBase>;
-
 template <decays_to_entry_c... Entries_T>
 RegistryBuilder::RegistryBuilder(
     std::allocator_arg_t,
@@ -73,15 +70,19 @@ RegistryBuilder::RegistryBuilder(
 template <entry_c Entry_T>
 auto RegistryBuilder::register_entry() -> void
 {
-    if constexpr (buildable_entry_c<Entry_T>)
+    if constexpr (requires(BuildDirector<Entry_T> build_director) {
+                      EntryTraits<Entry_T>::describe_build(build_director);
+                  })
     {
+        static_assert(not configuration_entry_c<Entry_T>);
+
         BuildDirector<Entry_T> build_director{
             m_injections,
             m_builders,
             m_registry,
         };
 
-        describe_build(build_director);
+        EntryTraits<Entry_T>::describe_build(build_director);
     }
     else
     {

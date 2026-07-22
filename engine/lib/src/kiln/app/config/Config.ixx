@@ -7,12 +7,12 @@ export module kiln.app.config.Config;
 import kiln.config.engine_name;
 import kiln.config.engine_version;
 import kiln.config.Version;
-import kiln.reg.ConfigurationEntry;
+import kiln.reg.EntryTraits;
 import kiln.util.StringLiteral;
 
 namespace kiln::app {
 
-export class Config : public reg::ConfigurationEntry {
+export class Config {
 public:
     constexpr explicit Config(
         const util::StringLiteral app_name    = "",
@@ -53,3 +53,8 @@ private:
 };
 
 }   // namespace kiln::app
+
+template <>
+struct kiln::reg::EntryTraits<kiln::app::Config> {
+    constexpr static bool is_configuration_entry{ true };
+};

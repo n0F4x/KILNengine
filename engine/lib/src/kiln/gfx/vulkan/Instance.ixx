@@ -6,16 +6,12 @@ export module kiln.gfx.vulkan.Instance;
 
 import vulkan;
 
-import kiln.reg.BuildableEntry;
 import kiln.reg.BuildDirector;
+import kiln.reg.EntryTraits;
 
 namespace kiln::gfx::vulkan {
 
-export class Instance;
-
-auto describe_build(reg::BuildDirector<Instance>& build_director) -> void;
-
-class Instance : public reg::BuildableEntry<Instance, describe_build> {
+export class Instance {
 public:
     explicit Instance(uint32_t api_version, vk::raii::Instance&& instance);
 
@@ -31,3 +27,9 @@ private:
 };
 
 }   // namespace kiln::gfx::vulkan
+
+template <>
+struct kiln::reg::EntryTraits<kiln::gfx::vulkan::Instance> {
+    static auto describe_build(BuildDirector<gfx::vulkan::Instance>& build_director)
+        -> void;
+};

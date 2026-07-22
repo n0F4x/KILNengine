@@ -24,11 +24,6 @@ import kiln.util.StringLiteral;
 
 namespace kiln::gfx::renderer {
 
-auto describe_build(reg::BuildDirector<Allocator>& build_director) -> void
-{
-    build_director.use_builder<AllocatorBuilder>();
-}
-
 [[nodiscard]]
 auto collect_vulkan_functions(
     const vk::raii::Instance& instance,
@@ -504,3 +499,10 @@ auto Allocator::try_flush(const BufferRegion& buffer) -> bool
 }
 
 }   // namespace kiln::gfx::renderer
+
+auto kiln::reg::EntryTraits<kiln::gfx::renderer::Allocator>::describe_build(
+    BuildDirector<gfx::renderer::Allocator>& build_director
+) -> void
+{
+    build_director.use_builder<gfx::renderer::AllocatorBuilder>();
+}

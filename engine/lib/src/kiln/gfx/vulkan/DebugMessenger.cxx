@@ -106,10 +106,10 @@ VKAPI_ATTR auto VKAPI_CALL default_debug_messenger_callback(
 
 class DebugMessengerBuilder;
 
-auto describe_create(reg::BuildDirector<DebugMessengerBuilder>& build_director) -> void;
+auto describe_build(reg::BuildDirector<DebugMessengerBuilder>& build_director) -> void;
 
 class DebugMessengerBuilder
-    : public reg::BuildableEntryBuilder<DebugMessengerBuilder, describe_create> {
+    : public reg::BuildableEntryBuilder<DebugMessengerBuilder, describe_build> {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
@@ -143,14 +143,9 @@ public:
     }
 };
 
-auto describe_create(reg::BuildDirector<DebugMessengerBuilder>& build_director) -> void
+auto describe_build(reg::BuildDirector<DebugMessengerBuilder>& build_director) -> void
 {
     build_director.use_function<DebugMessengerBuilder::create>();
-}
-
-auto describe_build(reg::BuildDirector<DebugMessenger>& build_director) -> void
-{
-    build_director.use_builder<DebugMessengerBuilder>();
 }
 
 DebugMessenger::DebugMessenger(vk::raii::DebugUtilsMessengerEXT&& debug_messenger)
@@ -159,3 +154,10 @@ DebugMessenger::DebugMessenger(vk::raii::DebugUtilsMessengerEXT&& debug_messenge
 }
 
 }   // namespace kiln::gfx::vulkan
+
+auto kiln::reg::EntryTraits<kiln::gfx::vulkan::DebugMessenger>::describe_build(
+    BuildDirector<gfx::vulkan::DebugMessenger>& build_director
+) -> void
+{
+    build_director.use_builder<gfx::vulkan::DebugMessengerBuilder>();
+}

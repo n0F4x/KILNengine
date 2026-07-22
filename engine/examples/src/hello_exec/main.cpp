@@ -1,10 +1,10 @@
 #include <cstdio>
 #include <memory_resource>   // workaround for a linker bug
 
-import kiln.reg;
+import kiln.reg.Registry;
 import kiln.exec;
 
-struct Message : kiln::reg::EntryBase {
+struct Message {
     const char* value;
 };
 

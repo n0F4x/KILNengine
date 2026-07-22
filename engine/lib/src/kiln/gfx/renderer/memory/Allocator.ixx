@@ -20,16 +20,12 @@ import kiln.gfx.renderer.memory.BufferRegion;
 import kiln.gfx.renderer.memory.Image;
 import kiln.gfx.renderer.memory.LazyCopy;
 import kiln.gfx.vulkan.Instance;
-import kiln.reg.BuildableEntry;
 import kiln.reg.BuildDirector;
+import kiln.reg.EntryTraits;
 
 namespace kiln::gfx::renderer {
 
-export class Allocator;
-
-auto describe_build(reg::BuildDirector<Allocator>& build_director) -> void;
-
-class Allocator : public reg::BuildableEntry<Allocator, describe_build> {
+export class Allocator {
 public:
     Allocator(
         const vulkan::Instance& instance,
@@ -101,3 +97,9 @@ private:
 };
 
 }   // namespace kiln::gfx::renderer
+
+template <>
+struct kiln::reg::EntryTraits<kiln::gfx::renderer::Allocator> {
+    static auto describe_build(BuildDirector<gfx::renderer::Allocator>& build_director)
+        -> void;
+};

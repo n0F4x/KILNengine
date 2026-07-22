@@ -10,10 +10,10 @@ module;
 
 export module kiln.reg.EntryInjectionContainer;
 
-import kiln.reg.ConfigurationEntry;
 import kiln.reg.DependencyChainNode;
 import kiln.reg.EntryBuilderBase;
 import kiln.reg.EntryBuilderContainer;
+import kiln.reg.EntryTraits;
 import kiln.reg.strip_dependency_t;
 import kiln.reg.Registry;
 import kiln.util.concepts.function;
@@ -134,7 +134,10 @@ struct ErasedEntryInjectionLambda {
                 return builders.at<StrippedDependency>();
             }
         }
-        else if constexpr (std::derived_from<StrippedDependency, ConfigurationEntry>)
+        else if constexpr (requires {
+                               requires EntryTraits<
+                                   StrippedDependency>::is_configuration_entry;
+                           })
         {
             if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
             {

@@ -15,7 +15,6 @@ module;
 export module kiln.reg.EntryBuilderContainer;
 
 import kiln.reg.DependencyChainNode;
-import kiln.reg.EntryBase;
 import kiln.reg.EntryBuilderBase;
 import kiln.reg.strip_dependency_t;
 import kiln.reg.Registry;
@@ -180,7 +179,7 @@ auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry) -> De
             return builders.at<StrippedDependency>();
         }
     }
-    else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
+    else
     {
         if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
         {
@@ -190,10 +189,6 @@ auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry) -> De
         {
             return registry.at<StrippedDependency>();
         }
-    }
-    else
-    {
-        static_assert(false, "invalid dependency");
     }
 }
 
@@ -302,13 +297,9 @@ auto EntryBuilderContainer::try_emplace(Args_T&&... args) -> bool
                         util::result_of_t<decltype(&StrippedDependency::build)>>()
                 );
             }
-            else if constexpr (std::derived_from<StrippedDependency, EntryBase>)
-            {
-                entry_dependency_hashes.push_back(util::hash_u64<StrippedDependency>());
-            }
             else
             {
-                static_assert(false, "invalid build dependency");
+                entry_dependency_hashes.push_back(util::hash_u64<StrippedDependency>());
             }
         }
     );

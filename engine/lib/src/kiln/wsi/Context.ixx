@@ -4,13 +4,13 @@ module;
 
 export module kiln.wsi.Context;
 
-import kiln.reg.ConfigurationEntry;
+import kiln.reg.EntryTraits;
 import kiln.util.type_traits.const_like;
 import kiln.wsi.error.handle_glfw_error;
 
 namespace kiln::wsi {
 
-export class Context : public reg::ConfigurationEntry  {
+export class Context {
 public:
     Context();
     Context(const Context&);
@@ -25,6 +25,11 @@ private:
 };
 
 }   // namespace kiln::wsi
+
+template <>
+struct kiln::reg::EntryTraits<kiln::wsi::Context> {
+    constexpr static bool is_configuration_entry{ true };
+};
 
 module :private;
 

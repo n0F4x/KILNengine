@@ -156,11 +156,6 @@ auto select_staging_queue(
     }
 }
 
-auto describe_builder(kiln::reg::BuildDirector<Context>& build_director) -> void
-{
-    build_director.use_builder<ContextBuilder>();
-}
-
 Context::Context(Context&& other, const allocator_type& allocator)
     : m_wsi_event_buffer{ std::move(other.m_wsi_event_buffer), allocator },
       m_wsi_event_recorder{ std::move(other.m_wsi_event_recorder), allocator },
@@ -582,3 +577,10 @@ auto Context::run_main_thread_loop(
 }
 
 }   // namespace demo
+
+auto kiln::reg::EntryTraits<demo::Context>::describe_build(
+    BuildDirector<demo::Context>& build_director
+) -> void
+{
+    build_director.use_builder<demo::ContextBuilder>();
+}

@@ -1,21 +1,19 @@
 export module kiln.reg;
 
-export import kiln.reg.BuildableEntry;
-export import kiln.reg.BuildableEntryBase;
 export import kiln.reg.BuildableEntryBuilder;
 export import kiln.reg.BuildableEntryBuilderBase;
 export import kiln.reg.BuildDirector;
 export import kiln.reg.configuration_entry_c;
-export import kiln.reg.ConfigurationEntry;
 export import kiln.reg.CyclicDependencyDetected;
 export import kiln.reg.DependencyChainNode;
+export import kiln.reg.describes_entry_build_c;
 export import kiln.reg.entry_builder_c;
 export import kiln.reg.entry_c;
-export import kiln.reg.EntryBase;
 export import kiln.reg.EntryBuilderBase;
 export import kiln.reg.EntryBuilderContainer;
 export import kiln.reg.EntryBuilderFailedError;
 export import kiln.reg.EntryInjectionContainer;
+export import kiln.reg.EntryTraits;
 export import kiln.reg.ErasedEntry;
 export import kiln.reg.Registry;
 export import kiln.reg.RegistryBuilder;

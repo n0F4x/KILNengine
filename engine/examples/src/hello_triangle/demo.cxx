@@ -63,11 +63,6 @@ auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director
     build_director.use_function<ContextBuilder::create>();
 }
 
-auto describe_build(kiln::reg::BuildDirector<Context>& build_director) -> void
-{
-    build_director.use_builder<ContextBuilder>();
-}
-
 [[nodiscard]]
 auto create_window(const kiln::app::Config& config, const kiln::wsi::Context& wsi_context)
     -> kiln::wsi::Window
@@ -308,7 +303,7 @@ auto Context::on_window_resize(const kiln::wsi::Size2u new_resolution) -> void
         return;
     }
 
-    m_render_device_ref.get().logical_device().waitIdle();
+    kiln::gfx::vulkan::check_result(m_render_device_ref.get().logical_device().waitIdle());
     m_surface.resize(new_resolution);
 }
 
@@ -428,7 +423,14 @@ auto Context::render(std::pmr::memory_resource& transient_memory_resource) -> vo
 // ReSharper disable once CppMemberFunctionMayBeConst
 auto Context::shut_down() -> void
 {
-    m_render_device_ref.get().logical_device().waitIdle();
+    kiln::gfx::vulkan::check_result(m_render_device_ref.get().logical_device().waitIdle());
 }
 
 }   // namespace demo
+
+auto kiln::reg::EntryTraits<demo::Context>::describe_build(
+    BuildDirector<demo::Context>& build_director
+) -> void
+{
+    build_director.use_builder<demo::ContextBuilder>();
+}

@@ -11,11 +11,6 @@ import kiln.gfx.vulkan.InstanceBuilder;
 
 namespace kiln::gfx::vulkan {
 
-auto describe_build(reg::BuildDirector<Instance>& build_director) -> void
-{
-    build_director.use_builder<InstanceBuilder>();
-}
-
 Instance::Instance(const uint32_t api_version, vk::raii::Instance&& instance)
     : m_api_version{ api_version },
       m_instance{ std::move(instance) }
@@ -33,3 +28,10 @@ auto Instance::api_version() const noexcept -> uint32_t
 }
 
 }   // namespace kiln::gfx::vulkan
+
+auto kiln::reg::EntryTraits<kiln::gfx::vulkan::Instance>::describe_build(
+    BuildDirector<gfx::vulkan::Instance>& build_director
+) -> void
+{
+    build_director.use_builder<gfx::vulkan::InstanceBuilder>();
+}

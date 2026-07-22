@@ -8,7 +8,6 @@ export module kiln.reg.entry_builder_c;
 import kiln.reg.BuildableEntryBuilderBase;
 import kiln.reg.configuration_entry_c;
 import kiln.reg.entry_c;
-import kiln.reg.EntryBase;
 import kiln.reg.EntryBuilderBase;
 import kiln.reg.represents_entry_dependency_c;
 import kiln.util.concepts.specialization_of;
@@ -67,8 +66,7 @@ concept entry_builder_c = util::storable_c<T>
                        && std::derived_from<T, EntryBuilderBase>
                        && requires { requires is_entry_builder(&T::build); }
                        && (std::default_initializable<T>
-                           || std::derived_from<T, internal::BuildableEntryBuilderBase>)
-                       && !std::derived_from<T, EntryBase>;
+                           || std::derived_from<T, internal::BuildableEntryBuilderBase>);
 
 export template <typename T>
 concept decays_to_entry_builder_c = entry_builder_c<std::decay_t<T>>;

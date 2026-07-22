@@ -15,7 +15,10 @@ concept build_description_c = std::invocable<T, BuildDirector<EntryBuilder_T>&>;
 
 export template <typename EntryBuilder_T, auto describe_build_T>
 class BuildableEntryBuilder : public internal::BuildableEntryBuilderBase {
-    friend auto describe_build(BuildDirector<EntryBuilder_T>& build_director) -> void
+    friend auto describe_build(
+        BuildableEntryBuilderBase,
+        BuildDirector<EntryBuilder_T>& build_director
+    ) -> void
     {
         static_assert(build_description_c<decltype(describe_build_T), EntryBuilder_T>);
         static_assert(std::derived_from<EntryBuilder_T, BuildableEntryBuilder>);

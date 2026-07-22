@@ -1,15 +1,16 @@
+#include <concepts>
 #include <cstdio>
 
 import kiln.app;
 import kiln.reg;
 import kiln.util.containers.OptionalRef;
 
-struct GraphicsSystemIntegration : kiln::reg::EntryBase {};
+struct BuildableEntry {};
 
-template <typename Entry_T>
-struct BuildDescriber {
-    constexpr static auto operator()(kiln::reg::BuildDirector<Entry_T>& build_director)
-        -> void
+template <std::derived_from<BuildableEntry> Entry_T>
+    requires kiln::reg::entry_c<Entry_T>
+struct kiln::reg::EntryTraits<Entry_T> {
+    constexpr static auto describe_build(BuildDirector<Entry_T>& build_director) -> void
     {
         build_director.template use_builder<typename Entry_T::Builder>();
     }
@@ -25,8 +26,9 @@ struct BuilderBuildDescriber {
     }
 };
 
-struct WindowSystem
-    : kiln::reg::BuildableEntry<WindowSystem, BuildDescriber<WindowSystem>{}> {
+struct GraphicsSystemIntegration {};
+
+struct WindowSystem : BuildableEntry {
     struct Builder;
 
     GraphicsSystemIntegration* graphics_system{};
@@ -47,9 +49,7 @@ struct WindowSystem::Builder : kiln::reg::EntryBuilderBase {
     }
 };
 
-struct RenderSystem
-    : kiln::reg::BuildableEntry<RenderSystem, BuildDescriber<RenderSystem>{}>   //
-{
+struct RenderSystem : BuildableEntry {
     struct Builder;
 
     GraphicsSystemIntegration& graphics_system;

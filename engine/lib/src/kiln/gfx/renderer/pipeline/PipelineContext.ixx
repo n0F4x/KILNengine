@@ -1,14 +1,17 @@
 export module kiln.gfx.renderer.pipeline.PipelineContext;
 
-import kiln.reg.BuildableEntry;
 import kiln.reg.BuildDirector;
+import kiln.reg.EntryTraits;
 
 namespace kiln::gfx::renderer {
 
-export struct PipelineContext;
-
-auto describe_build(reg::BuildDirector<PipelineContext>& build_director) -> void;
-
-struct PipelineContext : reg::BuildableEntry<PipelineContext, describe_build> {};
+export struct PipelineContext {};
 
 }   // namespace kiln::gfx::renderer
+
+template <>
+struct kiln::reg::EntryTraits<kiln::gfx::renderer::PipelineContext> {
+    static auto describe_build(
+        BuildDirector<gfx::renderer::PipelineContext>& build_director
+    ) -> void;
+};

@@ -22,8 +22,8 @@ import kiln.gfx.renderer.command.Queue;
 import kiln.gfx.renderer.command.QueueRef;
 import kiln.gfx.renderer.command.QueueRefBase;
 import kiln.gfx.renderer.command.QueueType;
-import kiln.reg.BuildableEntry;
 import kiln.reg.BuildDirector;
+import kiln.reg.EntryTraits;
 
 namespace kiln::gfx::renderer {
 
@@ -46,12 +46,7 @@ public:
     );
 };
 
-export class QueueProvider;
-
-auto describe_build(reg::BuildDirector<QueueProvider>& build_director) -> void;
-
-class QueueProvider : private QueueProviderPrecondition,
-                      public reg::BuildableEntry<QueueProvider, describe_build> {
+export class QueueProvider : private QueueProviderPrecondition {
 public:
     using QueueIndices = QueueIndices;
 
@@ -101,6 +96,13 @@ private:
 };
 
 }   // namespace kiln::gfx::renderer
+
+template <>
+struct kiln::reg::EntryTraits<kiln::gfx::renderer::QueueProvider> {
+    static auto describe_build(
+        BuildDirector<gfx::renderer::QueueProvider>& build_director
+    ) -> void;
+};
 
 namespace kiln::gfx::renderer {
 

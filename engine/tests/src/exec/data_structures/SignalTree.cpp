@@ -22,9 +22,9 @@ constexpr auto default_strategy(uint32_t) -> TraversalBias
     return TraversalBias::eLeft;
 }
 
-}   // namespace
-
 const std::string test_name{ util::name_of<SignalTree>() };
+
+}   // namespace
 
 TEST_CASE(test_name)
 {

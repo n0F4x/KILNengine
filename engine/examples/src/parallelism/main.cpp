@@ -1,7 +1,7 @@
 #include <print>
 #include <thread>
 
-import kiln.reg;
+import kiln.reg.Registry;
 import kiln.exec;
 
 auto say_hello_from_thread() -> void
@@ -9,7 +9,7 @@ auto say_hello_from_thread() -> void
     std::println("Hello from thread #{}", std::this_thread::get_id());
 }
 
-struct ContendedResource : kiln::reg::EntryBase {};
+struct ContendedResource {};
 
 auto contend_for_resource_first(kiln::exec::Ref<ContendedResource>) -> void
 {

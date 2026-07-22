@@ -5,11 +5,11 @@ module;
 
 export module kiln.app.memory.MemoryArena;
 
-import kiln.reg.ConfigurationEntry;
+import kiln.reg.EntryTraits;
 
 namespace kiln::app {
 
-export class MemoryArena : public reg::ConfigurationEntry {
+export class MemoryArena {
 public:
     class Builder;
 
@@ -44,3 +44,8 @@ private:
 };
 
 }   // namespace kiln::app
+
+template <>
+struct kiln::reg::EntryTraits<kiln::app::MemoryArena> {
+    constexpr static bool is_configuration_entry{ true };
+};

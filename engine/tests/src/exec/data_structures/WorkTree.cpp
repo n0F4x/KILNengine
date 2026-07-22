@@ -19,7 +19,11 @@ import kiln.util.reflection;
 
 namespace kiln::exec {
 
+namespace {
+
 const std::string test_name{ util::name_of<WorkTree>() };
+
+}   // namespace
 
 TEST_CASE(test_name)
 {

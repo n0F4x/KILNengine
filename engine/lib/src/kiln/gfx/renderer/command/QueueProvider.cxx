@@ -71,11 +71,6 @@ QueueProviderPrecondition::QueueProviderPrecondition(
     }
 }
 
-auto describe_build(reg::BuildDirector<QueueProvider>& build_director) -> void
-{
-    build_director.use_builder<QueueProviderBuilder>();
-}
-
 QueueProvider::QueueProvider(
     std::array<std::optional<Queue>, 3>&& queues,
     const QueueIndices&                   queue_indices
@@ -103,3 +98,10 @@ auto QueueProvider::host_to_device_transfer_queue() noexcept
 }
 
 }   // namespace kiln::gfx::renderer
+
+auto kiln::reg::EntryTraits<kiln::gfx::renderer::QueueProvider>::describe_build(
+    BuildDirector<gfx::renderer::QueueProvider>& build_director
+) -> void
+{
+    build_director.use_builder<gfx::renderer::QueueProviderBuilder>();
+}

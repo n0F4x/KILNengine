@@ -12,16 +12,12 @@ import vulkan;
 import kiln.gfx.vulkan.PhysicalDeviceCapabilities;
 import kiln.gfx.vulkan.QueueFamilyIndex;
 import kiln.gfx.vulkan.QueueFamilyInfo;
-import kiln.reg.BuildableEntry;
 import kiln.reg.BuildDirector;
+import kiln.reg.EntryTraits;
 
 namespace kiln::gfx::renderer {
 
-export class Device;
-
-auto describe_build(reg::BuildDirector<Device>& build_director) -> void;
-
-class Device : public reg::BuildableEntry<Device, describe_build> {
+export class Device {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
@@ -69,3 +65,10 @@ private:
 };
 
 }   // namespace kiln::gfx::renderer
+
+template <>
+struct kiln::reg::EntryTraits<kiln::gfx::renderer::Device> {
+    static auto describe_build(
+        BuildDirector<gfx::renderer::Device>& build_director
+    ) -> void;
+};

@@ -3,11 +3,9 @@ module kiln.gfx.renderer.presentation.PresentationContext;
 import kiln.gfx.renderer.presentation.PresentationContextBuilder;
 import kiln.reg.BuildDirector;
 
-namespace kiln::gfx::renderer {
-
-auto describe_build(reg::BuildDirector<PresentationContext>& build_director) -> void
+auto kiln::reg::EntryTraits<kiln::gfx::renderer::PresentationContext>::describe_build(
+    BuildDirector<gfx::renderer::PresentationContext>& build_director
+) -> void
 {
-    build_director.use_builder<PresentationContextBuilder>();
+    build_director.use_builder<gfx::renderer::PresentationContextBuilder>();
 }
-
-}   // namespace kiln::gfx::renderer

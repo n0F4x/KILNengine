@@ -7,11 +7,9 @@ module;
 
 export module kiln.gfx.asset.gltf.Parser;
 
-import kiln.reg.EntryBase;
-
 namespace kiln::gfx::asset::gltf {
 
-export class Parser : public reg::EntryBase {
+export class Parser {
 public:
     [[nodiscard]]
     auto load(const std::filesystem::path& filepath, bool generate_indices = false)

@@ -18,11 +18,6 @@ import kiln.util.contracts;
 
 namespace kiln::gfx::renderer {
 
-auto describe_build(reg::BuildDirector<Device>& build_director) -> void
-{
-    build_director.use_builder<DeviceBuilder>();
-}
-
 Device::Device(Device&& other, const allocator_type& allocator)
     : m_physical_device{ std::move(other.m_physical_device) },
       m_logical_device{ std::move(other.m_logical_device) },
@@ -107,3 +102,10 @@ auto Device::queue_families() const noexcept -> std::span<const vulkan::QueueFam
 }
 
 }   // namespace kiln::gfx::renderer
+
+auto kiln::reg::EntryTraits<kiln::gfx::renderer::Device>::describe_build(
+    BuildDirector<gfx::renderer::Device>& build_director
+) -> void
+{
+    build_director.use_builder<gfx::renderer::DeviceBuilder>();
+}
