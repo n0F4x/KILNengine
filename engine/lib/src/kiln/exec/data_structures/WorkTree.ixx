@@ -2,10 +2,13 @@ module;
 
 #include <atomic>
 #include <expected>
+#include <memory>
 #include <memory_resource>
 #include <optional>
 #include <utility>
 #include <vector>
+
+#include "kiln/util/contract_macros.hpp"
 
 export module kiln.exec.data_structures.WorkTree;
 
@@ -14,7 +17,11 @@ import kiln.exec.data_structures.SignalTree;
 import kiln.exec.data_structures.WorkContract;
 import kiln.exec.data_structures.WorkContinuation;
 import kiln.exec.data_structures.WorkID;
+import kiln.reg.BuildDirector;
+import kiln.reg.EntryTraits;
 import kiln.util.containers.MoveOnlyFunction;
+import kiln.util.contracts;
+import kiln.util.Deleter;
 
 namespace kiln::exec {
 
@@ -56,8 +63,13 @@ public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 
 
-    WorkTree(const WorkTree&)                        = delete ("atomic");
-    WorkTree(const WorkTree&, const allocator_type&) = delete ("atomic");
+    /*
+     * Conversion initialization using allocator
+     */
+    template <typename U>
+        requires(!std::is_base_of_v<WorkTree, std::remove_cvref_t<U>>)
+             && std::is_convertible_v<U&&, WorkTree>
+    WorkTree(U&&, const allocator_type&);
 
     explicit WorkTree(uint64_t capacity, uint32_t number_of_threads);
     explicit WorkTree(
@@ -98,10 +110,13 @@ public:
     auto try_execute_one_work(uint32_t thread_index) -> bool;
 
 private:
-    std::pmr::vector<SignalTree>            m_free_signals;
-    std::pmr::vector<SignalTree>            m_contract_signals;
-    std::pmr::vector<WorkContractSlot>      m_work_contracts_slots;
-    std::atomic<uint32_t>                   m_next_available_sub_tree_index{};
+    std::pmr::vector<SignalTree>                          m_free_signals;
+    std::pmr::vector<SignalTree>                          m_contract_signals;
+    std::pmr::vector<WorkContractSlot>                    m_work_contracts_slots;
+    std::unique_ptr<std::atomic<uint32_t>, util::Deleter> m_next_available_sub_tree_index{
+        m_work_contracts_slots.get_allocator().new_object<std::atomic_uint32_t>(),
+        util::Deleter{ m_work_contracts_slots.get_allocator() },
+    };
     std::pmr::vector<std::atomic<uint32_t>> m_per_thread_emplace_strategy_index;
     std::pmr::vector<std::atomic<uint32_t>> m_per_thread_execute_strategy_index;
 
@@ -123,8 +138,27 @@ private:
 
 
     static_assert(
-        std::remove_cvref_t<decltype(m_next_available_sub_tree_index)>::is_always_lock_free
+        std::remove_cvref_t<
+            decltype(m_next_available_sub_tree_index)::element_type>::is_always_lock_free
     );
 };
 
 }   // namespace kiln::exec
+
+namespace kiln::exec {
+
+template <typename U>
+    requires(!std::is_base_of_v<WorkTree, std::remove_cvref_t<U>>)
+         && std::is_convertible_v<U&&, WorkTree>
+WorkTree::WorkTree(U&& other, const allocator_type& allocator)
+    : WorkTree(std::forward<U>(other))
+{
+    PRECOND(get_allocator() == allocator);
+}
+
+}   // namespace kiln::exec
+
+template <>
+struct kiln::reg::EntryTraits<kiln::exec::WorkTree> {
+    static auto describe_build(BuildDirector<exec::WorkTree>& build_director) -> void;
+};

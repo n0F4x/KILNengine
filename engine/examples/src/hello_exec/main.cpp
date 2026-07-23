@@ -1,8 +1,8 @@
 #include <cstdio>
-#include <memory_resource>   // workaround for a linker bug
 
-import kiln.reg.Registry;
+import kiln.app;
 import kiln.exec;
+import kiln.reg.Registry;
 
 struct Message {
     const char* value;
@@ -15,10 +15,13 @@ auto greet(const kiln::exec::Ref<const Message> message) -> void
 
 auto main() -> int
 {
-    kiln::reg::Registry registry;
-    registry.insert(Message{ .value = "Hello exec!" });
+    kiln::app::App app = kiln::app::create().apply_bundle(kiln::exec::Bundle{}).build();
 
-    kiln::exec::Task task{ greet, registry };
+    app.registry().insert(Message{ .value = "Hello exec!" });
+
+    kiln::exec::Task task{ greet, app.registry() };
 
     task();
+
+    return app.registry().contains<kiln::exec::WorkTree>();
 }

@@ -4,6 +4,8 @@ export import kiln.exec.data_structures;
 
 export import kiln.exec.accessor_c;
 export import kiln.exec.AccessPattern;
+export import kiln.exec.Bundle;
+export import kiln.exec.Config;
 export import kiln.exec.Ref;
 export import kiln.exec.Task;
 export import kiln.exec.TaskGroup;

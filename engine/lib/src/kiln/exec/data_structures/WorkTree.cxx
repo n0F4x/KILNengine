@@ -15,10 +15,13 @@ module;
 
 module kiln.exec.data_structures.WorkTree;
 
+import kiln.app.memory.MemoryArena;
+import kiln.exec.Config;
 import kiln.exec.data_structures.SignalTree;
 import kiln.exec.data_structures.WorkContract;
 import kiln.exec.data_structures.WorkContinuation;
 import kiln.util.contracts;
+import kiln.util.Lazy;
 import kiln.util.reflection;
 
 namespace kiln::exec {
@@ -361,7 +364,7 @@ auto WorkTree::try_emplace(
     for (auto _ : std::views::repeat(std::ignore, m_free_signals.size()))
     {
         const auto sub_tree_index{
-            m_next_available_sub_tree_index.fetch_add(1, std::memory_order::relaxed)
+            m_next_available_sub_tree_index->fetch_add(1, std::memory_order::relaxed)
             % m_free_signals.size()
         };
 
@@ -457,3 +460,26 @@ auto WorkTree::handle_work_result(
 }
 
 }   // namespace kiln::exec
+
+[[nodiscard]]
+auto make_work_tree(const kiln::exec::Config& config, kiln::app::MemoryArena& memory_arena)
+{
+    return kiln::util::Lazy{
+        [&config, &memory_arena] -> kiln::exec::WorkTree
+        {
+            return kiln::exec::WorkTree{
+                std::allocator_arg,
+                memory_arena.pool_allocator(),
+                config.task_capacity(),
+                config.number_of_threads(),
+            };
+        },
+    };
+}
+
+auto kiln::reg::EntryTraits<kiln::exec::WorkTree>::describe_build(
+    BuildDirector<exec::WorkTree>& build_director
+) -> void
+{
+    build_director.use_function<make_work_tree>();
+}

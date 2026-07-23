@@ -1,6 +1,7 @@
 add_subdirectory(data_structures)
 
 target_sources(${PROJECT_NAME} PRIVATE
+        Bundle.cxx
         TaskGroup.cxx
 )
 
@@ -12,6 +13,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         Access.ixx
         accessor_c.ixx
         AccessPattern.ixx
+        Bundle.ixx
+        Config.ixx
         Ref.ixx
         Task.ixx
         TaskGroup.ixx
