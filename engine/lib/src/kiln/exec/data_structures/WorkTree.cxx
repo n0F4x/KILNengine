@@ -356,6 +356,25 @@ auto WorkTree::try_execute_one_work(const uint32_t thread_index) -> bool
     return false;
 }
 
+WorkTree::WorkTree(
+    ConvertingConstructorTag,
+    WorkTree&&            other,
+    const allocator_type& allocator
+)
+    : m_free_signals{ std::move(other.m_free_signals) },
+      m_contract_signals{ std::move(other.m_contract_signals) },
+      m_work_contracts_slots{ std::move(other.m_work_contracts_slots) },
+      m_next_available_sub_tree_index{ other.m_next_available_sub_tree_index.load() },
+      m_per_thread_emplace_strategy_index{
+          std::move(other.m_per_thread_emplace_strategy_index)
+      },
+      m_per_thread_execute_strategy_index{
+          std::move(other.m_per_thread_execute_strategy_index)
+      }
+{
+    PRECOND(get_allocator() == allocator);
+}
+
 auto WorkTree::try_emplace(
     WorkContract&&                       work,
     std::optional<ReleaseWorkContract>&& release
@@ -364,7 +383,7 @@ auto WorkTree::try_emplace(
     for (auto _ : std::views::repeat(std::ignore, m_free_signals.size()))
     {
         const auto sub_tree_index{
-            m_next_available_sub_tree_index->fetch_add(1, std::memory_order::relaxed)
+            m_next_available_sub_tree_index.fetch_add(1, std::memory_order::relaxed)
             % m_free_signals.size()
         };
 
