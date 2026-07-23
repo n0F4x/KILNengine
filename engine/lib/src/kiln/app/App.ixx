@@ -27,12 +27,6 @@ private:
 
 namespace kiln::app {
 
-inline App::App(MemoryArena&& memory_arena, reg::Registry&& registry)
-    : m_arena{ memory_arena },
-      m_registry{ std::move(registry) }
-{
-}
-
 template <typename Self_T>
 auto App::registry(this Self_T&& self) noexcept
     -> util::forward_like_t<reg::Registry, Self_T>

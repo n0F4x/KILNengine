@@ -9,6 +9,7 @@ export module kiln.app.Builder;
 import kiln.app.App;
 import kiln.app.config.Config;
 import kiln.app.memory.MemoryArena;
+import kiln.reg.configuration_entry_c;
 import kiln.reg.entry_c;
 import kiln.reg.Registry;
 import kiln.reg.RegistryBuilder;
@@ -17,7 +18,9 @@ namespace kiln::app {
 
 export class Builder {
 public:
-    explicit Builder(const Config& config = Config{});
+    explicit Builder();
+    template <reg::decays_to_configuration_entry_c... Entries_T>
+    explicit Builder(const Config& config, Entries_T&&... entries);
 
 
     template <reg::entry_c Entry_T, typename Self_T>
@@ -40,12 +43,15 @@ private:
 
 namespace kiln::app {
 
-Builder::Builder(const Config& config)
-    : m_registry_builder{
+template <reg::decays_to_configuration_entry_c... Entries_T>
+Builder::Builder(const Config& config, Entries_T&&... entries)
+    : m_arena{},   // TODO (compiler bug): don't initialize m_arena explicitly
+      m_registry_builder{
           std::allocator_arg,
           m_arena.pool_allocator(),
           auto{ m_arena },
           config,
+          std::forward<Entries_T>(entries)...,
       }
 {
 }
@@ -63,19 +69,6 @@ auto Builder::apply_bundle(this Self_T&& self, Bundle_T&& bundle) -> Self_T&&
 {
     std::invoke(std::forward<Bundle_T>(bundle), self);
     return std::forward<Self_T>(self);
-}
-
-auto Builder::build() && -> App
-{
-    std::pmr::monotonic_buffer_resource transient_memory_resource{
-        m_arena.make_transient_resource()
-    };
-
-    reg::Registry registry{
-        std::move(m_registry_builder).build(transient_memory_resource)
-    };
-
-    return App{ std::move(m_arena), std::move(registry) };
 }
 
 }   // namespace kiln::app
