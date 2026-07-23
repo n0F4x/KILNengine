@@ -6,7 +6,6 @@ module;
 export module kiln.reg.entry_builder_c;
 
 import kiln.reg.BuildableEntryBuilderBase;
-import kiln.reg.configuration_entry_c;
 import kiln.reg.entry_c;
 import kiln.reg.EntryBuilderBase;
 import kiln.reg.represents_entry_dependency_c;

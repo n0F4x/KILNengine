@@ -11,7 +11,6 @@ module;
 export module kiln.reg.BuildDirector;
 
 import kiln.reg.BuildableEntryBuilderBase;
-import kiln.reg.configuration_entry_c;
 import kiln.reg.entry_c;
 import kiln.reg.entry_builder_c;
 import kiln.reg.EntryBuilderBase;
@@ -227,8 +226,6 @@ auto BuildDirectorBase::build_entry() const -> void
                       EntryTraits<Entry_T>::describe_build(build_director);
                   })
     {
-        static_assert(not configuration_entry_c<Entry_T>);
-
         BuildDirector<Entry_T> build_director{
             *m_injection_container,
             *m_builder_container,
@@ -239,8 +236,6 @@ auto BuildDirectorBase::build_entry() const -> void
     }
     else
     {
-        static_assert(std::default_initializable<Entry_T>);
-
         m_registry->try_emplace<Entry_T>();
     }
 }
