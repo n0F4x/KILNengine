@@ -1,6 +1,5 @@
 module;
 
-#include <concepts>
 #include <type_traits>
 
 export module kiln.reg.entry_c;
@@ -12,7 +11,7 @@ namespace kiln::reg {
 
 export template <typename T>
 concept entry_c = util::storable_in_any_c<T, util::BasicMoveOnlyAny<0>>
-               && !std::derived_from<T, EntryBuilderBase>;
+               && !std::is_base_of_v<internal::EntryBuilderBase, T>;
 
 export template <typename T>
 concept decays_to_entry_c = entry_c<std::decay_t<T>>;

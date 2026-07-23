@@ -23,6 +23,8 @@ target_sources(${PROJECT_NAME} PUBLIC
         EntryBuilderBase.ixx
         EntryBuilderContainer.ixx
         EntryBuilderFailedError.ixx
+        EntryBuilderInterface.ixx
+        EntryBuilderTraits.ixx
         EntryInjectionContainer.ixx
         EntryTraits.ixx
         ErasedEntry.ixx

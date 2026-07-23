@@ -16,6 +16,7 @@ export module kiln.reg.EntryBuilderContainer;
 
 import kiln.reg.DependencyChainNode;
 import kiln.reg.EntryBuilderBase;
+import kiln.reg.EntryBuilderInterface;
 import kiln.reg.strip_dependency_t;
 import kiln.reg.Registry;
 import kiln.reg.ReverseDependencyChainNode;
@@ -168,7 +169,7 @@ auto fetch_dependency(EntryBuilderContainer& builders, Registry& registry) -> De
 {
     using StrippedDependency = strip_dependency_t<Dependency_T>;
 
-    if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+    if constexpr (std::is_base_of_v<internal::EntryBuilderBase, StrippedDependency>)
     {
         if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
         {
@@ -198,15 +199,15 @@ struct ErasedEntryBuilderLambda {
 
     auto operator()(EntryBuilderContainer& builders, Registry& registry) && -> void
     {
-        [this,
-         &builders,
-         &registry]<typename... Dependencies_T>(util::TypeList<Dependencies_T...>) -> void
-        {
-            registry.insert(
-                std::move(builder)
-                    .build(fetch_dependency<Dependencies_T>(builders, registry)...)
-            );
-        }(util::arguments_of_t<decltype(&Builder_T::build)>{});
+        build(
+            internal::EntryBuilderBase{},
+            std::move(builder),
+            registry,
+            [&builders, &registry]<typename Dependency_T> -> Dependency_T
+            {
+                return fetch_dependency<Dependency_T>(builders, registry);   //
+            }
+        );
     }
 };
 
@@ -290,7 +291,7 @@ auto EntryBuilderContainer::try_emplace(Args_T&&... args) -> bool
          &entry_dependency_hashes]<typename Dependency_T> -> void
         {
             using StrippedDependency = strip_dependency_t<Dependency_T>;
-            if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+            if constexpr (std::is_base_of_v<internal::EntryBuilderBase, StrippedDependency>)
             {
                 builder_dependency_hashes.push_back(
                     util::hash_u64<

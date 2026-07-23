@@ -42,7 +42,7 @@ struct CreateInfo {
 
 export class InstanceBuilder
     : InstanceBuilderPrecondition,
-      public reg::BuildableEntryBuilder<InstanceBuilder, describe_build>   //
+      public reg::BuildableEntryBuilder<Instance, InstanceBuilder, describe_build>   //
 {
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;

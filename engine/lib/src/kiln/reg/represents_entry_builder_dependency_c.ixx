@@ -15,10 +15,12 @@ namespace kiln::reg {
 export template <typename T>
 concept represents_entry_builder_dependency_c
     = (std::is_lvalue_reference_v<T>
-       && (std::derived_from<std::remove_cvref_t<T>, EntryBuilderBase>
+       && (std::is_base_of_v<internal::EntryBuilderBase, std::remove_cvref_t<T>>
            || requires { requires EntryTraits<T>::is_configuration_entry; }))
    || (util::specialization_of_c<T, util::OptionalRef>
-       && (std::derived_from<std::remove_cvref_t<typename T::ValueType>, EntryBuilderBase>
+       && (std::is_base_of_v<
+               internal::EntryBuilderBase,
+               std::remove_cvref_t<typename T::ValueType>>
            || requires { requires EntryTraits<T>::is_configuration_entry; }));
 
 }   // namespace kiln::reg

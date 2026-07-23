@@ -20,7 +20,8 @@ class ContextBuilder;
 auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director) -> void;
 
 class ContextBuilder
-    : public kiln::reg::BuildableEntryBuilder<ContextBuilder, describe_injection> {
+    : public kiln::reg::BuildableEntryBuilder<Context, ContextBuilder, describe_injection>   //
+{
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed

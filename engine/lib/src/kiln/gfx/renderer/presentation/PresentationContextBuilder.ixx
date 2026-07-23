@@ -11,8 +11,10 @@ export class PresentationContextBuilder;
 auto describe_build(reg::BuildDirector<PresentationContextBuilder>& build_director)
     -> void;
 
-export class PresentationContextBuilder
-    : public reg::BuildableEntryBuilder<PresentationContextBuilder, describe_build>   //
+export class PresentationContextBuilder : public reg::BuildableEntryBuilder<
+                                              PresentationContext,
+                                              PresentationContextBuilder,
+                                              describe_build>   //
 {
 public:
     [[nodiscard]]

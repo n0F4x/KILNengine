@@ -25,7 +25,7 @@ export class QueueProviderBuilder;
 auto describe_build(reg::BuildDirector<QueueProviderBuilder>& build_director) -> void;
 
 export class QueueProviderBuilder
-    : public reg::BuildableEntryBuilder<QueueProviderBuilder, describe_build> {
+    : public reg::BuildableEntryBuilder<QueueProvider, QueueProviderBuilder, describe_build> {
 public:
     auto require_queue(QueueType type) -> void;
     auto request_queue(QueueType type) -> void;

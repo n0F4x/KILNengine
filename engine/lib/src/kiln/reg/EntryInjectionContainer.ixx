@@ -123,7 +123,7 @@ struct ErasedEntryInjectionLambda {
     {
         using StrippedDependency = strip_dependency_t<Dependency_T>;
 
-        if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+        if constexpr (std::is_base_of_v<internal::EntryBuilderBase, StrippedDependency>)
         {
             if constexpr (util::specialization_of_c<Dependency_T, util::OptionalRef>)
             {

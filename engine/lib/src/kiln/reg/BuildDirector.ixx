@@ -15,6 +15,7 @@ import kiln.reg.entry_c;
 import kiln.reg.entry_builder_c;
 import kiln.reg.EntryBuilderBase;
 import kiln.reg.EntryBuilderContainer;
+import kiln.reg.EntryBuilderInterface;
 import kiln.reg.EntryInjectionContainer;
 import kiln.reg.EntryTraits;
 import kiln.reg.Registry;
@@ -111,19 +112,21 @@ private:
 
 template <typename T, typename Entry_T>
 concept builds_entry_c
-    = entry_builder_c<T> && std::same_as<util::result_of_t<decltype(&T::build)>, Entry_T>;
+    = entry_builder_c<T>
+   && std::convertible_to<util::result_of_t<decltype(&T::build)>, Entry_T>;
 
 template <typename Entry_T, typename FuncPtr_T>
-struct IsEntryMakerFunctionPointer {
-    constexpr static bool value{ false };
-};
+struct IsEntryMakerFunctionPointer;
 
-template <typename Entry_T, typename... Args_T, bool is_noexcept_T>
+template <typename Entry_T, typename Result_T, typename... Args_T, bool is_noexcept_T>
 struct IsEntryMakerFunctionPointer<
     Entry_T,
-    auto (*)(Args_T...) noexcept(is_noexcept_T)->Entry_T>   //
+    auto (*)(Args_T...) noexcept(is_noexcept_T)->Result_T>   //
 {
-    constexpr static bool value{ (represents_entry_dependency_c<Args_T> && ...) };
+    constexpr static bool value{
+        std::convertible_to<Result_T, Entry_T>
+            && (represents_entry_dependency_c<Args_T> && ...),
+    };
 };
 
 template <typename T, typename Entry_T>
@@ -256,7 +259,7 @@ auto BuildDirectorBase::resolve_dependency() const -> void
     {
         using StrippedDependency = std::remove_cvref_t<Dependency_T>;
 
-        if constexpr (std::derived_from<StrippedDependency, EntryBuilderBase>)
+        if constexpr (std::is_base_of_v<internal::EntryBuilderBase, StrippedDependency>)
         {
             build_builder<StrippedDependency>();
         }
@@ -365,16 +368,17 @@ auto BuildDirector<Entry_T>::use_builder() -> void
     reset();
 }
 
-template <auto func_T>
+template <typename Entry_T, auto func_T>
 struct DummyBuilder;
 
 template <
     typename Entry_T,
+    typename Result_T,
     typename... Dependencies_T,
-    auto (*func_T)(Dependencies_T...)->Entry_T>
-struct DummyBuilder<func_T> {
+    auto (*func_T)(Dependencies_T...)->Result_T>
+struct DummyBuilder<Entry_T, func_T> : EntryBuilderInterface<Entry_T> {
     [[nodiscard]]
-    static auto build(Dependencies_T... dependencies) -> Entry_T
+    static auto build(Dependencies_T... dependencies) -> Result_T
     {
         return func_T(std::forward<Dependencies_T>(dependencies)...);
     }
@@ -385,7 +389,7 @@ template <entry_maker_function_pointer_c<Entry_T> auto func_T>
     requires(func_T != nullptr)
 auto BuildDirector<Entry_T>::use_function() -> void
 {
-    use_builder<DummyBuilder<func_T>>();
+    use_builder<DummyBuilder<Entry_T, func_T>>();
 }
 
 template <entry_c Entry_T>

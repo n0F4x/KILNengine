@@ -67,7 +67,8 @@ class ContextBuilder;
 auto describe_injection(kiln::reg::BuildDirector<ContextBuilder>& build_director) -> void;
 
 class ContextBuilder
-    : public kiln::reg::BuildableEntryBuilder<ContextBuilder, describe_injection> {
+    : public kiln::reg::BuildableEntryBuilder<Context, ContextBuilder, describe_injection>   //
+{
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
@@ -353,7 +354,7 @@ auto Context::run_main_worker(
         grid_size * 2 - 1
     );
 
-    render_device.logical_device().waitIdle();
+    kiln::gfx::vulkan::check_result(render_device.logical_device().waitIdle());
 }
 
 auto Context::create_window(const kiln::app::Config& config, MainThread& main_thread)
@@ -530,7 +531,7 @@ auto Context::run_render_loop(
 
         if (window.framebuffer_size() != render_surface.extent())
         {
-            render_device.logical_device().waitIdle();
+            kiln::gfx::vulkan::check_result(render_device.logical_device().waitIdle());
             render_surface.resize(window.framebuffer_size());
             renderer.resize(render_device, render_allocator, *render_surface.extent());
         }

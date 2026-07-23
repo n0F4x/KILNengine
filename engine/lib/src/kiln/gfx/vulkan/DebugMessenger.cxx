@@ -109,7 +109,8 @@ class DebugMessengerBuilder;
 auto describe_build(reg::BuildDirector<DebugMessengerBuilder>& build_director) -> void;
 
 class DebugMessengerBuilder
-    : public reg::BuildableEntryBuilder<DebugMessengerBuilder, describe_build> {
+    : public reg::
+          BuildableEntryBuilder<DebugMessenger, DebugMessengerBuilder, describe_build> {
 public:
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed

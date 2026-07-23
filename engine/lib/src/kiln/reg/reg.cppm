@@ -12,6 +12,7 @@ export import kiln.reg.entry_c;
 export import kiln.reg.EntryBuilderBase;
 export import kiln.reg.EntryBuilderContainer;
 export import kiln.reg.EntryBuilderFailedError;
+export import kiln.reg.EntryBuilderInterface;
 export import kiln.reg.EntryInjectionContainer;
 export import kiln.reg.EntryTraits;
 export import kiln.reg.ErasedEntry;

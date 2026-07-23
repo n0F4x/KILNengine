@@ -13,7 +13,7 @@ export class AllocatorBuilder;
 auto describe_build(reg::BuildDirector<AllocatorBuilder>& build_director) -> void;
 
 export class AllocatorBuilder
-    : public reg::BuildableEntryBuilder<AllocatorBuilder, describe_build> {
+    : public reg::BuildableEntryBuilder<Allocator, AllocatorBuilder, describe_build> {
 public:
     [[nodiscard]]
     static auto build(const vulkan::Instance& instance, const Device& device)

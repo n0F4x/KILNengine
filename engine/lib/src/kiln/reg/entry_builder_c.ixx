@@ -1,6 +1,5 @@
 module;
 
-#include <concepts>
 #include <type_traits>
 
 export module kiln.reg.entry_builder_c;
@@ -62,10 +61,8 @@ consteval auto is_entry_builder(auto (Builder_T::*)(Dependencies_T...) const&&->
 
 export template <typename T>
 concept entry_builder_c = util::storable_c<T>
-                       && std::derived_from<T, EntryBuilderBase>
-                       && requires { requires is_entry_builder(&T::build); }
-                       && (std::default_initializable<T>
-                           || std::derived_from<T, internal::BuildableEntryBuilderBase>);
+                       && std::is_base_of_v<internal::EntryBuilderBase, T>
+                       && requires { requires is_entry_builder(&T::build); };
 
 export template <typename T>
 concept decays_to_entry_builder_c = entry_builder_c<std::decay_t<T>>;

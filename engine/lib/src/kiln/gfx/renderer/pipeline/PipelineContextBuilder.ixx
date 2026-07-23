@@ -11,7 +11,9 @@ export class PipelineContextBuilder;
 auto describe_build(reg::BuildDirector<PipelineContextBuilder>& build_director) -> void;
 
 export class PipelineContextBuilder
-    : public reg::BuildableEntryBuilder<PipelineContextBuilder, describe_build> {
+    : public reg::
+          BuildableEntryBuilder<PipelineContext, PipelineContextBuilder, describe_build>   //
+{
 public:
     [[nodiscard]]
     static auto build() -> PipelineContext;

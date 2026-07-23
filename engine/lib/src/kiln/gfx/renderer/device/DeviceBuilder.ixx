@@ -27,7 +27,8 @@ export class DeviceBuilder;
 auto describe_build(reg::BuildDirector<DeviceBuilder>& build_director) -> void;
 
 export class DeviceBuilder
-    : public reg::BuildableEntryBuilder<DeviceBuilder, describe_build> {
+    : public reg::BuildableEntryBuilder<Device, DeviceBuilder, describe_build>   //
+{
 public:
     using allocator_type = std::pmr::polymorphic_allocator<>;
 

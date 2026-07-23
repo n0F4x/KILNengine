@@ -7,7 +7,7 @@ import kiln.reg.BuildableEntryBuilder;
 import kiln.reg.BuildDirector;
 import kiln.reg.CyclicDependencyDetected;
 import kiln.reg.entry_c;
-import kiln.reg.EntryBuilderBase;
+import kiln.reg.EntryBuilderInterface;
 import kiln.reg.EntryTraits;
 import kiln.reg.Registry;
 import kiln.reg.RegistryBuilder;
@@ -33,91 +33,113 @@ struct BuildableEntry {};
 struct ConfigurationEntry {};
 
 struct SelfBuildDependentEntry : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(SelfBuildDependentEntry&) noexcept
-            -> SelfBuildDependentEntry
-        {
-            return SelfBuildDependentEntry{};
-        }
-    };
+    struct Builder;
+};
+
+struct SelfBuildDependentEntry::Builder : EntryBuilderInterface<SelfBuildDependentEntry> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(SelfBuildDependentEntry&) noexcept
+        -> SelfBuildDependentEntry
+    {
+        return SelfBuildDependentEntry{};
+    }
 };
 
 struct SelfCreateDependentEntry : BuildableEntry {
-    struct Builder : BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}> {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto create(Builder&) noexcept -> Builder
-        {
-            return Builder{};
-        }
+    struct Builder;
+};
 
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() noexcept -> SelfCreateDependentEntry
-        {
-            return SelfCreateDependentEntry{};
-        }
-    };
+struct SelfCreateDependentEntry::Builder : BuildableEntryBuilder<
+                                               SelfCreateDependentEntry,
+                                               Builder,
+                                               BuilderBuildDescriber<Builder>{}>   //
+{
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto create(Builder&) noexcept -> Builder
+    {
+        return Builder{};
+    }
+
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build() noexcept -> SelfCreateDependentEntry
+    {
+        return SelfCreateDependentEntry{};
+    }
 };
 
 struct OptionalSelfBuildDependentEntry : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(
-            util::OptionalRef<OptionalSelfBuildDependentEntry>
-        ) noexcept -> OptionalSelfBuildDependentEntry
-        {
-            return OptionalSelfBuildDependentEntry{};
-        }
-    };
+    struct Builder;
+};
+
+struct OptionalSelfBuildDependentEntry::Builder
+    : EntryBuilderInterface<OptionalSelfBuildDependentEntry> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(
+        util::OptionalRef<OptionalSelfBuildDependentEntry>
+    ) noexcept -> OptionalSelfBuildDependentEntry
+    {
+        return OptionalSelfBuildDependentEntry{};
+    }
 };
 
 struct OptionalSelfCreateDependentEntry : BuildableEntry {
-    struct Builder : BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}> {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto create(util::OptionalRef<Builder>) noexcept -> Builder
-        {
-            return Builder{};
-        }
+    struct Builder;
+};
 
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() noexcept -> OptionalSelfCreateDependentEntry
-        {
-            return OptionalSelfCreateDependentEntry{};
-        }
-    };
+struct OptionalSelfCreateDependentEntry::Builder
+    : BuildableEntryBuilder<
+          OptionalSelfCreateDependentEntry,
+          Builder,
+          BuilderBuildDescriber<Builder>{}>   //
+{
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto create(util::OptionalRef<Builder>) noexcept -> Builder
+    {
+        return Builder{};
+    }
+
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build() noexcept -> OptionalSelfCreateDependentEntry
+    {
+        return OptionalSelfCreateDependentEntry{};
+    }
 };
 
 struct EntryCyclicBuildEntryA;
 struct EntryCyclicBuildEntryB;
 
 struct EntryCyclicBuildEntryA : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(EntryCyclicBuildEntryB&) noexcept
-            -> EntryCyclicBuildEntryA
-        {
-            return EntryCyclicBuildEntryA{};
-        }
-    };
+    struct Builder;
+};
+
+struct EntryCyclicBuildEntryA::Builder : EntryBuilderInterface<EntryCyclicBuildEntryA> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(EntryCyclicBuildEntryB&) noexcept
+        -> EntryCyclicBuildEntryA
+    {
+        return EntryCyclicBuildEntryA{};
+    }
 };
 
 struct EntryCyclicBuildEntryB : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(EntryCyclicBuildEntryA&) noexcept
-            -> EntryCyclicBuildEntryB
-        {
-            return EntryCyclicBuildEntryB{};
-        }
-    };
+    struct Builder;
+};
+
+struct EntryCyclicBuildEntryB::Builder : EntryBuilderInterface<EntryCyclicBuildEntryB> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(EntryCyclicBuildEntryA&) noexcept
+        -> EntryCyclicBuildEntryB
+    {
+        return EntryCyclicBuildEntryB{};
+    }
 };
 
 struct BuilderCyclicBuildEntryA : BuildableEntry {
@@ -129,31 +151,41 @@ struct BuilderCyclicBuildEntryB : BuildableEntry {
 };
 
 struct EntryAndBuilderCyclicBuildEntryA : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() noexcept -> EntryAndBuilderCyclicBuildEntryA
-        {
-            return EntryAndBuilderCyclicBuildEntryA{};
-        }
-    };
+    struct Builder;
+};
+
+struct EntryAndBuilderCyclicBuildEntryA::Builder
+    : EntryBuilderInterface<EntryAndBuilderCyclicBuildEntryA>   //
+{
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build() noexcept -> EntryAndBuilderCyclicBuildEntryA
+    {
+        return EntryAndBuilderCyclicBuildEntryA{};
+    }
 };
 
 struct EntryAndBuilderCyclicBuildEntryB : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(
-            EntryAndBuilderCyclicBuildEntryA&,
-            const EntryAndBuilderCyclicBuildEntryA::Builder&
-        ) noexcept -> EntryAndBuilderCyclicBuildEntryB
-        {
-            return EntryAndBuilderCyclicBuildEntryB{};
-        }
-    };
+    struct Builder;
 };
 
-struct BuilderCyclicBuildEntryA::Builder : EntryBuilderBase {
+struct EntryAndBuilderCyclicBuildEntryB::Builder
+    : EntryBuilderInterface<EntryAndBuilderCyclicBuildEntryB>   //
+{
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(
+        EntryAndBuilderCyclicBuildEntryA&,
+        const EntryAndBuilderCyclicBuildEntryA::Builder&
+    ) noexcept -> EntryAndBuilderCyclicBuildEntryB
+    {
+        return EntryAndBuilderCyclicBuildEntryB{};
+    }
+};
+
+struct BuilderCyclicBuildEntryA::Builder
+    : EntryBuilderInterface<BuilderCyclicBuildEntryA>   //
+{
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     constexpr static auto build(const BuilderCyclicBuildEntryB::Builder&) noexcept
@@ -163,7 +195,9 @@ struct BuilderCyclicBuildEntryA::Builder : EntryBuilderBase {
     }
 };
 
-struct BuilderCyclicBuildEntryB::Builder : EntryBuilderBase {
+struct BuilderCyclicBuildEntryB::Builder
+    : EntryBuilderInterface<BuilderCyclicBuildEntryB>   //
+{
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     constexpr static auto build(const BuilderCyclicBuildEntryA::Builder&) noexcept
@@ -182,7 +216,7 @@ struct CyclicCreateEntryB : BuildableEntry {
 };
 
 struct CyclicCreateEntryA::Builder
-    : BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}> {
+    : BuildableEntryBuilder<CyclicCreateEntryA, Builder, BuilderBuildDescriber<Builder>{}> {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     constexpr static auto create(CyclicCreateEntryB::Builder&) noexcept -> Builder
@@ -199,7 +233,7 @@ struct CyclicCreateEntryA::Builder
 };
 
 struct CyclicCreateEntryB::Builder
-    : BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}> {
+    : BuildableEntryBuilder<CyclicCreateEntryB, Builder, BuilderBuildDescriber<Builder>{}> {
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     constexpr static auto create(CyclicCreateEntryA::Builder&) noexcept -> Builder
@@ -218,73 +252,84 @@ struct CyclicCreateEntryB::Builder
 struct EntryDependencyA {};
 
 struct EntryDependencyB : BuildableEntry {
-    constexpr explicit EntryDependencyB(EntryDependencyA&) noexcept {}
+    struct Builder;
 
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(EntryDependencyA& a) noexcept -> EntryDependencyB
-        {
-            return EntryDependencyB{ a };
-        }
-    };
+    constexpr explicit EntryDependencyB(EntryDependencyA&) noexcept {}
+};
+
+struct EntryDependencyB::Builder : EntryBuilderInterface<EntryDependencyB> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(EntryDependencyA& a) noexcept -> EntryDependencyB
+    {
+        return EntryDependencyB{ a };
+    }
 };
 
 struct EntryBuilderDependencyA : BuildableEntry {
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build() noexcept -> EntryBuilderDependencyA
-        {
-            return EntryBuilderDependencyA{};
-        }
-    };
+    struct Builder;
+};
+
+struct EntryBuilderDependencyA::Builder : EntryBuilderInterface<EntryBuilderDependencyA> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build() noexcept -> EntryBuilderDependencyA
+    {
+        return EntryBuilderDependencyA{};
+    }
 };
 
 struct EntryBuilderDependencyB : BuildableEntry {
+    struct Builder;
+
     constexpr explicit EntryBuilderDependencyB(
         const EntryBuilderDependencyA::Builder&
     ) noexcept
     {
     }
+};
 
-    struct Builder : EntryBuilderBase {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(
-            const EntryBuilderDependencyA::Builder& a_builder
-        ) noexcept -> EntryBuilderDependencyB
-        {
-            return EntryBuilderDependencyB{ a_builder };
-        }
-    };
+struct EntryBuilderDependencyB::Builder : EntryBuilderInterface<EntryBuilderDependencyB> {
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(const EntryBuilderDependencyA::Builder& a_builder) noexcept
+        -> EntryBuilderDependencyB
+    {
+        return EntryBuilderDependencyB{ a_builder };
+    }
 };
 
 struct BuilderEntryDependencyA : ConfigurationEntry {};
 
 struct BuilderEntryDependencyB : BuildableEntry {
+    struct Builder;
+
     constexpr explicit BuilderEntryDependencyB(BuilderEntryDependencyA&) noexcept {}
+};
 
-    struct Builder : BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}> {
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto create(BuilderEntryDependencyA& a) noexcept -> Builder
-        {
-            return Builder{ a };
-        }
+struct BuilderEntryDependencyB::Builder : BuildableEntryBuilder<
+                                              BuilderEntryDependencyB,
+                                              Builder,
+                                              BuilderBuildDescriber<Builder>{}>   //
+{
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto create(BuilderEntryDependencyA& a) noexcept -> Builder
+    {
+        return Builder{ a };
+    }
 
-        std::reference_wrapper<BuilderEntryDependencyA> a;
+    std::reference_wrapper<BuilderEntryDependencyA> a;
 
-        // ReSharper disable once CppDFAUnreachableFunctionCall
-        constexpr explicit Builder(BuilderEntryDependencyA& a) : a{ a } {}
+    // ReSharper disable once CppDFAUnreachableFunctionCall
+    constexpr explicit Builder(BuilderEntryDependencyA& a) : a{ a } {}
 
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr auto build() const noexcept -> BuilderEntryDependencyB
-        {
-            return BuilderEntryDependencyB{ a };
-        }
-    };
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr auto build() const noexcept -> BuilderEntryDependencyB
+    {
+        return BuilderEntryDependencyB{ a };
+    }
 };
 
 struct DependencyInversionEntryA : BuildableEntry {
@@ -292,25 +337,32 @@ struct DependencyInversionEntryA : BuildableEntry {
 };
 
 struct DependencyInversionEntryB : BuildableEntry {
-    struct Builder : BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}> {
-        [[nodiscard]]
-        constexpr static auto create(DependencyInversionEntryA::Builder&) noexcept
-            -> Builder
-        {
-            return Builder{};
-        }
-
-        [[nodiscard]]
-        // ReSharper disable once CppDeclaratorNeverUsed
-        constexpr static auto build(DependencyInversionEntryA&) noexcept
-            -> DependencyInversionEntryB
-        {
-            return DependencyInversionEntryB{};
-        }
-    };
+    struct Builder;
 };
 
-struct DependencyInversionEntryA::Builder : EntryBuilderBase {
+struct DependencyInversionEntryB::Builder : BuildableEntryBuilder<
+                                                DependencyInversionEntryB,
+                                                Builder,
+                                                BuilderBuildDescriber<Builder>{}>   //
+{
+    [[nodiscard]]
+    constexpr static auto create(DependencyInversionEntryA::Builder&) noexcept -> Builder
+    {
+        return Builder{};
+    }
+
+    [[nodiscard]]
+    // ReSharper disable once CppDeclaratorNeverUsed
+    constexpr static auto build(DependencyInversionEntryA&) noexcept
+        -> DependencyInversionEntryB
+    {
+        return DependencyInversionEntryB{};
+    }
+};
+
+struct DependencyInversionEntryA::Builder
+    : EntryBuilderInterface<DependencyInversionEntryA>   //
+{
     [[nodiscard]]
     // ReSharper disable once CppDeclaratorNeverUsed
     constexpr static auto build(const DependencyInversionEntryB::Builder&) noexcept

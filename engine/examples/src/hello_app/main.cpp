@@ -34,7 +34,7 @@ struct WindowSystem : BuildableEntry {
     GraphicsSystemIntegration* graphics_system{};
 };
 
-struct WindowSystem::Builder : kiln::reg::EntryBuilderBase {
+struct WindowSystem::Builder : kiln::reg::EntryBuilderInterface<WindowSystem> {
     bool graphics_support_requested = false;
 
     auto build(
@@ -57,7 +57,8 @@ struct RenderSystem : BuildableEntry {
 };
 
 struct RenderSystem::Builder
-    : kiln::reg::BuildableEntryBuilder<Builder, BuilderBuildDescriber<Builder>{}>   //
+    : kiln::reg::
+          BuildableEntryBuilder<RenderSystem, Builder, BuilderBuildDescriber<Builder>{}>   //
 {
     static auto create(
         const kiln::util::OptionalRef<WindowSystem::Builder> window_builder
