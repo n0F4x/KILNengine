@@ -316,7 +316,15 @@ auto WorkTree::try_execute_one_work(const uint32_t thread_index) -> bool
         )
     );
 
-    for (const uint32_t offset : std::views::iota(0u, m_contract_signals.size()))
+    const uint32_t per_thread_capacity{ m_free_signals.front().number_of_leaves() };
+    const uint32_t thread_count{ static_cast<uint32_t>(m_contract_signals.size()) };
+
+    uint32_t target_index{
+        m_per_thread_execute_strategy_index[thread_index].fetch_add(1)
+                % m_contract_signals[thread_index].number_of_leaves()
+            + m_contract_signals[thread_index].first_leaf_index(),
+    };
+    for (const uint32_t offset : std::views::iota(0u, thread_count))
     {
         const uint32_t sub_tree_index{
             static_cast<uint32_t>((thread_index + offset) % m_contract_signals.size())
@@ -325,11 +333,7 @@ auto WorkTree::try_execute_one_work(const uint32_t thread_index) -> bool
         const std::optional<WorkID> work_id{
             m_contract_signals[sub_tree_index]
                 .try_unset_one(
-                    make_fair_strategy(
-                        m_per_thread_execute_strategy_index[sub_tree_index].fetch_add(1)
-                            % m_contract_signals[sub_tree_index].number_of_leaves()
-                        + m_contract_signals[sub_tree_index].first_leaf_index()
-                    )   //
+                    make_fair_strategy(target_index)   //
                 )
                 .transform(
                     [this, sub_tree_index](const SignalTree::LeafIndex signal_index)
@@ -342,6 +346,11 @@ auto WorkTree::try_execute_one_work(const uint32_t thread_index) -> bool
 
         if (!work_id.has_value())
         {
+            const uint32_t next_offset{ offset + 1 };
+            target_index = (0u - next_offset * ((thread_count - 1u) / 2u))
+                         * per_thread_capacity
+                         / thread_count
+                         % per_thread_capacity;
             continue;
         }
 
